@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authService } from '@/lib/auth';
 import { useAuthStore } from '@/lib/store';
-import { Navbar } from '@/components/Navbar';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,7 +37,6 @@ export default function LoginPage() {
   return (
     // Fond gris léger standardisé
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar />
       
       <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">

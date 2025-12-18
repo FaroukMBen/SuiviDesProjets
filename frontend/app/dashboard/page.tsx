@@ -3,222 +3,202 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Navbar } from '@/components/Navbar'; // Assure-toi que Navbar n'utilise pas de variables CSS cassées aussi !
+import { Navbar } from '@/components/Navbar'; // Ton nouveau composant
 import Link from 'next/link';
 import api from '@/lib/auth';
-import { Card } from '@/components/ui/Card'; // Importe les composants créés
-import { Badge } from '@/components/ui/Badge';
+import { 
+  Clock, 
+  AlertTriangle, 
+  CheckCircle, 
+  FileText,
+  Search,
+  Plus
+} from 'lucide-react';
 
-interface Project {
-  _id: string;
-  title: string;
-  description: string;
-  status: string;
-  owner: any;
-  members: any[];
-  deadline: string;
-}
-
-// Données fictives pour le style (en attendant le backend)
-const MOCK_TASKS = [
-  { id: 1, title: 'Setup repo & CI', assignedTo: 'Ilias', date: '2025-10-05' },
-  { id: 2, title: 'Maquettes Dashboard', assignedTo: 'Ilias', date: '2025-10-02' },
-  { id: 3, title: "Grille d'évaluation - v1", assignedTo: 'Sara', date: '2025-10-08' },
-];
-
-const MOCK_NOTIFS = [
-  { id: 1, text: 'Invitation au projet PFE — App Mobile Santé', date: '2025-09-26' },
-  { id: 2, text: 'Nouveau commentaire sur SAE — Plateforme de suivi', date: '2025-09-29' },
-];
-
-const MOCK_COMMITS = [
-  { id: 1, project: 'SAE — Plateforme de suivi', msg: 'feat: AppShell + sidebar', author: 'Ilias', date: '2025-09-28' },
-  { id: 2, project: 'SAE — Plateforme de suivi', msg: 'chore: seed data', author: 'Sara', date: '2025-09-29' },
-  { id: 3, project: 'PFE — App Mobile Santé', msg: 'fix: auth redirect', author: 'Soufiane', date: '2025-09-27' },
-];
+// --- Composant Carte Statistique (Style Image Fournie) ---
+const StatCard = ({ title, value, icon: Icon, color, subtext }: any) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between transition hover:shadow-md">
+    <div>
+      <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
+      <h3 className={`text-3xl font-bold ${color}`}>{value}</h3>
+      {subtext && <p className="text-xs text-gray-400 mt-2">{subtext}</p>}
+    </div>
+    <div className={`p-3 rounded-full ${color.replace('text-', 'bg-').replace('600', '100').replace('500', '100')}`}>
+      <Icon className={`w-6 h-6 ${color}`} />
+    </div>
+  </div>
+);
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/api/projects');
-      setProjects(response.data.projects);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch projects');
-    } finally {
-      setLoading(false);
-    }
+  // Simulation de données (à remplacer par ton fetchProjects)
+  const stats = {
+    projects: 4,
+    tasksLate: 6,
+    toValidate: 15,
+    avgScore: 14.5
   };
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      <div className="min-h-screen bg-[#f3f4f6] flex font-sans">
+        {/* 1. Sidebar Fixe à Gauche */}
         <Navbar />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* En-tête */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
-              <p className="text-gray-500 mt-1">Bon retour, {user?.name}</p>
-            </div>
-            <Link
-              href="/projects/new"
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition shadow-sm text-sm"
-            >
-              + Nouveau Projet
-            </Link>
-          </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Section 1 : Mes Projets */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Mes projets</h2>
-              <Link href="/projects" className="text-sm text-primary-600 hover:text-primary-700 font-medium">Voir tout</Link>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              </div>
-            ) : projects.length === 0 ? (
-              <Card className="text-center py-12">
-                <p className="text-gray-500 mb-4">Vous n'avez aucun projet pour le moment.</p>
-                <Link href="/projects/new" className="text-primary-600 hover:underline font-medium">Créer votre premier projet</Link>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                  <Card key={project._id} className="hover:shadow-md transition-shadow duration-200 relative group">
-                    {/* Header de la carte */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex gap-2">
-                         {/* Badge statique pour l'instant (à dynamiser plus tard) */}
-                        <Badge variant="blue">Dev Web</Badge>
-                        <span className="text-xs text-gray-500 py-1">
-                          {project.owner?.name || "M. Dupont"}
-                        </span>
-                      </div>
-                      {/* Icône étoile (placeholder) */}
-                      <button className="text-gray-400 hover:text-yellow-400 transition">★</button>
-                    </div>
-
-                    {/* Titre */}
-                    <Link href={`/projects/${project._id}`} className="block mb-6">
-                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2">
-                        {project.title}
-                      </h3>
-                    </Link>
-
-                    {/* Footer de la carte */}
-                    <div className="flex items-center justify-between mt-auto">
-                        <Link href="#" className="text-xs text-primary-600 hover:underline font-medium">Lien Git</Link>
-                        
-                        <div className="flex items-center gap-2">
-                            {/* Avatars membres (Initiales) */}
-                            <div className="flex -space-x-2">
-                                {project.members?.slice(0, 3).map((m: any, i: number) => (
-                                    <div key={i} className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-600">
-                                        {m.name ? m.name[0] : '?'}
-                                    </div>
-                                ))}
-                            </div>
-                            <Link 
-                                href={`/projects/${project._id}`}
-                                className="px-3 py-1 border border-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
-                            >
-                                Ouvrir
-                            </Link>
-                        </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Section 2 : Tâches & Notifications (Grid 2 colonnes) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* 2. Contenu Principal (Décalé de 64 = 16rem = largeur sidebar) */}
+        <div className="flex-1 ml-64">
+          
+          {/* Header (Top Bar) */}
+          <header className="bg-white h-20 border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-40">
+            <h2 className="text-xl font-bold text-gray-800">Tableau de bord</h2>
             
-            {/* Colonne Tâches */}
-            <div>
-               <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-lg font-bold text-gray-900">Tâches à faire</h2>
-               </div>
-               <div className="space-y-3">
-                 {MOCK_TASKS.map(task => (
-                   <Card key={task.id} className="p-4 flex items-center justify-between !py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-sm text-gray-900">{task.title}</span>
-                        <span className="text-xs text-gray-400">assigné à {task.assignedTo}</span>
-                      </div>
-                      <Badge variant="gray">{task.date}</Badge>
-                   </Card>
-                 ))}
-               </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-bold text-gray-900">{user?.name || 'Utilisateur'}</p>
+                <p className="text-xs text-gray-500">{user?.role || 'Étudiant'}</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm">
+                {user?.name ? user.name[0] : 'U'}
+              </div>
+            </div>
+          </header>
+
+          <main className="p-8 max-w-[1600px] mx-auto space-y-8">
+            
+            {/* 1. Cartes Statistiques (Top Row) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard 
+                title="Projets en cours" 
+                value={stats.projects} 
+                icon={Folder} 
+                color="text-blue-600" 
+              />
+              <StatCard 
+                title="Livrables à valider" 
+                value={stats.toValidate} 
+                icon={FileText} 
+                color="text-yellow-500" 
+                subtext="Attention requise"
+              />
+              <StatCard 
+                title="Tâches en retard" 
+                value={stats.tasksLate} 
+                icon={AlertTriangle} 
+                color="text-red-500" 
+                subtext="Critique"
+              />
+              <StatCard 
+                title="Moyenne Promo" 
+                value={stats.avgScore} 
+                icon={CheckCircle} 
+                color="text-emerald-500" 
+                subtext="/ 20"
+              />
             </div>
 
-            {/* Colonne Notifications */}
-            <div>
-               <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-lg font-bold text-gray-900">Notifications</h2>
-                 <button className="text-sm text-primary-600 hover:text-primary-700">Voir tout</button>
-               </div>
-               <div className="bg-white rounded-xl border border-gray-200 shadow-sm divide-y divide-gray-100">
-                 {MOCK_NOTIFS.map(notif => (
-                   <div key={notif.id} className="p-4 flex justify-between items-start hover:bg-gray-50 transition">
-                      <p className="text-sm text-gray-600">{notif.text}</p>
-                      <span className="text-xs text-gray-400 whitespace-nowrap ml-4">{notif.date}</span>
-                   </div>
-                 ))}
-               </div>
-            </div>
-          </div>
-
-          {/* Section 3 : Derniers Commits */}
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Derniers commits</h2>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projet</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auteur</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        </tr>
+            {/* 2. Grille Principale (Tableau + Actions) */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              
+              {/* Colonne Gauche (Large) : Tableau des Projets Récents */}
+              <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                    <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
+                    Projets récents
+                  </h3>
+                  <button className="text-sm text-blue-600 hover:underline">Voir tout</button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-gray-600">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Projet</th>
+                        <th className="px-6 py-4">Date limite</th>
+                        <th className="px-6 py-4">Matière</th>
+                        <th className="px-6 py-4">Statut</th>
+                        <th className="px-6 py-4 text-right">Action</th>
+                      </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {MOCK_COMMITS.map((commit) => (
-                            <tr key={commit.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{commit.project}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{commit.msg}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{commit.author}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{commit.date}</td>
-                            </tr>
-                        ))}
+                    <tbody className="divide-y divide-gray-100">
+                      {[1, 2, 3].map((i) => (
+                        <tr key={i} className="hover:bg-gray-50/50 transition">
+                          <td className="px-6 py-4 font-medium text-gray-900">SAE - Plateforme Web</td>
+                          <td className="px-6 py-4">18/10/2025</td>
+                          <td className="px-6 py-4">Informatique</td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-600">
+                              <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                              En cours
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                             <Link href="#" className="text-blue-600 font-medium hover:text-blue-800">Ouvrir</Link>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
-                </table>
-            </div>
-          </div>
+                  </table>
+                </div>
+              </div>
 
-        </main>
+              {/* Colonne Droite : Actions & Alertes */}
+              <div className="space-y-8">
+                
+                {/* Actions Rapides */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    ⚡ Actions rapides
+                  </h3>
+                  <div className="space-y-3">
+                    <Link href="/projects/new" className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                      <Plus size={18} />
+                      Nouveau Projet
+                    </Link>
+                    <button className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition shadow-lg shadow-emerald-200">
+                      <CheckCircle size={18} />
+                      Valider Livrables
+                    </button>
+                    <button className="flex items-center justify-center gap-2 w-full py-3 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-800 transition shadow-lg shadow-slate-200">
+                      <Search size={18} />
+                      Rechercher Étudiant
+                    </button>
+                  </div>
+                </div>
+
+                {/* Alertes Importantes */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                  <h3 className="font-bold text-gray-800 mb-4">🔔 Alertes importantes</h3>
+                  <div className="space-y-3">
+                    <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800 flex gap-3">
+                      <AlertTriangle className="shrink-0 w-5 h-5 text-red-500" />
+                      <div>
+                        <span className="font-bold block mb-1">Retard Critique</span>
+                        Le groupe "App Santé" n'a pas commité depuis 5 jours.
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-sm text-yellow-800 flex gap-3">
+                      <Clock className="shrink-0 w-5 h-5 text-yellow-600" />
+                      <div>
+                        <span className="font-bold block mb-1">Jalon Approche</span>
+                        Rendu final SAE S3 attendu pour demain.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </main>
+        </div>
       </div>
     </ProtectedRoute>
   );
 }
+
+// Petite correction d'import temporaire si tu n'as pas Folder importé
+import { Folder } from 'lucide-react';

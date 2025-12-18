@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authService } from '@/lib/auth';
 import { useAuthStore } from '@/lib/store';
-import { Navbar } from '@/components/Navbar';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,7 +36,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[--color-background]">
-      <Navbar />
       
       <div className="max-w-md mx-auto px-4 py-16">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-[--color-border]">

@@ -10,6 +10,12 @@ const projectSchema = new mongoose.Schema({
   startDate: Date,
   deadline: Date,
   tags: [String],
+  files: [{
+    name: String,
+    path: String,
+    mimetype: String,
+    uploadedAt: { type: Date, default: Date.now }
+  }],
   visibility: { type: String, enum: ['private', 'public'], default: 'private' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

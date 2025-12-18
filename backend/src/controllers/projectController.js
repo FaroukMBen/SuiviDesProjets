@@ -1,5 +1,7 @@
 const Project = require('../models/Project');
 const Task = require('../models/Task');
+const Livrable = require('../models/Livrable');
+const mongoose = require('mongoose');
 
 class ProjectController {
   static async getAllProjects(req, res) {
@@ -157,6 +159,133 @@ class ProjectController {
       await Project.findByIdAndDelete(req.params.id);
 
       res.json({ success: true, message: 'Project deleted' });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  static async uploadFile(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const project = await Project.findById(req.params.id);
+
+      if (!project) {
+        return res.status(404).json({ success: false, message: 'Project not found' });
+      }
+
+      // Check access (owner or member)
+      const isOwner = project.owner.toString() === req.user.id;
+      const isMember = project.members.some(m => m.toString() === req.user.id);
+
+      if (!isOwner && !isMember && req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+      }
+
+      // Create Livrable
+      const newLivrable = new Livrable({
+        studentId: req.user.id,
+        projectId: project._id,
+        fileId: req.file.id,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype
+      });
+
+      await newLivrable.save();
+
+      const newFile = {
+        name: req.file.originalname,
+        path: `api/projects/files/${req.file.filename}`,
+        mimetype: req.file.mimetype,
+        uploadedAt: newLivrable.uploadDate
+      };
+
+      project.files.push(newFile);
+      await project.save();
+
+      // Populate to return updated project
+      await project.populate('owner members', 'name email profilePicture');
+
+      res.json({ success: true, project });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+  static async streamFile(req, res) {
+    try {
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads'
+      });
+
+      const filename = req.params.filename;
+      const downloadStream = bucket.openDownloadStreamByName(filename);
+
+      downloadStream.on('error', (error) => {
+        res.status(404).json({ success: false, message: 'File not found' });
+      });
+
+      downloadStream.pipe(res);
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  static async deleteFile(req, res) {
+    try {
+      const { id, fileId } = req.params;
+      const project = await Project.findById(id);
+
+      if (!project) {
+        return res.status(404).json({ success: false, message: 'Project not found' });
+      }
+
+      // Check access
+      const isOwner = project.owner.toString() === req.user.id;
+      if (!isOwner && req.user.role !== 'admin') {
+        // Allow if member & it's their file? For now restrict to owner/admin for simplicity unless checked against Livrable
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+      }
+
+      const fileItem = project.files.id(fileId);
+      if (!fileItem) {
+        return res.status(404).json({ success: false, message: 'File not found in project' });
+      }
+
+      // Extract filename from path (api/projects/files/<filename>)
+      const filename = fileItem.path.split('/').pop();
+
+      // Find Livrable to get GridFS ID
+      const livrable = await Livrable.findOne({ filename });
+
+      if (livrable) {
+        // Delete from GridFS
+        const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+          bucketName: 'uploads'
+        });
+
+        try {
+          await bucket.delete(livrable.fileId);
+        } catch (e) {
+          console.log('Error deleting from GridFS:', e.message);
+          // Continue cleanup even if GridFS fails (maybe already deleted)
+        }
+
+        await Livrable.deleteOne({ _id: livrable._id });
+      } else {
+        // Fallback: try to find by filename in GridFS directly if Livrable missing?
+        // For now, assume Livrable exists or just remove from project if not.
+      }
+
+      // Remove from project
+      project.files.pull(fileId);
+      await project.save();
+      await project.populate('owner members', 'name email profilePicture');
+
+      res.json({ success: true, project });
+
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

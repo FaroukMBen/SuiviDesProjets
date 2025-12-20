@@ -1,55 +1,48 @@
 'use client';
 
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { ProjectHeader } from '@/components/project/ProjectHeader'; // Import du header
+import { Navbar } from '@/components/Navbar';
+import api from '@/lib/auth';
 
-export default function ProjectLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ProjectLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
-  const projectId = params.id;
+  const [project, setProject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // On récupère juste les infos nécessaires pour le header
+  useEffect(() => {
+    const fetchHeaderInfo = async () => {
+      try {
+        const response = await api.get(`/api/projects/${params.id}`);
+        setProject(response.data.project);
+      } catch (error) {
+        console.error("Erreur chargement projet", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHeaderInfo();
+  }, [params.id]);
+
+  if (loading) return null; // Ou un skeleton loader
+  if (!project) return <div>Projet introuvable</div>;
 
   return (
-    <>
-      <div className="bg-white border-b border-[--color-border]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-8 overflow-x-auto">
-            <Link
-              href={`/projects/${projectId}`}
-              className="px-4 py-4 border-b-2 border-transparent hover:border-[--color-primary] text-[--color-muted] hover:text-[--color-foreground] transition whitespace-nowrap"
-            >
-              Overview
-            </Link>
-            <Link
-              href={`/projects/${projectId}/kanban`}
-              className="px-4 py-4 border-b-2 border-transparent hover:border-[--color-primary] text-[--color-muted] hover:text-[--color-foreground] transition whitespace-nowrap"
-            >
-              Kanban
-            </Link>
-            <Link
-              href={`/projects/${projectId}/evaluations`}
-              className="px-4 py-4 border-b-2 border-transparent hover:border-[--color-primary] text-[--color-muted] hover:text-[--color-foreground] transition whitespace-nowrap"
-            >
-              Evaluations
-            </Link>
-            <Link
-              href={`/projects/${projectId}/feedback`}
-              className="px-4 py-4 border-b-2 border-transparent hover:border-[--color-primary] text-[--color-muted] hover:text-[--color-foreground] transition whitespace-nowrap"
-            >
-              Feedback
-            </Link>
-            <Link
-              href={`/projects/${projectId}/commits`}
-              className="px-4 py-4 border-b-2 border-transparent hover:border-[--color-primary] text-[--color-muted] hover:text-[--color-foreground] transition whitespace-nowrap"
-            >
-              Commits
-            </Link>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#f3f4f6] flex font-sans">
+      {/* Sidebar globale */}
+      <Navbar />
+
+      <div className="flex-1 ml-64 flex flex-col min-w-0">
+        {/* Header spécifique au projet (Titre + Tabs) */}
+        <ProjectHeader project={project} />
+
+        {/* Contenu de la page (Aperçu, Kanban, Git...) */}
+        <main className="p-8 max-w-[1600px] mx-auto w-full">
+          {children}
+        </main>
       </div>
-      {children}
-    </>
+    </div>
   );
 }

@@ -2,49 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Navbar } from '@/components/Navbar';
-import { ExportMenu } from '@/components/ExportMenu';
+import { Card } from '@/components/ui/Card'; // Ta carte existante
+import { FileText, Download, Trash2, Calendar, Users, BarChart3, UploadCloud } from 'lucide-react';
 import api from '@/lib/auth';
 
-interface Project {
-  _id: string;
-  title: string;
-  description: string;
-  status: string;
-  owner: any;
-  members: any[];
-  deadline: string;
-  repositoryUrl: string;
-  tags: string[];
-  files: Array<{
-    _id: string;
-    name: string;
-    path: string;
-    mimetype: string;
-    uploadedAt: string;
-  }>;
-}
-
-export default function ProjectDetailPage() {
+export default function ProjectOverviewPage() {
   const params = useParams();
-  const projectId = params.id as string;
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetchProject();
-  }, [projectId]);
+    fetchProjectDetails();
+  }, [params.id]);
 
-  const fetchProject = async () => {
+  const fetchProjectDetails = async () => {
     try {
-      setLoading(true);
-      const response = await api.get(`/api/projects/${projectId}`);
+      const response = await api.get(`/api/projects/${params.id}`);
       setProject(response.data.project);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch project');
     } finally {
       setLoading(false);
     }
@@ -52,222 +27,174 @@ export default function ProjectDetailPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-
-    const file = e.target.files[0];
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', e.target.files[0]);
 
     try {
       setUploading(true);
-      const response = await api.post(`/api/projects/${projectId}/files`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      await api.post(`/api/projects/${params.id}/files`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setProject(response.data.project);
-      // Reset input
-      e.target.value = '';
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to upload file');
+      fetchProjectDetails(); // Rafraîchir
+    } catch (err) {
+      alert('Erreur upload');
     } finally {
       setUploading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-[--color-surface]">
-          <Navbar />
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[--color-primary]"></div>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Supprimer ce fichier ?')) return;
+    try {
+      await api.delete(`/api/projects/${params.id}/files/${fileId}`);
+      fetchProjectDetails();
+    } catch (err) {
+      alert('Erreur suppression');
+    }
+  };
 
-  if (!project) {
-    return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-[--color-surface]">
-          <Navbar />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="text-center">
-              <p className="text-[--color-muted]">Project not found</p>
-            </div>
-          </main>
-        </div>
-      </ProtectedRoute>
-    );
-  }
+  if (loading || !project) return <div className="animate-pulse h-64 bg-gray-200 rounded-xl"></div>;
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-[--color-surface]">
-        <Navbar />
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="mb-8 flex justify-between items-start gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-[--color-foreground] mb-2">{project.title}</h1>
-              <p className="text-[--color-muted]">{project.description}</p>
-            </div>
-            <ExportMenu projectId={projectId} projectTitle={project.title} />
+    <div className="space-y-6">
+      {/* 1. Cartes d'infos (Statut, Deadline...) */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="p-6 flex items-start justify-between">
+          <div>
+            <p className="text-sm text-gray-500 font-medium mb-1">Statut</p>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${
+              project.status === 'completed' ? 'bg-green-100 text-green-800' : 
+              project.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+            }`}>
+              {project.status === 'in_progress' ? 'En cours' : project.status}
+            </span>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg border border-[--color-border]">
-              <p className="text-sm text-[--color-muted] mb-1">Status</p>
-              <p className="text-lg font-semibold text-[--color-foreground] capitalize">{project.status}</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-[--color-border]">
-              <p className="text-sm text-[--color-muted] mb-1">Members</p>
-              <p className="text-lg font-semibold text-[--color-foreground]">{project.members?.length}</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-[--color-border]">
-              <p className="text-sm text-[--color-muted] mb-1">Deadline</p>
-              <p className="text-lg font-semibold text-[--color-foreground]">
-                {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-[--color-border]">
-              <p className="text-sm text-[--color-muted] mb-1">Owner</p>
-              <p className="text-lg font-semibold text-[--color-foreground]">{project.owner?.name}</p>
-            </div>
+          <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+            <BarChart3 size={20} />
           </div>
+        </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg border border-[--color-border]">
-              <h3 className="text-lg font-semibold text-[--color-foreground] mb-4">Team Members</h3>
-              <div className="space-y-2">
-                {project.members?.map((member) => (
-                  <div key={member._id} className="flex items-center gap-2 p-2 hover:bg-[--color-surface] rounded">
-                    <div className="w-8 h-8 bg-[--color-primary] rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      {member.name?.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[--color-foreground]">{member.name}</p>
-                      <p className="text-xs text-[--color-muted]">{member.email}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-[--color-border]">
-              <h3 className="text-lg font-semibold text-[--color-foreground] mb-4">Project Info</h3>
-              <div className="space-y-3">
-                {project.repositoryUrl && (
-                  <div>
-                    <p className="text-xs text-[--color-muted] uppercase tracking-wide mb-1">Repository</p>
-                    <a
-                      href={project.repositoryUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[--color-primary] hover:underline break-all text-sm"
-                    >
-                      {project.repositoryUrl}
-                    </a>
-                  </div>
-                )}
-                {project.tags?.length > 0 && (
-                  <div>
-                    <p className="text-xs text-[--color-muted] uppercase tracking-wide mb-2">Tags</p>
-                    <div className="flex flex-wrap gap-2">
-                      {project.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-block px-2 py-1 bg-[--color-surface] text-[--color-foreground] rounded text-xs"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-[--color-border] md:col-span-2">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-[--color-foreground]">Documents</h3>
-                <div className="relative">
-                  <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    accept=".pdf,.txt,.doc,.docx"
-                    className="hidden"
-                    id="file-upload"
-                    disabled={uploading}
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className={`px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-all transform hover:scale-105 cursor-pointer font-bold flex items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    {uploading ? 'Uploading...' : 'Upload Data'}
-                  </label>
+        <Card className="p-6 flex items-start justify-between">
+          <div>
+            <p className="text-sm text-gray-500 font-medium mb-1">Membres</p>
+            <div className="flex -space-x-2 mt-2">
+              {project.members?.map((m: any, i: number) => (
+                <div key={i} className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600" title={m.name}>
+                  {m.name?.[0]}
                 </div>
-              </div>
-
-              {project.files && project.files.length > 0 ? (
-                <div className="space-y-2">
-                  {project.files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-[--color-surface] rounded border border-[--color-border]">
-                      <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-[--color-muted]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-medium text-[--color-foreground]">{file.name}</p>
-                          <p className="text-xs text-[--color-muted]">
-                            {new Date(file.uploadedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <a
-                          href={`http://localhost:5000/${file.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-[--color-primary] hover:underline"
-                        >
-                          Download
-                        </a>
-                        <button
-                          onClick={async () => {
-                            if (!confirm('Are you sure you want to delete this file?')) return;
-                            try {
-                              const response = await api.delete(`/api/projects/${projectId}/files/${file._id}`);
-                              setProject(response.data.project);
-                            } catch (err: any) {
-                              alert(err.response?.data?.message || 'Failed to delete file');
-                            }
-                          }}
-                          className="text-red-500 hover:text-red-700 transition-colors"
-                          title="Delete file"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-[--color-muted] italic">No documents uploaded yet.</p>
-              )}
+              ))}
             </div>
           </div>
-        </main>
+          <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+            <Users size={20} />
+          </div>
+        </Card>
+
+        <Card className="p-6 flex items-start justify-between">
+          <div>
+            <p className="text-sm text-gray-500 font-medium mb-1">Date limite</p>
+            <p className="text-lg font-bold text-gray-900">
+              {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'Non définie'}
+            </p>
+          </div>
+          <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
+            <Calendar size={20} />
+          </div>
+        </Card>
+
+        <Card className="p-6 flex items-start justify-between">
+          <div>
+             <p className="text-sm text-gray-500 font-medium mb-1">Livrables</p>
+             <p className="text-lg font-bold text-gray-900">{project.files?.length || 0}</p>
+          </div>
+          <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+            <FileText size={20} />
+          </div>
+        </Card>
       </div>
-    </ProtectedRoute>
+
+      {/* 2. Section Documents / Livrables */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Liste des fichiers */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-bold text-gray-900">Documents récents</h3>
+            <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm ${uploading ? 'opacity-50' : ''}`}>
+              <UploadCloud size={16} />
+              {uploading ? 'Envoi...' : 'Ajouter un fichier'}
+              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+            </label>
+          </div>
+
+          {project.files?.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+              <p className="text-gray-500">Aucun document partagé pour le moment.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <ul className="divide-y divide-gray-100">
+                {project.files?.map((file: any) => (
+                  <li key={file._id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <FileText size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                        <p className="text-xs text-gray-500">Ajouté le {new Date(file.uploadedAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a 
+                        href={`http://localhost:5000/${file.path}`} 
+                        target="_blank" 
+                        className="p-2 text-gray-400 hover:text-blue-600 transition rounded-md hover:bg-blue-50"
+                      >
+                        <Download size={18} />
+                      </a>
+                      <button 
+                        onClick={() => handleDeleteFile(file._id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition rounded-md hover:bg-red-50"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Info latérale */}
+        <div className="space-y-6">
+           <Card className="p-6">
+             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Détails techniques</h3>
+             
+             <div className="space-y-4">
+                <div>
+                   <p className="text-xs text-gray-500 mb-1">Dépôt Git</p>
+                   {project.repositoryUrl ? (
+                     <a href={project.repositoryUrl} target="_blank" className="text-sm text-blue-600 hover:underline break-all block">
+                       {project.repositoryUrl}
+                     </a>
+                   ) : <span className="text-sm text-gray-400">Non renseigné</span>}
+                </div>
+
+                <div>
+                   <p className="text-xs text-gray-500 mb-2">Tags</p>
+                   <div className="flex flex-wrap gap-2">
+                     {project.tags?.map((tag: string) => (
+                       <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium border border-gray-200">
+                         {tag}
+                       </span>
+                     ))}
+                   </div>
+                </div>
+             </div>
+           </Card>
+        </div>
+      </div>
+    </div>
   );
 }

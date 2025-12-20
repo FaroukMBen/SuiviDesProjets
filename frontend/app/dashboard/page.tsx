@@ -103,45 +103,7 @@ export default function DashboardPage() {
               
               {/* Colonne Gauche (Large) : Tableau des Projets Récents */}
               <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                  <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
-                    Projets récents
-                  </h3>
-                  <button className="text-sm text-blue-600 hover:underline">Voir tout</button>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-gray-600">
-                    <thead className="bg-gray-50 text-gray-500 font-medium">
-                      <tr>
-                        <th className="px-6 py-4">Projet</th>
-                        <th className="px-6 py-4">Date limite</th>
-                        <th className="px-6 py-4">Matière</th>
-                        <th className="px-6 py-4">Statut</th>
-                        <th className="px-6 py-4 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {[1, 2, 3].map((i) => (
-                        <tr key={i} className="hover:bg-gray-50/50 transition">
-                          <td className="px-6 py-4 font-medium text-gray-900">SAE - Plateforme Web</td>
-                          <td className="px-6 py-4">18/10/2025</td>
-                          <td className="px-6 py-4">Informatique</td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-600">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                              En cours
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                             <Link href="#" className="text-blue-600 font-medium hover:text-blue-800">Ouvrir</Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                  <RecentProjects />
               </div>
 
               {/* Colonne Droite : Actions & Alertes */}
@@ -202,3 +164,4 @@ export default function DashboardPage() {
 
 // Petite correction d'import temporaire si tu n'as pas Folder importé
 import { Folder } from 'lucide-react';
+import { RecentProjects } from '@/components/project/RecentProjects';

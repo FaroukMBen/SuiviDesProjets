@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import { ExportMenu } from '@/components/ExportMenu';
 import api from '@/lib/auth';
+import { UserSearch } from '@/components/UserSearch';
 
 interface Project {
   _id: string;
@@ -33,6 +34,7 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     fetchProject();
@@ -142,7 +144,15 @@ export default function ProjectDetailPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-lg border border-[--color-border]">
-              <h3 className="text-lg font-semibold text-[--color-foreground] mb-4">Team Members</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-[--color-foreground]">Membres de l'équipe</h3>
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="px-3 py-1 bg-primary-100 text-primary-700 rounded-md text-sm font-medium hover:bg-primary-200 transition"
+                >
+                  + Inviter
+                </button>
+              </div>
               <div className="space-y-2">
                 {project.members?.map((member) => (
                   <div key={member._id} className="flex items-center gap-2 p-2 hover:bg-[--color-surface] rounded">
@@ -267,6 +277,40 @@ export default function ProjectDetailPage() {
             </div>
           </div>
         </main>
+        {/* Invite Modal */}
+        {showInviteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Inviter un membre</h3>
+              <p className="text-gray-500 text-sm mb-4">
+                Recherchez un étudiant par son nom ou email pour l'ajouter au projet.
+              </p>
+
+              <UserSearch
+                onSelect={async (user) => {
+                  try {
+                    const response = await api.post(`/api/projects/${projectId}/members`, { userId: user._id });
+                    setProject(response.data.project);
+                    setShowInviteModal(false);
+                  } catch (err: any) {
+                    alert(err.response?.data?.message || "Erreur lors de l'ajout du membre");
+                  }
+                }}
+                excludeIds={project?.members?.map(m => m._id) || []}
+                buttonText="Inviter"
+              />
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowInviteModal(false)}
+                  className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );

@@ -20,7 +20,7 @@ class ProjectController {
 
   static async createProject(req, res) {
     try {
-      const { title, description, repositoryUrl, deadline, tags } = req.body;
+      const { title, description, repositoryUrl, deadline, tags, members } = req.body;
 
       const project = new Project({
         title,
@@ -29,9 +29,20 @@ class ProjectController {
         deadline,
         tags: tags || [],
         owner: req.user.id,
-        members: [req.user.id],
+        members: members ? [...members, req.user.id] : [req.user.id], // Owner is also a member usually, or handled separately. Model says members ref User.
+        // Usually owner is separate but let's keep consistent.
+        // Wait, line 32 in original was: members: [req.user.id],
+        // So I should append `members` from body to this array.
+        // Let's filter duplicates just in case.
         status: 'active'
       });
+
+      // Ensure unique members and owner is included if logic requires it (Original code had owner in members)
+      const uniqueMembers = new Set([req.user.id]);
+      if (members && Array.isArray(members)) {
+        members.forEach(m => uniqueMembers.add(m));
+      }
+      project.members = Array.from(uniqueMembers);
 
       await project.save();
       await project.populate('owner members', 'name email profilePicture');

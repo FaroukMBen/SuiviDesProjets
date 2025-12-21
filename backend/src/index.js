@@ -20,6 +20,7 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 }).then(() => {
   console.log('MongoDB connected');
+  console.log('Server restarted and routes should be up');
 }).catch(err => {
   console.error('MongoDB connection error:', err);
   process.exit(1);
@@ -33,6 +34,7 @@ app.use('/api/evaluations', require('./routes/evaluations'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/commits', require('./routes/commits'));
 app.use('/api/archive', require('./routes/archive'));
+app.use('/api/users', require('./routes/users'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

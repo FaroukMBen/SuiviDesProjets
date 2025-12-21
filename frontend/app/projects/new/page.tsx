@@ -6,6 +6,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/auth';
 
+import { UserSearch } from '@/components/UserSearch';
+
 export default function NewProjectPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -15,6 +17,7 @@ export default function NewProjectPage() {
     deadline: '',
     tags: ''
   });
+  const [selectedMembers, setSelectedMembers] = useState<any[]>([]); // To store invited members
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +33,8 @@ export default function NewProjectPage() {
     try {
       const response = await api.post('/api/projects', {
         ...formData,
-        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t)
+        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+        members: selectedMembers.map(m => m._id)
       });
       router.push(`/projects/${response.data.project._id}`);
     } catch (err: any) {
@@ -141,6 +145,47 @@ export default function NewProjectPage() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors placeholder-gray-400 text-gray-900"
                   placeholder="web, react, stage, pfe"
                 />
+              </div>
+
+              {/* Membres du projet */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Inviter des étudiants
+                </label>
+                <div className="mb-4">
+                  <UserSearch
+                    onSelect={(user) => setSelectedMembers([...selectedMembers, user])}
+                    excludeIds={selectedMembers.map(m => m._id)}
+                  />
+                </div>
+
+                {selectedMembers.length > 0 && (
+                  <div className="space-y-2">
+                    {selectedMembers.map((member) => (
+                      <div key={member._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                            {member.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                            <p className="text-xs text-gray-500">{member.email}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMembers(selectedMembers.filter(m => m._id !== member._id))}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title="Retirer"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

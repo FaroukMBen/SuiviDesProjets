@@ -19,7 +19,6 @@ export default function Home() {
   return (
     // On garde un dégradé subtil mais avec les couleurs du thème
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white font-sans">
-      <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center space-y-8">

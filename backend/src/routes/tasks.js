@@ -5,6 +5,7 @@ const { validateTaskCreate } = require('../middleware/validation');
 
 const router = express.Router();
 
+router.get('/', authenticate, TaskController.getMyTasks);
 router.get('/project/:projectId', authenticate, TaskController.getTasksByProject);
 router.post('/', authenticate, validateTaskCreate, TaskController.createTask);
 router.put('/:id', authenticate, TaskController.updateTask);

@@ -31,15 +31,8 @@ const StatCard = ({ title, value, icon: Icon, color, subtext }: any) => (
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const [loading, setLoading] = useState(true);
-
-  // Simulation de données (à remplacer par ton fetchProjects)
-  const stats = {
-    projects: 4,
-    tasksLate: 6,
-    toValidate: 15,
-    avgScore: 14.5
-  };
+  // UNE SEULE LIGNE pour récupérer toute la data !
+  const { stats, loading } = useDashboardStats();
 
   return (
     <ProtectedRoute>
@@ -71,27 +64,27 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard 
                 title="Projets en cours" 
-                value={stats.projects} 
+                value={loading ? "..." : stats.projects} 
                 icon={Folder} 
-                color="text-blue-600" 
+                color="text-blue-600"
               />
               <StatCard 
                 title="Livrables à valider" 
-                value={stats.toValidate} 
+                value={loading ? "..." : stats.toValidate} 
                 icon={FileText} 
                 color="text-yellow-500" 
                 subtext="Attention requise"
               />
               <StatCard 
                 title="Tâches en retard" 
-                value={stats.tasksLate} 
+                value={loading ? "..." : stats.tasksLate} 
                 icon={AlertTriangle} 
                 color="text-red-500" 
                 subtext="Critique"
               />
               <StatCard 
                 title="Moyenne Promo" 
-                value={stats.avgScore} 
+                value={loading ? "..." : stats.avgScore} 
                 icon={CheckCircle} 
                 color="text-emerald-500" 
                 subtext="/ 20"
@@ -164,4 +157,5 @@ export default function DashboardPage() {
 
 // Petite correction d'import temporaire si tu n'as pas Folder importé
 import { Folder } from 'lucide-react';
-import { RecentProjects } from '@/components/project/RecentProjects';
+import { RecentProjects } from '@/components/project/RecentProjects';import { useDashboardStats } from '@/hooks/useDashboardStats';
+

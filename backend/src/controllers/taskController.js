@@ -2,6 +2,20 @@ const Task = require('../models/Task');
 const Project = require('../models/Project');
 
 class TaskController {
+  static async getMyTasks(req, res) {
+    try {
+    // On cherche les tâches où "assignee" OU "members" contient mon ID
+    // (Selon comment ton modèle Task est fait)
+    const tasks = await Task.find({ assignee: req.user.userId })
+                            .populate('projectId', 'title') // Optionnel : pour avoir le nom du projet
+                            .sort({ dueDate: 1 }); // Tri par date
+
+    res.status(200).json({ tasks });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+  }
+
   static async getTasksByProject(req, res) {
     try {
       const tasks = await Task.find({ projectId: req.params.projectId })

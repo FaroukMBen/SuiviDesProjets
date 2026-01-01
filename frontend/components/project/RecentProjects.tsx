@@ -35,7 +35,6 @@ export function RecentProjects() {
         setLoading(false);
       }
     };
-
     fetchProjects();
   }, []);
 

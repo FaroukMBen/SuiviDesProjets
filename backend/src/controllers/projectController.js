@@ -29,22 +29,37 @@ class ProjectController {
         deadline,
         tags: tags || [],
         owner: req.user.id,
-        members: members ? [...members, req.user.id] : [req.user.id], // Owner is also a member usually, or handled separately. Model says members ref User.
-        // Usually owner is separate but let's keep consistent.
-        // Wait, line 32 in original was: members: [req.user.id],
-        // So I should append `members` from body to this array.
-        // Let's filter duplicates just in case.
+        members: [req.user.id], // Only owner is initial member
         status: 'active'
       });
 
-      // Ensure unique members and owner is included if logic requires it (Original code had owner in members)
-      const uniqueMembers = new Set([req.user.id]);
-      if (members && Array.isArray(members)) {
-        members.forEach(m => uniqueMembers.add(m));
-      }
-      project.members = Array.from(uniqueMembers);
-
       await project.save();
+      console.log('Project created:', project._id);
+
+      // Send invitations to other members
+      if (members && Array.isArray(members)) {
+        console.log('Processing members for invitation:', members);
+        const Notification = require('../models/Notification');
+        const invitations = members
+          .filter(memberId => memberId !== req.user.id) // Exclude owner
+          .map(memberId => ({
+            recipient: memberId,
+            sender: req.user.id,
+            type: 'INVITATION',
+            project: project._id,
+            message: `Vous avez été invité à rejoindre le projet ${project.title}.`,
+          }));
+
+        console.log('Invitations to create:', invitations);
+
+        if (invitations.length > 0) {
+          await Notification.insertMany(invitations);
+          console.log('Invitations created successfully');
+        }
+      }
+
+      // project.members is already set to [req.user.id] via the schema default/init logic above, 
+      // but let's make sure we don't need the uniqueMembers logic anymore since we are inviting them.
       await project.populate('owner members', 'name email profilePicture');
 
       res.status(201).json({ success: true, project });

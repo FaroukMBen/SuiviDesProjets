@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/auth';
 import { Folder, Plus, ChevronRight } from 'lucide-react';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface Project {
     _id: string;
@@ -48,13 +49,16 @@ export default function ProjectsPage() {
                                 <h1 className="text-2xl font-bold text-gray-900">Mes Projets</h1>
                                 <p className="text-gray-500 mt-1">Liste de tous vos projets en cours</p>
                             </div>
-                            <Link
-                                href="/projects/new"
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                                <Plus size={20} />
-                                <span>Nouveau Projet</span>
-                            </Link>
+                            <div className="flex items-center gap-4">
+                                <NotificationBell />
+                                <Link
+                                    href="/projects/new"
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    <Plus size={20} />
+                                    <span>Nouveau Projet</span>
+                                </Link>
+                            </div>
                         </div>
 
                         {loading ? (

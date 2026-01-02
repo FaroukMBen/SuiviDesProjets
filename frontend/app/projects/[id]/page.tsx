@@ -35,6 +35,7 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState(false);
 
   useEffect(() => {
     fetchProject();
@@ -277,11 +278,19 @@ export default function ProjectDetailPage() {
             </div>
           </div>
         </main>
-        {/* Invite Modal */}
         {showInviteModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 relative">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Inviter un membre</h3>
+
+              {/* Inline Success Message */}
+              {inviteSuccess && (
+                <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Invitation envoyée avec succès !
+                </div>
+              )}
+
               <p className="text-gray-500 text-sm mb-4">
                 Recherchez un étudiant par son nom ou email pour l'ajouter au projet.
               </p>
@@ -289,11 +298,18 @@ export default function ProjectDetailPage() {
               <UserSearch
                 onSelect={async (user) => {
                   try {
-                    const response = await api.post(`/api/projects/${projectId}/members`, { userId: user._id });
-                    setProject(response.data.project);
-                    setShowInviteModal(false);
+                    await api.post(`/api/notifications/invite`, {
+                      recipientId: user._id,
+                      projectId
+                    });
+                    setInviteSuccess(true);
+                    // Hide success message and close modal after 1.5s
+                    setTimeout(() => {
+                      setInviteSuccess(false);
+                      setShowInviteModal(false);
+                    }, 1500);
                   } catch (err: any) {
-                    alert(err.response?.data?.message || "Erreur lors de l'ajout du membre");
+                    alert(err.response?.data?.message || "Erreur lors de l'envoi de l'invitation");
                   }
                 }}
                 excludeIds={project?.members?.map(m => m._id) || []}

@@ -6,10 +6,11 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar'; // Ton nouveau composant
 import Link from 'next/link';
 import api from '@/lib/auth';
-import { 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle, 
+import { NotificationBell } from '@/components/NotificationBell';
+import {
+  Clock,
+  AlertTriangle,
+  CheckCircle,
   FileText,
   Search,
   Plus
@@ -49,12 +50,14 @@ export default function DashboardPage() {
 
         {/* 2. Contenu Principal (Décalé de 64 = 16rem = largeur sidebar) */}
         <div className="flex-1 ml-64">
-          
+
           {/* Header (Top Bar) */}
           <header className="bg-white h-20 border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-40">
             <h2 className="text-xl font-bold text-gray-800">Tableau de bord</h2>
-            
+
             <div className="flex items-center gap-4">
+              <NotificationBell />
+              <div className="h-8 w-px bg-gray-200 mx-2"></div>
               <div className="text-right">
                 <p className="text-sm font-bold text-gray-900">{user?.name || 'Utilisateur'}</p>
                 <p className="text-xs text-gray-500">{user?.role || 'Étudiant'}</p>
@@ -66,41 +69,41 @@ export default function DashboardPage() {
           </header>
 
           <main className="p-8 max-w-[1600px] mx-auto space-y-8">
-            
+
             {/* 1. Cartes Statistiques (Top Row) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard 
-                title="Projets en cours" 
-                value={stats.projects} 
-                icon={Folder} 
-                color="text-blue-600" 
+              <StatCard
+                title="Projets en cours"
+                value={stats.projects}
+                icon={Folder}
+                color="text-blue-600"
               />
-              <StatCard 
-                title="Livrables à valider" 
-                value={stats.toValidate} 
-                icon={FileText} 
-                color="text-yellow-500" 
+              <StatCard
+                title="Livrables à valider"
+                value={stats.toValidate}
+                icon={FileText}
+                color="text-yellow-500"
                 subtext="Attention requise"
               />
-              <StatCard 
-                title="Tâches en retard" 
-                value={stats.tasksLate} 
-                icon={AlertTriangle} 
-                color="text-red-500" 
+              <StatCard
+                title="Tâches en retard"
+                value={stats.tasksLate}
+                icon={AlertTriangle}
+                color="text-red-500"
                 subtext="Critique"
               />
-              <StatCard 
-                title="Moyenne Promo" 
-                value={stats.avgScore} 
-                icon={CheckCircle} 
-                color="text-emerald-500" 
+              <StatCard
+                title="Moyenne Promo"
+                value={stats.avgScore}
+                icon={CheckCircle}
+                color="text-emerald-500"
                 subtext="/ 20"
               />
             </div>
 
             {/* 2. Grille Principale (Tableau + Actions) */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              
+
               {/* Colonne Gauche (Large) : Tableau des Projets Récents */}
               <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -110,7 +113,7 @@ export default function DashboardPage() {
                   </h3>
                   <button className="text-sm text-blue-600 hover:underline">Voir tout</button>
                 </div>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm text-gray-600">
                     <thead className="bg-gray-50 text-gray-500 font-medium">
@@ -135,7 +138,7 @@ export default function DashboardPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                             <Link href="#" className="text-blue-600 font-medium hover:text-blue-800">Ouvrir</Link>
+                            <Link href="#" className="text-blue-600 font-medium hover:text-blue-800">Ouvrir</Link>
                           </td>
                         </tr>
                       ))}
@@ -146,7 +149,7 @@ export default function DashboardPage() {
 
               {/* Colonne Droite : Actions & Alertes */}
               <div className="space-y-8">
-                
+
                 {/* Actions Rapides */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -179,7 +182,7 @@ export default function DashboardPage() {
                         Le groupe "App Santé" n'a pas commité depuis 5 jours.
                       </div>
                     </div>
-                    
+
                     <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-sm text-yellow-800 flex gap-3">
                       <Clock className="shrink-0 w-5 h-5 text-yellow-600" />
                       <div>

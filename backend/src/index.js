@@ -35,6 +35,8 @@ app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/commits', require('./routes/commits'));
 app.use('/api/archive', require('./routes/archive'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/notifications', require('./routes/notifications'));
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

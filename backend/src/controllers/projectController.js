@@ -20,7 +20,7 @@ class ProjectController {
 
   static async createProject(req, res) {
     try {
-      const { title, description, repositoryUrl, deadline, tags } = req.body;
+      const { title, description, repositoryUrl, deadline, tags, members } = req.body;
 
       const project = new Project({
         title,
@@ -29,11 +29,37 @@ class ProjectController {
         deadline,
         tags: tags || [],
         owner: req.user.id,
-        members: [req.user.id],
+        members: [req.user.id], // Only owner is initial member
         status: 'active'
       });
 
       await project.save();
+      console.log('Project created:', project._id);
+
+      // Send invitations to other members
+      if (members && Array.isArray(members)) {
+        console.log('Processing members for invitation:', members);
+        const Notification = require('../models/Notification');
+        const invitations = members
+          .filter(memberId => memberId !== req.user.id) // Exclude owner
+          .map(memberId => ({
+            recipient: memberId,
+            sender: req.user.id,
+            type: 'INVITATION',
+            project: project._id,
+            message: `Vous avez été invité à rejoindre le projet ${project.title}.`,
+          }));
+
+        console.log('Invitations to create:', invitations);
+
+        if (invitations.length > 0) {
+          await Notification.insertMany(invitations);
+          console.log('Invitations created successfully');
+        }
+      }
+
+      // project.members is already set to [req.user.id] via the schema default/init logic above, 
+      // but let's make sure we don't need the uniqueMembers logic anymore since we are inviting them.
       await project.populate('owner members', 'name email profilePicture');
 
       res.status(201).json({ success: true, project });

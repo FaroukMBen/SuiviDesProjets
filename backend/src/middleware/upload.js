@@ -32,7 +32,7 @@ const fileFilter = (req, file, cb) => {
     if (allowedMimes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Only .txt, .pdf, .doc and .docx format allowed!'), false);
+        cb(new Error('Uniquement les formats .txt, .pdf, .doc and .docx sont autorisés!'), false);
     }
 };
 

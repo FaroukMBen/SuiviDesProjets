@@ -2,6 +2,8 @@ const Project = require('../models/Project');
 const Task = require('../models/Task');
 const Livrable = require('../models/Livrable');
 const mongoose = require('mongoose');
+const { Readable } = require('stream');
+const path = require('path');
 
 class ProjectController {
   static async getAllProjects(req, res) {
@@ -210,32 +212,64 @@ class ProjectController {
         return res.status(403).json({ success: false, message: 'Not authorized' });
       }
 
-      // Create Livrable
-      const newLivrable = new Livrable({
-        studentId: req.user.id,
-        projectId: project._id,
-        fileId: req.file.id,
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        mimetype: req.file.mimetype
+      // Prepare GridFS Bucket
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads'
       });
 
-      await newLivrable.save();
+      // Generate unique filename
+      const filename = Date.now() + path.extname(req.file.originalname);
 
-      const newFile = {
-        name: req.file.originalname,
-        path: `api/projects/files/${req.file.filename}`,
-        mimetype: req.file.mimetype,
-        uploadedAt: newLivrable.uploadDate
-      };
+      // Create upload stream
+      const uploadStream = bucket.openUploadStream(filename, {
+        contentType: req.file.mimetype,
+        metadata: {
+          originalName: req.file.originalname
+        }
+      });
 
-      project.files.push(newFile);
-      await project.save();
+      // Convert buffer to stream and pipe to GridFS
+      const readableStream = new Readable();
+      readableStream.push(req.file.buffer);
+      readableStream.push(null);
 
-      // Populate to return updated project
-      await project.populate('owner members', 'name email profilePicture');
+      readableStream.pipe(uploadStream)
+        .on('error', (error) => {
+          return res.status(500).json({ success: false, message: 'Error uploading file', error: error.message });
+        })
+        .on('finish', async () => {
+          try {
+            // Create Livrable
+            const newLivrable = new Livrable({
+              studentId: req.user.id,
+              projectId: project._id,
+              fileId: uploadStream.id, // GridFS file ID
+              filename: filename,
+              originalName: req.file.originalname,
+              mimetype: req.file.mimetype
+            });
 
-      res.json({ success: true, project });
+            await newLivrable.save();
+
+            const newFile = {
+              name: req.file.originalname,
+              path: `api/projects/files/${filename}`,
+              mimetype: req.file.mimetype,
+              uploadedAt: newLivrable.uploadDate
+            };
+
+            project.files.push(newFile);
+            await project.save();
+
+            // Populate to return updated project
+            await project.populate('owner members', 'name email profilePicture');
+
+            return res.json({ success: true, project });
+          } catch (err) {
+            return res.status(500).json({ success: false, message: err.message });
+          }
+        });
+
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

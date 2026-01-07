@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute  from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import Link from 'next/link';
 import api from '@/lib/auth';

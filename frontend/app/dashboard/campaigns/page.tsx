@@ -49,6 +49,7 @@ export default function CampaignsPage() {
   });
 
   const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
+  console.log("Role : ", user?.role)
 
   // Chargement des données
   useEffect(() => {

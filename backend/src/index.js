@@ -14,21 +14,32 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log('MongoDB connected');
-  console.log('Server restarted and routes should be up');
-}).catch(err => {
-  console.error('MongoDB connection error:', err);
-  process.exit(1);
-});
+// --- MODIFICATION : Connexion DB + Lancement Serveur ---
+// Tout ceci ne se lance QUE si on n'est pas en test
+if (process.env.NODE_ENV !== 'test') {
+  mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }).then(() => {
+    console.log('MongoDB connected');
+    
+    // On lance le serveur uniquement une fois la DB connectée
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+    
+  }).catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
+}
+// -------------------------------------------------------
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/projects', require('./routes/projects'));
+app.use('/api/campagne', require('./routes/campagnes'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/evaluations', require('./routes/evaluations'));
 app.use('/api/feedback', require('./routes/feedback'));
@@ -45,11 +56,6 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal server error',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;

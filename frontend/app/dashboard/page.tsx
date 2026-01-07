@@ -16,7 +16,8 @@ import {
   FileText,
   Search,
   Plus,
-  Folder
+  Folder,
+  TrendingUp
 } from 'lucide-react';
 
 // --- Composant Carte Statistique (Style Image Fournie) ---
@@ -88,11 +89,11 @@ export default function DashboardPage() {
                 subtext="Critique"
               />
               <StatCard 
-                title="Moyenne Promo" 
-                value={loading ? "..." : stats.avgScore} 
-                icon={CheckCircle} 
+                title="Progression Globale" 
+                value={loading ? "..." : `${stats.progress}%`} 
+                icon={TrendingUp} 
                 color="text-emerald-500" 
-                subtext="/ 20"
+                subtext={loading ? "..." : `${stats.completedTasks} sur ${stats.totalTasks} tâches finies`}
               />
             </div>
 

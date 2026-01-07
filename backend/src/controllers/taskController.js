@@ -4,16 +4,23 @@ const Project = require('../models/Project');
 class TaskController {
   static async getMyTasks(req, res) {
     try {
-    // On cherche les tâches où "assignee" OU "members" contient mon ID
-    // (Selon comment ton modèle Task est fait)
-    const tasks = await Task.find({ assignee: req.user.userId })
-                            .populate('projectId', 'title') // Optionnel : pour avoir le nom du projet
-                            .sort({ dueDate: 1 }); // Tri par date
+      // 1. Utilise req.user.id (comme dans tes autres contrôleurs)
+      // Sécurité : Si jamais l'id est manquant, on arrête tout pour éviter de renvoyer toute la base
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ message: "Utilisateur non identifié" });
+      }
 
-    res.status(200).json({ tasks });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+      const tasks = await Task.find({ assignee: req.user.id })
+                              .populate('projectId', 'title')
+                              .sort({ dueDate: 1 });
+
+      console.log("task : ", tasks)
+      console.log("user : ", req.user.name)
+
+      res.status(200).json({ tasks });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
   }
 
   static async getTasksByProject(req, res) {

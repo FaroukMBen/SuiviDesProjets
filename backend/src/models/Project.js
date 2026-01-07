@@ -6,6 +6,7 @@ const projectSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'completed', 'archived'], default: 'active' },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  campaignId: { type: mongoose.Schema.Types.ObjectId, ref: 'Campaign' },
   repositoryUrl: String,
   startDate: Date,
   deadline: Date,

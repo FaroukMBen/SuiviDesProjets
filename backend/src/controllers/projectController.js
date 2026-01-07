@@ -13,7 +13,6 @@ class ProjectController {
       })
         .populate('owner members', 'name email profilePicture')
         .sort({ createdAt: -1 });
-
       res.json({ success: true, projects });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });

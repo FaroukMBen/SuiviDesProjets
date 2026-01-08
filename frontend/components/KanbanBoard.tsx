@@ -1,8 +1,14 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Plus, MoreHorizontal, Calendar, GripVertical, Trash2, Pencil, X } from 'lucide-react'; // Installe lucide-react
+import { Plus, MoreHorizontal, Calendar, GripVertical, Trash2, Pencil, X, User as UserIcon } from 'lucide-react'; // Installe lucide-react
 import api from '@/lib/auth';
+
+interface Member {
+  _id: string;
+  name: string;
+  email: string;
+}
 
 interface Task {
   _id: string;
@@ -11,7 +17,7 @@ interface Task {
   status: 'todo' | 'in-progress' | 'review' | 'done';
   priority: string;
   type?: 'feature' | 'bug' | 'objectif'; // Ajouté pour le style badge
-  assignee?: { name: string };
+  assignee?: Member;
   dueDate?: string;
   subtasksCount?: string; // Ex: "1/2" comme sur la maquette
 }
@@ -25,11 +31,14 @@ const COLUMNS = [
 
 export function KanbanBoard({ projectId }: { projectId: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [members, setMembers] = useState<Member[]>([]); // Ajout état membres
   const [loading, setLoading] = useState(true);
 
   // États pour l'ajout rapide
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState<string>(''); // Ajout état nouvel assigné
+  const [newTaskDueDate, setNewTaskDueDate] = useState<string>('');   // Ajout état date creation
 
   // États pour l'édition et suppression
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -39,7 +48,12 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTasks();
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([fetchTasks(), fetchProjectMembers()]);
+      setLoading(false);
+    };
+    init();
   }, [projectId]);
 
   // Fermer le menu si on clique ailleurs
@@ -51,23 +65,44 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
   const fetchTasks = async () => {
     try {
-      setLoading(true);
-      // Remplacer par ton vrai endpoint
       const response = await api.get(`/api/tasks/project/${projectId}`);
       setTasks(response.data.tasks);
     } catch (err) {
       console.error("Erreur chargement tâches", err);
-    } finally {
-      setLoading(false);
     }
   };
+
+  const fetchProjectMembers = async () => {
+    try {
+      const response = await api.get(`/api/projects/${projectId}`);
+      const project = response.data.project;
+      // Combiner owner et members pour la liste complète
+      const allMembers = [project.owner, ...project.members].filter((v, i, a) => a.findIndex(v2 => (v2._id === v._id)) === i); // Unique
+      setMembers(allMembers);
+    } catch (err) {
+      console.error("Erreur chargement membres", err);
+    }
+  }
 
   const handleCreateTask = async (status: string) => {
     if (!newTaskTitle.trim()) return;
     try {
-      const response = await api.post('/api/tasks', { projectId, title: newTaskTitle, status, type: 'objectif' }); // Type par défaut
+      const payload: any = {
+        projectId,
+        title: newTaskTitle,
+        status,
+        type: 'objectif' // Default type kept for backend compatibility but hidden from UI
+      };
+      if (newTaskAssignee) payload.assignee = newTaskAssignee;
+      if (newTaskDueDate) payload.dueDate = newTaskDueDate;
+
+      const response = await api.post('/api/tasks', payload);
       setTasks([...tasks, response.data.task]);
+
+      // Reset form
       setNewTaskTitle('');
+      setNewTaskAssignee('');
+      setNewTaskDueDate('');
       setIsAdding(null);
     } catch (err) {
       alert("Erreur création tâche");
@@ -87,7 +122,16 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
-      const response = await api.put(`/api/tasks/${updatedTask._id}`, updatedTask);
+      // Préparer l'objet pour l'API (l'assignee doit être un ID, pas l'objet complet s'il n'a pas changé... 
+      // mais le backend attend un ID. Si updatedTask.assignee est peuplé (objet), on veut son ID.
+      const payload = {
+        ...updatedTask,
+        assignee: (updatedTask.assignee as any)?._id || updatedTask.assignee
+      };
+
+      const response = await api.put(`/api/tasks/${updatedTask._id}`, payload);
+
+      // Mettre à jour l'état local avec la nouvelle tâche retournée (qui a le bon populate)
       setTasks(tasks.map(t => t._id === updatedTask._id ? response.data.task : t));
       setEditingTask(null);
     } catch (err) {
@@ -113,15 +157,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     } catch (err) {
       console.error("Erreur update status", err);
       fetchTasks(); // Revert si erreur
-    }
-  };
-
-  // Helper pour la couleur du badge (comme sur la maquette)
-  const getBadgeStyle = (type?: string) => {
-    switch (type) {
-      case 'objectif': return 'bg-emerald-100 text-emerald-700';
-      case 'bug': return 'bg-red-100 text-red-700';
-      default: return 'bg-amber-100 text-amber-700'; // Default "Feature" jaune
     }
   };
 
@@ -170,10 +205,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                   >
                     <Plus size={16} />
                   </button>
-                  {/* Optionnel: Menu colonne si besoin */}
-                  {/* <button className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-700 transition">
-                     <MoreHorizontal size={16} />
-                   </button> */}
                 </div>
               </div>
 
@@ -194,6 +225,29 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                         if (e.key === 'Escape') setIsAdding(null);
                       }}
                     />
+
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {/* Selecteur d'assignee rapide */}
+                      <select
+                        value={newTaskAssignee}
+                        onChange={e => setNewTaskAssignee(e.target.value)}
+                        className="text-xs text-gray-600 border border-gray-200 rounded p-1 outline-none"
+                      >
+                        <option value="">-- Assigner --</option>
+                        {members.map(m => (
+                          <option key={m._id} value={m._id}>{m.name}</option>
+                        ))}
+                      </select>
+
+                      {/* Date rapide */}
+                      <input
+                        type="date"
+                        value={newTaskDueDate}
+                        onChange={e => setNewTaskDueDate(e.target.value)}
+                        className="text-xs text-gray-600 border border-gray-200 rounded p-1 outline-none"
+                      />
+                    </div>
+
                     <div className="flex justify-end gap-2">
                       <button onClick={() => setIsAdding(null)} className="px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 rounded">Annuler</button>
                       <button onClick={() => handleCreateTask(col.id)} className="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700">Ajouter</button>
@@ -210,21 +264,23 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                     style={{ zIndex: menuOpenId === task._id ? 20 : 0 }}
                     className="group bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing relative"
                   >
-                    {/* Header Carte : Badge + Menu + Date */}
-                    <div className="flex justify-between items-start mb-3">
-                      <span className={`px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wide ${getBadgeStyle(task.type || 'objectif')}`}>
-                        {task.type || 'Objectif'}
-                      </span>
 
-                      {/* Menu 3 points */}
-                      <div className="relative" onClick={e => e.stopPropagation()}>
+                    {/* LIGNE 1 : Titre + Menu */}
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      {/* Titre */}
+                      <h4 className="text-sm font-bold text-gray-800 leading-tight flex-1 pt-1">
+                        {task.title}
+                      </h4>
+
+                      {/* Menu 3 points (Absolute top-right ou flex-end) */}
+                      <div className="relative flex-shrink-0" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             e.nativeEvent.stopImmediatePropagation();
                             setMenuOpenId(menuOpenId === task._id ? null : task._id);
                           }}
-                          className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="p-1 -mr-2 -mt-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <MoreHorizontal size={16} />
                         </button>
@@ -252,24 +308,9 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                       </div>
                     </div>
 
-                    {/* Titre */}
-                    <h4 className="text-sm font-bold text-gray-800 mb-4 leading-tight pr-4">
-                      {task.title}
-                    </h4>
-
-                    {/* Date (si existe) */}
-                    {task.dueDate && (
-                      <div className="mb-2">
-                        <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
-                          <Calendar size={10} />
-                          {new Date(task.dueDate).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' })}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Footer : Avatar + ID */}
+                    {/* LIGNE 2 : Footer (Assigné + Date) */}
                     <div className="flex justify-between items-center border-t border-gray-50 pt-3 mt-2">
-                      {/* Avatar */}
+                      {/* Avatar + Nom */}
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold border border-white shadow-sm" title={task.assignee?.name}>
                           {task.assignee?.name ? task.assignee.name[0] : '?'}
@@ -278,6 +319,15 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                           {task.assignee?.name || 'Non assigné'}
                         </span>
                       </div>
+
+                      {/* Date à droite */}
+                      {task.dueDate && (
+                        <span className={`text-[10px] font-medium flex items-center gap-1 ${new Date(task.dueDate) < new Date() ? 'text-red-500' : 'text-gray-400'
+                          }`}>
+                          <Calendar size={10} />
+                          {new Date(task.dueDate).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' })}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -287,10 +337,10 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         })}
       </div>
 
-      {/* Modal d'édition */}
+      {/* Modal d'édition SIMPLIFIÉ */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-800">Modifier la tâche</h3>
               <button
@@ -305,6 +355,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
             </div>
 
             <div className="space-y-4">
+              {/* Titre */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Titre</label>
                 <input
@@ -315,42 +366,26 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                 />
               </div>
 
+              {/* Assigné à */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Description</label>
-                <textarea
-                  value={editingTask.description || ''}
-                  onChange={e => setEditingTask({ ...editingTask, description: e.target.value })}
-                  className="w-full p-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition h-24 resize-none"
-                />
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Assigné à</label>
+                <select
+                  value={(editingTask.assignee as any)?._id || (typeof editingTask.assignee === 'string' ? editingTask.assignee : '') || ''}
+                  onChange={e => {
+                    const memberId = e.target.value;
+                    const member = members.find(m => m._id === memberId);
+                    setEditingTask({ ...editingTask, assignee: member });
+                  }}
+                  className="w-full p-2 rounded-lg border border-gray-200 bg-white"
+                >
+                  <option value="">-- Non assigné --</option>
+                  {members.map(m => (
+                    <option key={m._id} value={m._id}>{m.name}</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Type</label>
-                  <select
-                    value={editingTask.type}
-                    onChange={e => setEditingTask({ ...editingTask, type: e.target.value as any })}
-                    className="w-full p-2 rounded-lg border border-gray-200 bg-white"
-                  >
-                    <option value="feature">Feature</option>
-                    <option value="bug">Bug</option>
-                    <option value="objectif">Objectif</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Priorité</label>
-                  <select
-                    value={editingTask.priority}
-                    onChange={e => setEditingTask({ ...editingTask, priority: e.target.value })}
-                    className="w-full p-2 rounded-lg border border-gray-200 bg-white"
-                  >
-                    <option value="low">Basse</option>
-                    <option value="medium">Moyenne</option>
-                    <option value="high">Haute</option>
-                  </select>
-                </div>
-              </div>
-
+              {/* Échéance */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Échéance</label>
                 <input

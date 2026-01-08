@@ -11,8 +11,8 @@ class TaskController {
       }
 
       const tasks = await Task.find({ assignee: req.user.id })
-                              .populate('projectId', 'title')
-                              .sort({ dueDate: 1 });
+        .populate('projectId', 'title')
+        .sort({ dueDate: 1 });
 
       console.log("task : ", tasks)
       console.log("user : ", req.user.name)
@@ -37,7 +37,7 @@ class TaskController {
 
   static async createTask(req, res) {
     try {
-      const { projectId, title, description, priority, dueDate, assignee } = req.body;
+      const { projectId, title, description, priority, dueDate, assignee, type } = req.body;
 
       // Verify project exists
       const project = await Project.findById(projectId);
@@ -53,6 +53,7 @@ class TaskController {
         title,
         description,
         priority: priority || 'medium',
+        type: type || 'objectif', // Default to objectif if not provided
         dueDate,
         assignee,
         status: 'todo',
@@ -70,7 +71,7 @@ class TaskController {
 
   static async updateTask(req, res) {
     try {
-      const { title, description, status, priority, dueDate, assignee, order } = req.body;
+      const { title, description, status, priority, dueDate, assignee, order, type } = req.body;
 
       const task = await Task.findById(req.params.id);
       if (!task) {
@@ -81,6 +82,7 @@ class TaskController {
       if (description !== undefined) task.description = description;
       if (status) task.status = status;
       if (priority) task.priority = priority;
+      if (type) task.type = type;
       if (dueDate) task.dueDate = dueDate;
       if (assignee) task.assignee = assignee;
       if (order !== undefined) task.order = order;

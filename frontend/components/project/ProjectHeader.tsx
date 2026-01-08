@@ -22,7 +22,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     { name: 'Tâches (Kanban)', href: `${baseUrl}/kanban` },
     { name: 'Objectifs & Jalons', href: `${baseUrl}/milestones` },
     { name: 'Git', href: `${baseUrl}/commits` },
-    { name: 'Livrables', href: `${baseUrl}/files` },
+    { name: 'Livrables', href: `${baseUrl}/liverables` },
     { name: 'Feedback', href: `${baseUrl}/feedback` },
     { name: 'Évaluation', href: `${baseUrl}/evaluations` },
   ];

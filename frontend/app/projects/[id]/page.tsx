@@ -7,17 +7,14 @@ import { FileText, Download, Trash2, Calendar, Users, BarChart3, UploadCloud } f
 import api from '@/lib/auth';
 import { UserSearch } from '@/components/UserSearch';
 
+import { useProjectFiles } from '@/hooks/useProjectFiles';
+
 export default function ProjectOverviewPage() {
   const params = useParams();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState(false);
-
-  useEffect(() => {
-    fetchProjectDetails();
-  }, [params.id]);
 
   const fetchProjectDetails = async () => {
     try {
@@ -28,33 +25,13 @@ export default function ProjectOverviewPage() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const formData = new FormData();
-    formData.append('file', e.target.files[0]);
+  const { uploading, uploadFile, downloadFile } = useProjectFiles(params.id as string, fetchProjectDetails);
 
-    try {
-      setUploading(true);
-      await api.post(`/api/projects/${params.id}/files`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      fetchProjectDetails(); // Rafraîchir
-    } catch (err) {
-      alert('Erreur upload');
-    } finally {
-      setUploading(false);
-    }
-  };
+  useEffect(() => {
+    fetchProjectDetails();
+  }, [params.id]);
 
-  const handleDeleteFile = async (fileId: string) => {
-    if (!confirm('Supprimer ce fichier ?')) return;
-    try {
-      await api.delete(`/api/projects/${params.id}/files/${fileId}`);
-      fetchProjectDetails();
-    } catch (err) {
-      alert('Erreur suppression');
-    }
-  };
+
 
   if (loading || !project) return <div className="animate-pulse h-64 bg-gray-200 rounded-xl"></div>;
 
@@ -212,54 +189,60 @@ export default function ProjectOverviewPage() {
 
       {/* 2. Section Documents / Livrables */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Liste des fichiers */}
+        {/* Liste des fichiers (Aperçu) */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold text-gray-900">Documents récents</h3>
-            <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm ${uploading ? 'opacity-50' : ''}`}>
-              <UploadCloud size={16} />
-              {uploading ? 'Envoi...' : 'Ajouter un fichier'}
-              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
-            </label>
+            <h3 className="text-lg font-bold text-gray-900">Derniers livrables</h3>
+             <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm ${uploading ? 'opacity-50' : ''}`}>
+               <UploadCloud size={16} />
+               {uploading ? 'Envoi...' : 'Ajouter un fichier'}
+               <input type="file" className="hidden" onChange={async (e) => {
+                 if (e.target.files?.[0]) {
+                   await uploadFile(e.target.files[0]);
+                 }
+               }} disabled={uploading} />
+             </label>
           </div>
 
-          {project.files?.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
-              <p className="text-gray-500">Aucun document partagé pour le moment.</p>
+          {!project.files || project.files.length === 0 ? (
+            <div className="text-center py-8 bg-white rounded-xl border border-dashed border-gray-300">
+              <p className="text-gray-500 text-sm">Aucun document partagé.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <ul className="divide-y divide-gray-100">
-                {project.files?.map((file: any) => (
-                  <li key={file._id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                        <FileText size={20} />
+            <>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <ul className="divide-y divide-gray-100">
+                  {project.files.slice(-3).reverse().map((file: any) => ( // On montre que les trois derniers fichiers
+                    <li key={file._id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                          <FileText size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{file.name}</p>
+                          <p className="text-xs text-gray-500">
+                               {new Date(file.uploadedAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                        <p className="text-xs text-gray-500">Ajouté le {new Date(file.uploadedAt).toLocaleDateString()}</p>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => downloadFile(file.path, file.name)}
+                          className="p-2 text-gray-400 hover:text-blue-600 transition rounded-md hover:bg-blue-50"
+                        >
+                          <Download size={18} />
+                        </button>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <a 
-                        href={`http://localhost:5000/${file.path}`} 
-                        target="_blank" 
-                        className="p-2 text-gray-400 hover:text-blue-600 transition rounded-md hover:bg-blue-50"
-                      >
-                        <Download size={18} />
-                      </a>
-                      <button 
-                        onClick={() => handleDeleteFile(file._id)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition rounded-md hover:bg-red-50"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="text-right mt-2">
+                <a href={`/projects/${params.id}/liverables`} className="text-sm text-blue-600 hover:underline font-medium">
+                    Voir tous les fichiers ({project.files.length}) →
+                </a>
+              </div>
+            </>
           )}
         </div>
 

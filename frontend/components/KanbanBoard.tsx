@@ -178,15 +178,15 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         </button>
       </div>
 
-      {/* Grid des Colonnes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 h-[calc(100vh-250px)] overflow-hidden">
+      {/* Grid des Colonnes - REMOVED fixed height and overflow hidden */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
         {COLUMNS.map((col) => {
           const colTasks = tasks.filter(t => t.status === col.id);
 
           return (
             <div
               key={col.id}
-              className="flex flex-col h-full rounded-xl bg-white border border-gray-200 shadow-sm" // Fond blanc qui "pop"
+              className="flex flex-col h-auto min-h-[500px] rounded-xl bg-white border border-gray-200 shadow-sm" // Changed h-full to h-auto min-h
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, col.id)}
             >
@@ -208,8 +208,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                 </div>
               </div>
 
-              {/* Zone de Tâches (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {/* Zone de Tâches - REMOVED flex-1 overflow-y-auto to allow expansion */}
+              <div className="p-3 space-y-3">
 
                 {/* Zone d'ajout rapide (Input) */}
                 {isAdding === col.id && (
@@ -280,7 +280,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                             e.nativeEvent.stopImmediatePropagation();
                             setMenuOpenId(menuOpenId === task._id ? null : task._id);
                           }}
-                          className="p-1 -mr-2 -mt-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="p-1 -mr-2 -mt-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 transition-colors"
                         >
                           <MoreHorizontal size={16} />
                         </button>

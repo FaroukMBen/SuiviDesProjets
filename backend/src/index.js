@@ -39,7 +39,7 @@ if (process.env.NODE_ENV !== 'test') {
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/projects', require('./routes/projects'));
-app.use('/api/campagne', require('./routes/campagnes'));
+app.use('/api/campaigns', require('./routes/campagnes'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/evaluations', require('./routes/evaluations'));
 app.use('/api/feedback', require('./routes/feedback'));

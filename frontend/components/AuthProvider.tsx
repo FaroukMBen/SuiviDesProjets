@@ -43,7 +43,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   // CORRECTION HYDRATION :
   // Tant que ce n'est pas monté, on renvoie les enfants (comme le serveur)
-  // Cela évite le conflit HTML.
   if (!mounted) {
     return <>{children}</>;
   }
@@ -56,6 +55,5 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       </div>
     );
   }
-
   return <>{children}</>;
 }

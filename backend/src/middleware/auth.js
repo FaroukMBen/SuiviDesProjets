@@ -10,6 +10,13 @@ const authenticate = (req, res, next) => {
     });
   }
 
+  // --- AJOUT DEBUG TEMPORAIRE ---
+  if (!process.env.JWT_SECRET) {
+    console.error("FATAL : JWT_SECRET n'est pas défini dans l'environnement !");
+    return res.status(500).json({ message: "Erreur configuration serveur" });
+  }
+  // -----------------------------
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute  from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/auth';
 import { Folder, Plus, ChevronRight } from 'lucide-react';

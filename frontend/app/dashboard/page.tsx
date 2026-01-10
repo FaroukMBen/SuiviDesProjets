@@ -19,6 +19,7 @@ import {
   Folder,
   TrendingUp
 } from 'lucide-react';
+import { QuickActions } from '@/components/QuickActions';
 
 // --- Composant Carte Statistique (Style Image Fournie) ---
 const StatCard = ({ title, value, icon: Icon, color, subtext }: any) => (
@@ -102,34 +103,18 @@ export default function DashboardPage() {
 
               {/* Colonne Gauche (Large) : Tableau des Projets Récents */}
               <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  <RecentProjects />
+                  {/* ATTENTION : Si tu as suivi l'optimisation précédente, n'oublie pas les props ici : */}
+                  {/* <RecentProjects projects={projectsList} loading={loading} /> */}
+                  <RecentProjects /> 
               </div>
 
               {/* Colonne Droite : Actions & Alertes */}
               <div className="space-y-8">
+                
+                {/* ✅ Ton nouveau composant */}
+                <QuickActions />  
 
-                {/* Actions Rapides */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    ⚡ Actions rapides
-                  </h3>
-                  <div className="space-y-3">
-                    <Link href="/projects/new" className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition shadow-lg shadow-blue-200">
-                      <Plus size={18} />
-                      Nouveau Projet
-                    </Link>
-                    <button className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition shadow-lg shadow-emerald-200">
-                      <CheckCircle size={18} />
-                      Valider Livrables
-                    </button>
-                    <button className="flex items-center justify-center gap-2 w-full py-3 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-800 transition shadow-lg shadow-slate-200">
-                      <Search size={18} />
-                      Rechercher Étudiant
-                    </button>
-                  </div>
-                </div>
-
-                {/* Alertes Importantes */}
+                {/* 👇 Les alertes doivent être DANS la div "space-y-8", pas après ! */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                   <h3 className="font-bold text-gray-800 mb-4">🔔 Alertes importantes</h3>
                   <div className="space-y-3">
@@ -150,8 +135,9 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-
+                {/* 👆 C'est ICI qu'il faut fermer la colonne droite */}
               </div>
+
             </div>
 
           </main>

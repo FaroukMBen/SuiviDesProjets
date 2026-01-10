@@ -5,14 +5,13 @@ import api from '@/lib/auth'; // Ton instance axios
 import { useAuthStore } from '@/lib/store';
 import { 
   Plus, 
-  Calendar, 
-  MoreVertical, 
-  Trash2, 
-  CheckCircle2, 
-  Clock, 
+  Trash2,
   FileText,
   X
 } from 'lucide-react';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { Navbar } from '@/components/Navbar';
+import { CampaignList } from '@/components/campaigns/CampaignList';
 
 // Interfaces pour Typer les données
 interface Criterion {
@@ -49,16 +48,29 @@ export default function CampaignsPage() {
   });
 
   const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
-  console.log("Role : ", user?.role)
+  
 
   // Chargement des données
   useEffect(() => {
-    fetchCampaigns();
-  }, []);
+    const userId = user?.id || (user as any)?._id;
 
-  const fetchCampaigns = async () => {
+    if (user && userId) {
+      console.log("✅ User trouvé, lancement du fetch pour :", userId);
+      fetchCampaigns(userId); // On passe l'ID directement
+    } else {
+      console.log("⏳ En attente du chargement de l'utilisateur...");
+    }
+  }, [user]);
+
+  const fetchCampaigns = async (userIdForce?: string) => {
+    // On prend soit l'ID passé en paramètre, soit celui du store
+    const currentId = userIdForce || user?.id || (user as any)?._id;
+    
+    if (!currentId) return;
+
     try {
-      const res = await api.get(`/api/campaigns?manager=${user.id}`);
+      console.log(`📡 Appel API : /api/campaigns?manager=${currentId}`);
+      const res = await api.get(`/api/campaigns?manager=${currentId}`);
       setCampaigns(res.data.campaigns);
     } catch (err) {
       console.error(err);
@@ -89,6 +101,7 @@ export default function CampaignsPage() {
   // Envoi du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("FormData : ", formData)
     try {
       await api.post('/api/campaigns', formData);
       setShowModal(false);
@@ -99,9 +112,23 @@ export default function CampaignsPage() {
     }
   };
 
+  const handleDeleteCampaign = async (id: string) => {
+    try {
+      // 1. Appel API pour supprimer
+      await api.delete(`/api/campaigns/${id}`);
+      fetchCampaigns(); 
+
+    } catch (err) {
+      console.error("Erreur suppression:", err);
+      alert("Impossible de supprimer la campagne (Vérifiez qu'elle n'a pas de projets liés)");
+    }
+  };
+
   return (
+    <ProtectedRoute>
     <div className="p-8 max-w-[1600px] mx-auto min-h-screen">
-      
+      <Navbar />
+      <main className="flex-1 ml-64 p-8 overflow-y-auto">
       {/* En-tête */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -120,59 +147,12 @@ export default function CampaignsPage() {
         )}
       </div>
 
-      {/* Liste des Campagnes (Grille) */}
-      {loading ? (
-        <div className="text-center py-20">Chargement...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {campaigns.map((campaign) => (
-            <div key={campaign._id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative group">
-              
-              {/* Badge Statut */}
-              <div className="absolute top-6 right-6">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize
-                  ${campaign.status === 'active' ? 'bg-green-100 text-green-700' : 
-                    campaign.status === 'draft' ? 'bg-gray-100 text-gray-600' : 'bg-red-50 text-red-600'}`}>
-                  {campaign.status === 'active' ? 'En cours' : campaign.status}
-                </span>
-              </div>
-
-              <div className="mb-4">
-                <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                  {campaign.academicYear}
-                </span>
-                <h3 className="text-lg font-bold text-gray-900 mt-2">{campaign.title}</h3>
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                  Resp. {campaign.manager?.name}
-                </p>
-              </div>
-
-              <div className="space-y-2 mt-4 pt-4 border-t border-gray-50 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-gray-400" />
-                  <span>Du {new Date(campaign.startDate).toLocaleDateString()} au {new Date(campaign.endDate).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FileText size={16} className="text-gray-400" />
-                  <span>{campaign.evaluationTemplate.length} Critères d'évaluation</span>
-                </div>
-              </div>
-
-              <div className="mt-6 flex gap-2">
-                <button className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                  Voir détails
-                </button>
-                {/* Bouton Config (Prof uniquement) */}
-                {isInstructor && (
-                  <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg">
-                    <MoreVertical size={20} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <CampaignList 
+        campaigns={campaigns} 
+        loading={loading} 
+        isInstructor={user?.role=== 'instructor'}
+        onDelete={handleDeleteCampaign} // <--- On passe la fonction ici
+      />
 
       {/* --- MODAL DE CRÉATION --- */}
       {showModal && (
@@ -306,6 +286,8 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
+    </ProtectedRoute>
   );
 }

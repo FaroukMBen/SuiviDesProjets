@@ -33,23 +33,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      try {
-        const response = await api.post('/api/auth/refresh-token');
-        localStorage.setItem('token', response.data.token);
-        api.defaults.headers.Authorization = `Bearer ${response.data.token}`;
-        return api(originalRequest);
-      } catch (err) {
-        localStorage.removeItem('token');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+    // Si on reçoit une erreur 401 (Non autorisé)
+    if (error.response?.status === 401) {
+      // On supprime le token pourri
+      localStorage.removeItem('token');
+      
+      // On redirige vers le login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
       }
     }
-
     return Promise.reject(error);
   }
 );

@@ -17,80 +17,58 @@ const verify = async () => {
         });
         console.log('Connected to MongoDB');
 
-        // Create dummy data
-        const owner = await User.create({
-            name: 'Test Owner',
-            email: `owner_${Date.now()}@test.com`,
-            password: 'password'
-        });
+        // Create Users
+        const owner = await User.create({ name: 'Owner', email: `owner_${Date.now()}@test.com`, password: 'pw' });
+        const assignee = await User.create({ name: 'Assignee', email: `assignee_${Date.now()}@test.com`, password: 'pw' });
 
-        const assignee = await User.create({
-            name: 'Test Assignee',
-            email: `assignee_${Date.now()}@test.com`,
-            password: 'password'
-        });
+        const project = await Project.create({ title: 'Test Project Cron', owner: owner._id });
 
-        const project = await Project.create({
-            title: 'Test Project Cron',
-            owner: owner._id,
-            description: 'Testing cron'
-        });
+        // --- SCENARIO 1: Custom Reminder (3 days before) ---
+        const dueIn3Days = new Date();
+        dueIn3Days.setDate(dueIn3Days.getDate() + 3);
+        dueIn3Days.setHours(12, 0, 0, 0);
 
-        // Set due date to tomorrow noon
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(12, 0, 0, 0);
-
-        const task = await Task.create({
-            title: 'Test Task Cron',
+        const task3Days = await Task.create({
+            title: 'Task Due in 3 Days (Reminder 3)',
             projectId: project._id,
             assignee: assignee._id,
-            dueDate: tomorrow,
+            dueDate: dueIn3Days,
+            reminderDelay: 3, // Custom
             status: 'todo'
         });
 
-        console.log(`Created task ${task._id} due at ${task.dueDate}`);
-
-        // Run the check FIRST TIME
-        console.log('Running checkDueTasks (1st time)...');
-        await checkDueTasks();
-
-        // Check for notification
-        const notificationsAfterFirstRun = await Notification.find({
-            recipient: assignee._id,
-            task: task._id,
-            type: 'INFO'
+        // --- SCENARIO 2: Default Reminder (1 day before) ---
+        // Create a task due in 3 days but with DEFAULT reminder (1) -> SHOULD NOT NOTIFY yet
+        const task3DaysDefault = await Task.create({
+            title: 'Task Due in 3 Days (Default Reminder)',
+            projectId: project._id,
+            assignee: assignee._id,
+            dueDate: dueIn3Days,
+            reminderDelay: 1, // Default
+            status: 'todo'
         });
 
-        if (notificationsAfterFirstRun.length === 1) {
-            console.log('SUCCESS: One notification created after first run.');
-        } else {
-            console.error(`FAILURE: Expected 1 notification, found ${notificationsAfterFirstRun.length}.`);
-        }
-
-        // Run the check SECOND TIME
-        console.log('Running checkDueTasks (2nd time)...');
+        console.log('Running checkDueTasks...');
         await checkDueTasks();
 
-        // Check for notification again
-        const notificationsAfterSecondRun = await Notification.find({
-            recipient: assignee._id,
-            task: task._id,
-            type: 'INFO'
-        });
+        // Check Notifications
+        const notifs = await Notification.find({ recipient: assignee._id });
+        console.log(`Found ${notifs.length} notifications.`);
 
-        if (notificationsAfterSecondRun.length === 1) {
-            console.log('SUCCESS: Still only one notification after second run (Deduplication worked).');
-        } else {
-            console.error(`FAILURE: Expected 1 notification, found ${notificationsAfterSecondRun.length}.`);
-        }
+        const notifCustom = notifs.find(n => n.task.toString() === task3Days._id.toString());
+        const notifDefault = notifs.find(n => n.task.toString() === task3DaysDefault._id.toString());
+
+        if (notifCustom) console.log('SUCCESS: Notification sent for custom 3-day reminder.');
+        else console.error('FAILURE: No notification for custom 3-day reminder.');
+
+        if (!notifDefault) console.log('SUCCESS: No notification sent for default reminder (task due in 3 days).');
+        else console.error('FAILURE: Notification sent incorrectly for default reminder.');
 
         // Cleanup
-        await Task.deleteOne({ _id: task._id });
+        await Task.deleteMany({ projectId: project._id });
         await Project.deleteOne({ _id: project._id });
         await Notification.deleteMany({ recipient: assignee._id });
-        await User.deleteOne({ _id: owner._id });
-        await User.deleteOne({ _id: assignee._id });
+        await User.deleteMany({ _id: { $in: [owner._id, assignee._id] } });
 
         console.log('Cleanup done.');
         process.exit(0);

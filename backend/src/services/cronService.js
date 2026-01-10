@@ -1,35 +1,46 @@
 const cron = require('node-cron');
 const Task = require('../models/Task');
 const Notification = require('../models/Notification');
-// Project model is used by population but explicit require might not be needed if not used directly, 
-// strictly speaking it's better to keep it if we might need it.
 const Project = require('../models/Project');
 
-// Function to check for tasks due tomorrow
-const checkDueTasks = async () => {
-    console.log('Running checkDueTasks job...');
+// Function to check for tasks due in 'daysInAdvance' days
+const checkDueTasksForDelay = async (daysInAdvance) => {
     try {
         const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const targetDate = new Date(today);
+        targetDate.setDate(targetDate.getDate() + daysInAdvance);
 
-        // Set time to beginning of the day (00:00:00)
-        tomorrow.setHours(0, 0, 0, 0);
+        targetDate.setHours(0, 0, 0, 0);
 
-        const dayAfterTomorrow = new Date(tomorrow);
-        dayAfterTomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfterTarget = new Date(targetDate);
+        dayAfterTarget.setDate(targetDate.getDate() + 1);
 
-        // Find tasks due tomorrow that are not done
-        const tasks = await Task.find({
+        // Find tasks due on that specific target date
+        // AND that have the specific reminderDelay matching daysInAdvance
+        const query = {
             dueDate: {
-                $gte: tomorrow,
-                $lt: dayAfterTomorrow
+                $gte: targetDate,
+                $lt: dayAfterTarget
             },
             status: { $ne: 'done' },
             assignee: { $exists: true, $ne: null }
-        }).populate('projectId');
+        };
 
-        console.log(`Found ${tasks.length} tasks due tomorrow.`);
+        // If delay is 1, take tasks with reminderDelay=1 OR undefined (legacy/default)
+        if (daysInAdvance === 1) {
+            query.$or = [
+                { reminderDelay: 1 },
+                { reminderDelay: { $exists: false } },
+                { reminderDelay: null }
+            ];
+        } else {
+            // For other delays, strictly match
+            query.reminderDelay = daysInAdvance;
+        }
+
+        const tasks = await Task.find(query).populate('projectId');
+
+        console.log(`Checking delay ${daysInAdvance} days: Found ${tasks.length} tasks.`);
 
         for (const task of tasks) {
 
@@ -51,33 +62,45 @@ const checkDueTasks = async () => {
                 continue;
             }
 
-            const message = `Rappel : La tâche "${task.title}" du projet "${project.title}" arrive à échéance demain.`;
+            const dayString = daysInAdvance === 1 ? 'demain' : `dans ${daysInAdvance} jours`;
+            const message = `Rappel : La tâche "${task.title}" du projet "${project.title}" arrive à échéance ${dayString}.`;
 
             const notification = new Notification({
                 recipient: assigneeId,
                 sender: senderId,
                 type: 'INFO',
                 project: project._id,
-                task: task._id, // Link to task
+                task: task._id,
                 message: message
             });
 
             await notification.save();
-            console.log(`Notification sent to user ${assigneeId} for task ${task._id}`);
+            console.log(`Notification sent to user ${assigneeId} for task ${task._id} (Due in ${daysInAdvance} days)`);
         }
 
     } catch (error) {
-        console.error('Error in checkDueTasks:', error);
+        console.error(`Error in checkDueTasksForDelay(${daysInAdvance}):`, error);
     }
 };
+
+const checkAllDueTasks = async () => {
+    console.log('Running checkAllDueTasks job (Per Task Logic)...');
+    const possibleDelays = [1, 2, 3, 7];
+
+    // Process all delays
+    for (const delay of possibleDelays) {
+        await checkDueTasksForDelay(delay);
+    }
+    console.log('Finished checkAllDueTasks job.');
+}
 
 const initCronJobs = () => {
     // Run at minute 0 of every hour
     cron.schedule('0 * * * *', () => {
-        checkDueTasks();
+        checkAllDueTasks();
     });
 
     console.log('Cron jobs initialized: Task Due Date Check scheduled for every hour.');
 };
 
-module.exports = { initCronJobs, checkDueTasks };
+module.exports = { initCronJobs, checkDueTasks: checkAllDueTasks };

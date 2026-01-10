@@ -96,7 +96,7 @@ class TaskController {
 
   static async updateTask(req, res) {
     try {
-      const { title, description, status, priority, dueDate, assignee, order, type } = req.body;
+      const { title, description, status, priority, dueDate, assignee, order, type, reminderDelay } = req.body;
 
       const task = await Task.findById(req.params.id);
       if (!task) {
@@ -111,6 +111,7 @@ class TaskController {
       if (dueDate) task.dueDate = dueDate;
       if (assignee) task.assignee = assignee;
       if (order !== undefined) task.order = order;
+      if (reminderDelay) task.reminderDelay = reminderDelay;
 
       await task.save();
       await task.populate('assignee', 'name email profilePicture');

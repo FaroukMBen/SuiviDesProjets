@@ -19,7 +19,8 @@ interface Task {
   type?: 'feature' | 'bug' | 'objectif'; // Ajouté pour le style badge
   assignee?: Member;
   dueDate?: string;
-  subtasksCount?: string; // Ex: "1/2" comme sur la maquette
+  reminderDelay?: number; // 1, 2, 3, or 7
+  subtasksCount?: string;
 }
 
 const COLUMNS = [
@@ -395,6 +396,24 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                   className="w-full p-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                 />
               </div>
+
+              {/* Rappel (Conditionnel à l'existence d'une échéance) */}
+              {editingTask.dueDate && (
+                <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Rappel</label>
+                  <select
+                    value={editingTask.reminderDelay || 1}
+                    onChange={e => setEditingTask({ ...editingTask, reminderDelay: Number(e.target.value) })}
+                    className="w-full p-2 rounded-lg border border-gray-200 bg-white focus:border-blue-500 outline-none"
+                  >
+                    {[1, 2, 3, 7].map(d => (
+                      <option key={d} value={d}>
+                        {d} jour{d > 1 ? 's' : ''} avant
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button

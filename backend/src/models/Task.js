@@ -8,6 +8,7 @@ const taskSchema = new mongoose.Schema({
   type: { type: String, enum: ['feature', 'bug', 'objectif'], default: 'objectif' },
   assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+  reminderDelay: { type: Number, enum: [1, 2, 3, 7], default: 1 },
   dueDate: Date,
   order: Number,
   createdAt: { type: Date, default: Date.now },

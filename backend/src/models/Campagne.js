@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
 
 const templateCriterionSchema = new mongoose.Schema({
-  name: { type: String, required: true },      // ex: "Qualité du code"
-  weight: { type: Number, default: 1 },        // Coefficient
-  maxScore: { type: Number, default: 20 }      // Note sur 20 par défaut
-}, { _id: false }); // Pas besoin d'ID pour ces sous-objets
+  name: { type: String, required: true },
+  description: { type: String }, // <--- AJOUTE CETTE LIGNE
+  weight: { type: Number, default: 1 },
+  maxScore: { type: Number, default: 20 }
+}, { _id: false });
 
 const campaignSchema = new mongoose.Schema({
   title: { type: String, required: true },        // ex: "Projets de Fin d'Études 2025"
@@ -22,7 +23,14 @@ const campaignSchema = new mongoose.Schema({
     enum: ['draft', 'active', 'closed', 'archived'], 
     default: 'draft' 
   },
-
+  targetYear: { 
+    type: String, 
+    required: true 
+  },
+  targetGroups: {
+    type: [String],
+    default: [] 
+  },
   // C'est ICI qu'on définit la grille "Type" pour tous les projets de la campagne
   evaluationTemplate: [templateCriterionSchema],
 

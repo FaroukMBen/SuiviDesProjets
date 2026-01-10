@@ -6,17 +6,39 @@ const { Readable } = require('stream');
 const path = require('path');
 
 class ProjectController {
+  // controllers/projectController.js
   static async getAllProjects(req, res) {
-    try {
-      const projects = await Project.find({
-        $or: [{ owner: req.user.id }, { members: req.user.id }]
-      })
-        .populate('owner members', 'name email profilePicture')
-        .sort({ createdAt: -1 });
-      res.json({ success: true, projects });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
+      try {
+        const { campaign } = req.query; // Récupère le paramètre ?campaign=... de l'URL
+        let filter = {};
+
+        // 1. FILTRE PAR CAMPAGNE
+        // C'est ça qui permet d'afficher seulement les projets de la campagne X
+        if (campaign) {
+          filter.campaign = campaign;
+        }
+
+        if (req.user.role === 'student') {
+          // L'étudiant doit être owner OU member
+          filter.$or = [
+              { owner: req.user.id },
+              { members: req.user.id }
+          ];
+        }
+
+        const projects = await Project.find(filter)
+          .populate('owner', 'name') // On veut le nom du chef de projet
+          .sort({ updatedAt: -1 }); // Les plus récents en premier
+
+        res.status(200).json({ 
+            success: true, 
+            count: projects.length,  
+            projects 
+        });
+
+      } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+      }
   }
 
   static async createProject(req, res) {

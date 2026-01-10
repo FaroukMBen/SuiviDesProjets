@@ -20,6 +20,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { QuickActions } from '@/components/QuickActions';
+import { RecentCampaigns } from '@/components/campaigns/RecentCampaigns';
 
 // --- Composant Carte Statistique (Style Image Fournie) ---
 const StatCard = ({ title, value, icon: Icon, color, subtext }: any) => (
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const { stats, loading } = useDashboardStats();
 
+  const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#f3f4f6] flex font-sans">
@@ -102,10 +104,16 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
               {/* Colonne Gauche (Large) : Tableau des Projets Récents */}
+              {/* Colonne Gauche (Large) */}
               <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  {/* ATTENTION : Si tu as suivi l'optimisation précédente, n'oublie pas les props ici : */}
-                  {/* <RecentProjects projects={projectsList} loading={loading} /> */}
-                  <RecentProjects /> 
+                  
+                  {/* 👇 C'EST ICI QUE LA MAGIE OPÈRE */}
+                  {isInstructor ? (
+                    <RecentCampaigns />
+                  ) : (
+                    <RecentProjects />
+                  )}
+
               </div>
 
               {/* Colonne Droite : Actions & Alertes */}

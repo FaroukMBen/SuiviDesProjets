@@ -29,7 +29,7 @@ export function QuickActions() {
         {isInstructor ? (
           // CAS PROFESSEUR : Lien vers les campagnes
           <Link 
-            href="/dashboard/campaigns" 
+            href="/campaigns" 
             className="flex items-center justify-center gap-2 w-full py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition shadow-lg shadow-purple-200"
           >
             <LayoutTemplate size={18} />

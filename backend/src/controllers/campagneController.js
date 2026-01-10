@@ -56,35 +56,28 @@ class CampaignController {
 
   // Mettre à jour une campagne
   static async updateCampaign(req, res) {
-    try {
-      const campaign = await Campaign.findByIdAndUpdate(
-        req.params.id, 
-        req.body, 
-        { new: true } // Renvoie l'objet modifié
-      );
-      if (!campaign) {
-        return res.status(404).json({ success: false, message: 'Campagne introuvable' });
-      }
-      res.json({ success: true, campaign });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
+  try {
+    const campaign = await Campaign.findByIdAndUpdate(
+      req.params.id, 
+      req.body, // On passera { status: 'archived' } ici
+      { new: true, runValidators: true }
+    );
+    res.status(200).json({ success: true, campaign });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
+};
 
   // Supprimer (ou archiver) une campagne
   static async deleteCampaign(req, res) {
     try {
-      // Option 1 : Suppression physique
-      // await Campaign.findByIdAndDelete(req.params.id);
-      
-      // Option 2 (Recommandée) : Soft delete (Archivage)
-      await Campaign.findByIdAndUpdate(req.params.id, { status: 'archived' });
-      
-      res.json({ success: true, message: 'Campagne archivée avec succès' });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
+      // Vérifier les projets liés avant si tu veux être prudent (optionnel)
+      await Campaign.findByIdAndDelete(req.params.id);
+      res.status(200).json({ success: true, message: 'Campagne supprimée définitivement' });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-  }
+  };
 }
 
 module.exports = CampaignController;

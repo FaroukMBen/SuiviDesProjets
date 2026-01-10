@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react'; // 1. Import useState
-import { Calendar, FileText, MoreVertical, Trash2, Eye, X } from 'lucide-react';
+import { Calendar, FileText, MoreVertical, Trash2, Eye, X, Archive } from 'lucide-react';
 import Link from 'next/link';
 
 interface Campaign {
@@ -20,11 +20,13 @@ interface CampaignListProps {
   loading: boolean;
   isInstructor: boolean;
   onDelete: (id: string) => void; // 2. Nouvelle prop pour gérer la suppression
+  onArchive: (id: string) => void;
 }
 
-export function CampaignList({ campaigns, loading, isInstructor, onDelete }: CampaignListProps) {
+export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArchive }: CampaignListProps) {
   // 3. État pour suivre quel menu est ouvert (stocke l'ID de la campagne)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Chargement des campagnes...</div>;
@@ -85,9 +87,8 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete }: Cam
 
           {/* Actions */}
           <div className="mt-6 flex gap-2 relative">
-            {/* Bouton Voir Détails (Lien standard) */}
             <Link 
-                href={`/dashboard/campaigns/${campaign._id}`}
+                href={`/campaigns/${campaign._id}`}
                 className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition flex items-center justify-center gap-2"
             >
               <Eye size={16} />
@@ -106,11 +107,27 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete }: Cam
 
                 {/* --- MENU DÉROULANT --- */}
                 {openMenuId === campaign._id && (
-                  <div className="absolute right-0 bottom-12 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-1">
+                  <div className="absolute right-0 bottom-12 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-1 space-y-1">
+                      
+                      {/* Option 1: ARCHIVER */}
+                      {campaign.status !== 'archived' && (
+                        <button 
+                          onClick={() => {
+                              onArchive(campaign._id);
+                              setOpenMenuId(null);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                          <Archive size={16} className="text-orange-500" />
+                          Archiver
+                        </button>
+                      )}
+
+                      {/* Option 2: SUPPRIMER */}
                       <button 
                         onClick={() => {
-                            if(confirm('Voulez-vous vraiment supprimer cette campagne ?')) {
+                            if(confirm('⚠️ Attention : Cette action est irréversible. Voulez-vous supprimer définitivement ?')) {
                                 onDelete(campaign._id);
                                 setOpenMenuId(null);
                             }
@@ -118,8 +135,9 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete }: Cam
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors"
                       >
                         <Trash2 size={16} />
-                        Supprimer
+                        Supprimer définitivement
                       </button>
+
                     </div>
                   </div>
                 )}

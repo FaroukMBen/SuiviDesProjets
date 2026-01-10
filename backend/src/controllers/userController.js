@@ -28,6 +28,31 @@ class UserController {
             res.status(500).json({ success: false, message: err.message });
         }
     }
+
+    static async getStudents(req, res) {
+        try {
+            const { year, group, search } = req.query;
+            
+            // Filtre de base : on ne veut que les étudiants
+            let query = { role: 'student' };
+
+            // Filtres dynamiques
+            if (year) query.academicYear = year;
+            if (group) query.group = group;
+            
+            // Recherche par nom (insensible à la casse)
+            if (search) {
+            query.name = { $regex: search, $options: 'i' };
+            }
+
+            // On récupère id, nom, email, année, groupe (pas le mot de passe !)
+            const students = await User.find(query).select('-password');
+            
+            res.status(200).json({ success: true, count: students.length, students });
+        } catch (error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    };
 }
 
 module.exports = UserController;

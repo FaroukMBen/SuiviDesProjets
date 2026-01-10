@@ -10,6 +10,16 @@ const userSchema = new mongoose.Schema({
   githubUsername: String,
   githubToken: String,
   profilePicture: String,
+  academicYear: { 
+    type: String, 
+    enum: ['BUT1', 'BUT2', 'BUT3', 'LP', 'Master'], // Adapte selon tes besoins
+    required: function() { return this.role === 'student'; } // Requis seulement si étudiant
+  },
+  group: {
+    type: String, // ex: 'G1', 'TP-A', 'FA' (Formation alternance)
+    uppercase: true,
+    trim: true
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });

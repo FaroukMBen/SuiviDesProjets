@@ -63,7 +63,7 @@ export function Navbar() {
   // --- MENU ENSEIGNANT ---
   const instructorItems = [
     { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Mes Campagnes', href: '/dashboard/campaigns', icon: LayoutTemplate }, // Gestion des promos
+    { name: 'Mes Campagnes', href: '/campaigns', icon: LayoutTemplate }, // Gestion des promos
     { name: 'Validations', href: '/validations', icon: ClipboardCheck }, // Corriger les livrables
     { name: 'Étudiants', href: '/students', icon: Users }, // Annuaire / Groupes
     { name: 'Notifications', href: '/notifications', icon: Bell },

@@ -5,6 +5,7 @@ const notificationSchema = new mongoose.Schema({
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     type: { type: String, enum: ['INVITATION', 'INFO'], required: true },
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+    task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' }, // Reference to the task related to this notification
     message: { type: String },
     status: { type: String, enum: ['unread', 'read'], default: 'unread' },
     actionStatus: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' }, // For invitations

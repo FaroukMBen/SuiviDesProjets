@@ -8,6 +8,7 @@ import api from '@/lib/auth';
 import { UserSearch } from '@/components/UserSearch';
 
 import { useProjectFiles } from '@/hooks/useProjectFiles';
+import { ProjectMilestones } from '@/components/ProjectMilestones';
 
 export default function ProjectOverviewPage() {
   const params = useParams();
@@ -76,6 +77,11 @@ export default function ProjectOverviewPage() {
           </div>
         </Card>
       </div>
+
+      {/* 2. Timeline Objectifs & Jalons */}
+      {project.campaignId && (
+        <ProjectMilestones campaignId={project.campaignId} projectId={project._id} />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-lg border border-gray-200">

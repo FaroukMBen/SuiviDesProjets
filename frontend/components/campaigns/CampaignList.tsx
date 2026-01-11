@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react'; // 1. Import useState
-import { Calendar, FileText, MoreVertical, Trash2, Eye, X, Archive } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, FileText, MoreVertical, Trash2, Eye, X, Archive, Flag } from 'lucide-react';
 import Link from 'next/link';
 
 interface Campaign {
@@ -19,12 +19,11 @@ interface CampaignListProps {
   campaigns: Campaign[];
   loading: boolean;
   isInstructor: boolean;
-  onDelete: (id: string) => void; // 2. Nouvelle prop pour gérer la suppression
+  onDelete: (id: string) => void;
   onArchive: (id: string) => void;
 }
 
 export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArchive }: CampaignListProps) {
-  // 3. État pour suivre quel menu est ouvert (stocke l'ID de la campagne)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   
 
@@ -46,7 +45,7 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
         <div 
           key={campaign._id} 
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative group"
-          onMouseLeave={() => setOpenMenuId(null)} // Ferme le menu si la souris quitte la carte
+          onMouseLeave={() => setOpenMenuId(null)} 
         >
           
           {/* Badge Statut */}
@@ -109,6 +108,16 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
                 {openMenuId === campaign._id && (
                   <div className="absolute right-0 bottom-12 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-1 space-y-1">
+
+                     {/* Option 0 : OBJECTIFS (Important) */}
+                      <Link 
+                        href={`/campaigns/${campaign._id}/milestones`}
+                        onClick={() => setOpenMenuId(null)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2 transition-colors"
+                      >
+                         <Flag size={16} className="text-blue-500" />
+                         Objectifs & Jalons
+                      </Link>
                       
                       {/* Option 1: ARCHIVER */}
                       {campaign.status !== 'archived' && (

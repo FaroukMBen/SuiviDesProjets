@@ -10,6 +10,7 @@ router.get('/', authenticate, ProjectController.getAllProjects);
 router.post('/', authenticate, validateProjectCreate, ProjectController.createProject);
 router.get('/:id', authenticate, ProjectController.getProjectById);
 router.put('/:id', authenticate, ProjectController.updateProject);
+router.put('/:id/link-campaign', authenticate, ProjectController.linkCampaign);
 router.post('/:id/members', authenticate, ProjectController.addMember);
 router.delete('/:id/members', authenticate, ProjectController.removeMember);
 router.post('/:id/files', authenticate, upload.single('file'), ProjectController.uploadFile);

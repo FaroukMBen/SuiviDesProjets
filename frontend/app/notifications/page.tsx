@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import api from '@/lib/auth';
 
 interface Notification {

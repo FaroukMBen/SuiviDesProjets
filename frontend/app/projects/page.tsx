@@ -14,18 +14,23 @@ interface Project {
     description: string;
     status: string;
     deadline: string;
+    tags: string[];
+    members: { _id: string; name: string }[];
 }
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[]>([]);
+    const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const fetchProjects = async () => {
             try {
                 const response = await api.get('/api/projects');
                 setProjects(response.data.projects);
+                setFilteredProjects(response.data.projects);
             } catch (err) {
                 setError('Impossible de charger les projets');
                 console.error(err);
@@ -37,6 +42,14 @@ export default function ProjectsPage() {
         fetchProjects();
     }, []);
 
+    useEffect(() => {
+        const results = projects.filter(project =>
+            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            project.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+        setFilteredProjects(results);
+    }, [searchTerm, projects]);
+
     return (
         <ProtectedRoute>
             <div className="flex h-screen bg-gray-50">
@@ -44,20 +57,46 @@ export default function ProjectsPage() {
 
                 <main className="flex-1 ml-64 p-8 overflow-y-auto">
                     <div className="max-w-4xl mx-auto">
-                        <div className="flex justify-between items-center mb-8">
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Mes Projets</h1>
-                                <p className="text-gray-500 mt-1">Liste de tous vos projets en cours</p>
+                        <div className="flex flex-col gap-6 mb-8">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                                        Mes Projets
+                                        <span className="bg-gray-100 text-gray-600 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                                            {projects.length}
+                                        </span>
+                                    </h1>
+                                    <p className="text-gray-500 mt-1">Liste de tous vos projets en cours</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <NotificationBell />
+                                    <Link
+                                        href="/projects/new"
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        <Plus size={20} />
+                                        <span>Nouveau Projet</span>
+                                    </Link>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <NotificationBell />
-                                <Link
-                                    href="/projects/new"
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+
+                             {/* Search Bar */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Rechercher un projet par titre ou tag..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pl-11"
+                                />
+                                <svg
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
                                 >
-                                    <Plus size={20} />
-                                    <span>Nouveau Projet</span>
-                                </Link>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
                             </div>
                         </div>
 
@@ -85,37 +124,71 @@ export default function ProjectsPage() {
                             </div>
                         ) : (
                             <div className="grid gap-4">
-                                {projects.map((project) => (
+                                {filteredProjects.map((project) => (
                                     <Link
                                         key={project._id}
                                         href={`/projects/${project._id}`}
                                         className="block bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all group"
                                     >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
-                                                    <Folder size={24} />
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
+                                                        <Folder size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                            {project.title}
+                                                        </h3>
+                                                        <p className="text-sm text-gray-500 line-clamp-1 mb-1">
+                                                            {project.description || 'Aucune description'}
+                                                        </p>
+                                                        {/* Tags */}
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {project.tags && project.tags.map(tag => (
+                                                                <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                                                                    {tag}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                        {project.title}
-                                                    </h3>
-                                                    <p className="text-sm text-gray-500 line-clamp-1">
-                                                        {project.description || 'Aucune description'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <span className={`px-3 py-1 text-xs font-medium rounded-full
-                          ${project.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                        project.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                                                            'bg-gray-100 text-gray-700'
-                                                    }
-                        `}>
-                                                    {project.status === 'completed' ? 'Terminé' :
-                                                        project.status === 'in_progress' ? 'En cours' : 'En attente'}
-                                                </span>
                                                 <ChevronRight className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                                            </div>
+
+                                            <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-50">
+                                                <div className="flex items-center gap-4">
+                                                     <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full
+                                                        ${project.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                          project.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                                          'bg-gray-100 text-gray-700'
+                                                        }
+                                                    `}>
+                                                        {project.status === 'completed' ? 'Terminé' :
+                                                         project.status === 'in_progress' ? 'En cours' : 'En attente'}
+                                                    </span>
+                                                    <span>
+                                                        {project.deadline ? `Pour le ${new Date(project.deadline).toLocaleDateString()}` : 'Pas de date limite'}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Members Avatars */}
+                                                <div className="flex -space-x-2">
+                                                    {project.members && project.members.slice(0, 3).map((member, i) => (
+                                                        <div 
+                                                            key={member._id || i} 
+                                                            className="w-8 h-8 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-xs font-bold text-indigo-700"
+                                                            title={member.name}
+                                                        >
+                                                            {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+                                                        </div>
+                                                    ))}
+                                                    {project.members && project.members.length > 3 && (
+                                                        <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
+                                                            +{project.members.length - 3}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </Link>

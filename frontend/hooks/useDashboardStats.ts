@@ -21,7 +21,7 @@ export function useDashboardStats() {
 
         const [projectsRes, tasksRes] = await Promise.all([
           api.get('/api/projects'),
-          api.get('/api/tasks') 
+          api.get('/api/tasks')
         ]);
 
         const projects = projectsRes.data.projects || [];
@@ -29,27 +29,27 @@ export function useDashboardStats() {
 
         // 1. Calculs existants
         const activeProjects = projects.filter((p: any) => p.status !== 'completed' && p.status !== 'archived').length;
-        
+
         const now = new Date();
         const lateTasks = tasks.filter((t: any) => {
           return t.dueDate && new Date(t.dueDate) < now && t.status !== 'done';
         }).length;
 
-        const deliverables = 0; // À connecter plus tard
+        const liverables = 0; // À connecter plus tard
 
         // 2. NOUVEAU : Calcul de la progression
         const totalTasks = tasks.length;
         const completedTasks = tasks.filter((t: any) => t.status === 'done').length;
-        
+
         // Évite la division par 0
-        const progressPercentage = totalTasks > 0 
-          ? Math.round((completedTasks / totalTasks) * 100) 
+        const progressPercentage = totalTasks > 0
+          ? Math.round((completedTasks / totalTasks) * 100)
           : 0;
 
         setStats({
           projects: activeProjects,
           tasksLate: lateTasks,
-          toValidate: deliverables,
+          toValidate: liverables,
           progress: progressPercentage,
           completedTasks,
           totalTasks

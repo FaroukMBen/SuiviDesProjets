@@ -51,6 +51,7 @@ app.use('/api/commits', require('./routes/commits'));
 app.use('/api/archive', require('./routes/archive'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/milestones', require('./routes/milestones'));
 
 
 // Error handling middleware

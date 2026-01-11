@@ -22,7 +22,6 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     { name: 'Tâches (Kanban)', href: `${baseUrl}/kanban` },
     { name: 'Objectifs & Jalons', href: `${baseUrl}/milestones` },
     { name: 'Git', href: `${baseUrl}/commits` },
-    { name: 'Livrables', href: `${baseUrl}/liverables` },
     { name: 'Feedback', href: `${baseUrl}/feedback` },
     { name: 'Évaluation', href: `${baseUrl}/evaluations` },
   ];
@@ -63,7 +62,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
                 className={`
                   px-5 py-2.5 text-sm font-medium rounded-t-xl border-b-2 transition-all whitespace-nowrap
                   ${isActive 
-                    ? 'bg-gray-100 border-gray-900 text-gray-900' // Actif (Style maquette Git)
+                    ? 'bg-gray-100 border-gray-900 text-gray-900'
                     : 'bg-transparent border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}
                 `}
               >

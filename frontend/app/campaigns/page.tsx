@@ -82,14 +82,24 @@ export default function CampaignsPage() {
   }, [user]);
 
   const fetchCampaigns = async (userIdForce?: string) => {
-    // On prend soit l'ID passé en paramètre, soit celui du store
-    const currentId = userIdForce || user?.id || (user as any)?._id;
-    
-    if (!currentId) return;
+    // Si pas de user, on attend
+    if (!user) return;
 
     try {
-      console.log(`📡 Appel API : /api/campaigns?manager=${currentId}`);
-      const res = await api.get(`/api/campaigns?manager=${currentId}`);
+      let url = '/api/campaigns';
+      
+      // Si prof, on filtre par manager
+      if (isInstructor) {
+        const currentId = userIdForce || user.id || (user as any)._id;
+        url += `?manager=${currentId}`;
+        console.log(`📡 Appel API (Prof) : ${url}`);
+      } else {
+        // Si étudiant, on demande le scope student
+        url += `?scope=student`;
+        console.log(`📡 Appel API (Etudiant) : ${url}`);
+      }
+
+      const res = await api.get(url);
       setCampaigns(res.data.campaigns);
     } catch (err) {
       console.error(err);
@@ -118,30 +128,25 @@ export default function CampaignsPage() {
   };
 
   const handleCreateClick = () => {
-    setSelectedCampaign(null); // On s'assure qu'on est en mode création
+    setSelectedCampaign(null); 
     setIsModalOpen(true);
   };
 
-  // 2. Ouvrir pour MODIFIER (si tu as un bouton edit dans cette page aussi)
   const handleEditClick = (campaign: any) => {
     setSelectedCampaign(campaign);
     setIsModalOpen(true);
   };
 
-  // 3. Callback de succès (rafraîchir la liste)
   const handleSuccess = (campaign: any) => {
-    fetchCampaigns(); // Le plus simple : recharger la liste proprement
+    fetchCampaigns(); 
   };
-
-  // Envoi du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("FormData : ", formData)
     try {
       await api.post('/api/campaigns', formData);
       setShowModal(false);
-      fetchCampaigns(); // Rafraîchir la liste
-      // Reset form (optionnel)
+      fetchCampaigns(); 
     } catch (err) {
       alert("Erreur lors de la création");
     }
@@ -151,7 +156,6 @@ export default function CampaignsPage() {
   const handleDeleteCampaign = async (id: string) => {
     try {
       await api.delete(`/api/campaigns/${id}`);
-      // Mise à jour locale : on retire l'élément de la liste
       setCampaigns(prev => prev.filter(c => c._id !== id));
     } catch (err) {
       console.error(err);
@@ -162,17 +166,12 @@ export default function CampaignsPage() {
   // Archivage (PUT update)
   const handleArchiveCampaign = async (id: string) => {
     try {
-      // On envoie juste le nouveau statut
       await api.put(`/api/campaigns/${id}`, { status: 'archived' });
       
-      // Mise à jour locale : Soit on le retire de la liste (si on affiche que les actives)
-      // Soit on met à jour son statut visuellement :
       setCampaigns(prev => prev.map(c => 
         c._id === id ? { ...c, status: 'archived' } : c
       ));
 
-      // Optionnel : Recharger pour être sûr
-      // fetchCampaigns(); 
     } catch (err) {
       console.error(err);
       alert("Erreur lors de l'archivage");
@@ -207,7 +206,7 @@ export default function CampaignsPage() {
         loading={loading} 
         isInstructor={isInstructor}
         onDelete={handleDeleteCampaign}
-        onArchive={handleArchiveCampaign} // <--- On passe la fonction
+        onArchive={handleArchiveCampaign}
       />
 
       <CampaignModal 

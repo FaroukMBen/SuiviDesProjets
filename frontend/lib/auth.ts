@@ -8,6 +8,8 @@ export interface User {
   email: string;
   role: 'student' | 'instructor' | 'admin';
   profilePicture?: string;
+  academicYear?: string;
+  group?: string;
 }
 
 export interface AuthResponse {
@@ -33,12 +35,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Si on reçoit une erreur 401 (Non autorisé)
     if (error.response?.status === 401) {
-      // On supprime le token pourri
       localStorage.removeItem('token');
-      
-      // On redirige vers le login
+
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }

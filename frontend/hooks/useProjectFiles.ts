@@ -5,11 +5,14 @@ export function useProjectFiles(projectId: string, onUpdate?: () => void) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
 
-    const uploadFile = async (file: File) => {
+    const uploadFile = async (file: File, milestoneId?: string) => {
         setUploading(true);
         setError('');
         const formData = new FormData();
         formData.append('file', file);
+        if (milestoneId) {
+            formData.append('milestoneId', milestoneId);
+        }
 
         try {
             await api.post(`/api/projects/${projectId}/files`, formData, {

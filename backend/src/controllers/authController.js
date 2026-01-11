@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-// Fonction utilitaire (gardée locale au fichier ou mise dans utils)
+// Fonction utilitaire
 const generateToken = (userId, email, role) => {
   return jwt.sign(
     { id: userId, email, role },
@@ -118,6 +118,8 @@ class AuthController {
         user.email = email;
       }
       if (password) user.password = password;
+      if (req.body.academicYear) user.academicYear = req.body.academicYear;
+      if (req.body.group) user.group = req.body.group;
 
       await user.save();
 

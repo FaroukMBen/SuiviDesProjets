@@ -12,10 +12,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import {
   Clock,
   AlertTriangle,
-  CheckCircle,
   FileText,
-  Search,
-  Plus,
   Folder,
   TrendingUp
 } from 'lucide-react';

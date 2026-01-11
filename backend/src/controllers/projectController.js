@@ -6,20 +6,16 @@ const { Readable } = require('stream');
 const path = require('path');
 
 class ProjectController {
-  // controllers/projectController.js
   static async getAllProjects(req, res) {
     try {
-      const { campaign } = req.query; // Récupère le paramètre ?campaign=... de l'URL
+      const { campaign } = req.query; // Récupère le paramètre ?campaign=... de l'URL -- on ne va plus l'utiliser normalement
       let filter = {};
 
-      // 1. FILTRE PAR CAMPAGNE
-      // C'est ça qui permet d'afficher seulement les projets de la campagne X
       if (campaign) {
-        filter.campaign = campaign;
+        filter.campaignId = campaign;
       }
 
       if (req.user.role === 'student') {
-        // L'étudiant doit être owner OU member
         filter.$or = [
           { owner: req.user.id },
           { members: req.user.id }
@@ -27,9 +23,9 @@ class ProjectController {
       }
 
       const projects = await Project.find(filter)
-        .populate('owner', 'name') // On veut le nom du chef de projet
-        .populate('members', 'name profilePicture') // On veut les membres pour l'affichage
-        .sort({ updatedAt: -1 }); // Les plus récents en premier
+        .populate('owner', 'name')
+        .populate('members', 'name profilePicture')
+        .sort({ updatedAt: -1 });
 
       res.status(200).json({
         success: true,
@@ -44,7 +40,7 @@ class ProjectController {
 
   static async createProject(req, res) {
     try {
-      const { title, description, repositoryUrl, deadline, tags, members } = req.body;
+      const { title, description, repositoryUrl, deadline, tags, members, campaignId } = req.body;
 
       const project = new Project({
         title,
@@ -53,19 +49,17 @@ class ProjectController {
         deadline,
         tags: tags || [],
         owner: req.user.id,
-        members: [req.user.id], // Only owner is initial member
-        status: 'active'
+        members: [req.user.id],
+        status: 'active',
+        campaignId: campaignId || null
       });
 
       await project.save();
-      console.log('Project created:', project._id);
 
-      // Send invitations to other members
       if (members && Array.isArray(members)) {
-        console.log('Processing members for invitation:', members);
         const Notification = require('../models/Notification');
         const invitations = members
-          .filter(memberId => memberId !== req.user.id) // Exclude owner
+          .filter(memberId => memberId !== req.user.id)
           .map(memberId => ({
             recipient: memberId,
             sender: req.user.id,
@@ -74,16 +68,11 @@ class ProjectController {
             message: `Vous avez été invité à rejoindre le projet ${project.title}.`,
           }));
 
-        console.log('Invitations to create:', invitations);
-
         if (invitations.length > 0) {
           await Notification.insertMany(invitations);
-          console.log('Invitations created successfully');
         }
       }
 
-      // project.members is already set to [req.user.id] via the schema default/init logic above, 
-      // but let's make sure we don't need the uniqueMembers logic anymore since we are inviting them.
       await project.populate('owner members', 'name email profilePicture');
 
       res.status(201).json({ success: true, project });
@@ -101,7 +90,6 @@ class ProjectController {
         return res.status(404).json({ success: false, message: 'Project not found' });
       }
 
-      // Check access
       const isOwner = project.owner._id.toString() === req.user.id;
       const isMember = project.members.some(m => m._id.toString() === req.user.id);
 
@@ -226,7 +214,6 @@ class ProjectController {
         return res.status(404).json({ success: false, message: 'Project not found' });
       }
 
-      // Check access (owner or member)
       const isOwner = project.owner.toString() === req.user.id;
       const isMember = project.members.some(m => m.toString() === req.user.id);
 
@@ -268,7 +255,8 @@ class ProjectController {
               fileId: uploadStream.id, // GridFS file ID
               filename: filename,
               originalName: req.file.originalname,
-              mimetype: req.file.mimetype
+              mimetype: req.file.mimetype,
+              milestoneId: req.body.milestoneId || undefined // Optional linkage
             });
 
             await newLivrable.save();
@@ -277,7 +265,8 @@ class ProjectController {
               name: req.file.originalname,
               path: `api/projects/files/${filename}`,
               mimetype: req.file.mimetype,
-              uploadedAt: newLivrable.uploadDate
+              uploadedAt: newLivrable.uploadDate,
+              milestoneId: newLivrable.milestoneId // Sync with Livrable
             };
 
             project.files.push(newFile);
@@ -324,10 +313,8 @@ class ProjectController {
         return res.status(404).json({ success: false, message: 'Project not found' });
       }
 
-      // Check access
       const isOwner = project.owner.toString() === req.user.id;
       if (!isOwner && req.user.role !== 'admin') {
-        // Allow if member & it's their file? For now restrict to owner/admin for simplicity unless checked against Livrable
         return res.status(403).json({ success: false, message: 'Not authorized' });
       }
 
@@ -336,14 +323,10 @@ class ProjectController {
         return res.status(404).json({ success: false, message: 'File not found in project' });
       }
 
-      // Extract filename from path (api/projects/files/<filename>)
       const filename = fileItem.path.split('/').pop();
-
-      // Find Livrable to get GridFS ID
       const livrable = await Livrable.findOne({ filename });
 
       if (livrable) {
-        // Delete from GridFS
         const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
           bucketName: 'uploads'
         });
@@ -352,22 +335,38 @@ class ProjectController {
           await bucket.delete(livrable.fileId);
         } catch (e) {
           console.log('Error deleting from GridFS:', e.message);
-          // Continue cleanup even if GridFS fails (maybe already deleted)
         }
 
         await Livrable.deleteOne({ _id: livrable._id });
-      } else {
-        // Fallback: try to find by filename in GridFS directly if Livrable missing?
-        // For now, assume Livrable exists or just remove from project if not.
       }
 
-      // Remove from project
       project.files.pull(fileId);
       await project.save();
       await project.populate('owner members', 'name email profilePicture');
 
       res.json({ success: true, project });
 
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+  static async linkCampaign(req, res) {
+    try {
+      const { campaignId } = req.body;
+      const project = await Project.findById(req.params.id);
+
+      if (!project) {
+        return res.status(404).json({ success: false, message: 'Project not found' });
+      }
+
+      if (project.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+      }
+
+      project.campaignId = campaignId;
+      await project.save();
+
+      res.json({ success: true, project });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

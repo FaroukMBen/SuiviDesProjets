@@ -15,7 +15,8 @@ const projectSchema = new mongoose.Schema({
     name: String,
     path: String,
     mimetype: String,
-    uploadedAt: { type: Date, default: Date.now }
+    uploadedAt: { type: Date, default: Date.now },
+    milestoneId: { type: mongoose.Schema.Types.ObjectId, ref: 'Milestone' }
   }],
   visibility: { type: String, enum: ['private', 'public'], default: 'private' },
   createdAt: { type: Date, default: Date.now },

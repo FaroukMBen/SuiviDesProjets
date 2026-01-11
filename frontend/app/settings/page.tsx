@@ -25,7 +25,9 @@ export default function SettingsPage() {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    academicYear: 'BUT1',
+    group: 'G1'
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -35,12 +37,14 @@ export default function SettingsPage() {
       setFormData(prev => ({
         ...prev,
         name: user.name || '',
-        email: user.email || ''
+        email: user.email || '',
+        academicYear: user.academicYear || 'BUT1',
+        group: user.group || 'G1'
       }));
     }
   }, [user]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -57,7 +61,9 @@ export default function SettingsPage() {
     try {
       const payload: any = {
         name: formData.name,
-        email: formData.email
+        email: formData.email,
+        academicYear: formData.academicYear,
+        group: formData.group
       };
       if (formData.password) {
         payload.password = formData.password;
@@ -236,6 +242,47 @@ export default function SettingsPage() {
                           />
                         </div>
                       </div>
+
+                      {/* NOUVEAU : Champs Année et Groupe (Uniquement si étudiant) */}
+                      {user?.role === 'student' && (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Année</label>
+                            <div className="relative">
+                              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+                              <select
+                                  name="academicYear"
+                                  value={formData.academicYear}
+                                  onChange={handleChange}
+                                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                              >
+                                  <option value="BUT1">BUT1</option>
+                                  <option value="BUT2">BUT2</option>
+                                  <option value="BUT3">BUT3</option>
+                                  <option value="LP">Licence Pro</option>
+                                  <option value="Master">Master</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Groupe</label>
+                            <div className="relative">
+                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+                                <select
+                                  name="group"
+                                  value={formData.group}
+                                  onChange={handleChange}
+                                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                                >
+                                  {['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'TP-A', 'TP-B', 'TP-C', 'TP-D'].map(g => (
+                                      <option key={g} value={g}>{g}</option>
+                                  ))}
+                                </select>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="pt-6 border-t border-gray-100">

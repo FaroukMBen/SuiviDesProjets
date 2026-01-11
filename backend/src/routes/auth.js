@@ -15,12 +15,13 @@ router.post('/refresh-token', authenticate, AuthController.refreshToken);
 
 // Route Profil
 router.get('/profile', authenticate, AuthController.getProfile);
+router.put('/profile', authenticate, AuthController.updateProfile);
 
 // Routes GitHub (Passport reste ici car c'est un middleware spécifique)
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 
-router.get('/github/callback', 
-  passport.authenticate('github', { failureRedirect: '/' }), 
+router.get('/github/callback',
+  passport.authenticate('github', { failureRedirect: '/' }),
   AuthController.githubCallback
 );
 

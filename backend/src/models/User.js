@@ -10,10 +10,11 @@ const userSchema = new mongoose.Schema({
   githubUsername: String,
   githubToken: String,
   profilePicture: String,
-  academicYear: { 
-    type: String, 
-    enum: ['BUT1', 'BUT2', 'BUT3', 'LP', 'Master'], // Adapte selon tes besoins
-    required: function() { return this.role === 'student'; } // Requis seulement si étudiant
+  academicYear: {
+    type: String,
+    enum: ['BUT1', 'BUT2', 'BUT3', 'LP', 'Master'],
+    default: 'BUT1',
+    required: function () { return this.role === 'student'; }
   },
   group: {
     type: String, // ex: 'G1', 'TP-A', 'FA' (Formation alternance)
@@ -24,13 +25,13 @@ const userSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-userSchema.methods.comparePassword = async function(password) {
+userSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 

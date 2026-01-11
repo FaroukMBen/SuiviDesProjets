@@ -11,7 +11,7 @@ const generateToken = (userId, email, role) => {
 };
 
 class AuthController {
-  
+
   static async register(req, res) {
     try {
       const { name, email, password } = req.body;
@@ -98,6 +98,40 @@ class AuthController {
 
   static async logout(req, res) {
     res.json({ success: true, message: 'Logged out successfully' });
+  }
+  static async updateProfile(req, res) {
+    try {
+      const { name, email, password } = req.body;
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      if (name) user.name = name;
+      // Vérifier si l'email change et s'il est déjà pris
+      if (email && email !== user.email) {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+          return res.status(400).json({ success: false, message: 'Email already in use' });
+        }
+        user.email = email;
+      }
+      if (password) user.password = password;
+
+      await user.save();
+
+      // Retourner les infos mises à jour (sans le mot de passe)
+      const updatedUser = await User.findById(user._id).select('-password');
+
+      res.json({
+        success: true,
+        user: updatedUser,
+        message: 'Profile updated successfully'
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
   }
 }
 

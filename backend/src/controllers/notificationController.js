@@ -1,11 +1,10 @@
 const Notification = require('../models/Notification');
 const Project = require('../models/Project');
 
-// Create an invitation
 exports.createInvitation = async (req, res) => {
     try {
         const { recipientId, projectId } = req.body;
-        const senderId = req.user.id; // Assumes auth middleware populates req.user
+        const senderId = req.user.id;
 
         const notification = new Notification({
             recipient: recipientId,
@@ -13,6 +12,32 @@ exports.createInvitation = async (req, res) => {
             type: 'INVITATION',
             project: projectId,
             message: `Vous avez été invité à rejoindre le projet.`,
+        });
+
+        await notification.save();
+        res.status(201).json(notification);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.sendCampaignNotification = async (req, res) => {
+    try {
+        const { recipientId, campaignId, message } = req.body;
+        const senderId = req.user.id;
+
+        const Campagne = require('../models/Campagne');
+
+        await Campagne.findByIdAndUpdate(campaignId, {
+            $addToSet: { participants: recipientId }
+        });
+
+        const notification = new Notification({
+            recipient: recipientId,
+            sender: senderId,
+            type: 'INFO',
+            campaign: campaignId,
+            message: message || "Vous avez été ajouté à une campagne. Veuillez créer votre projet."
         });
 
         await notification.save();
@@ -70,44 +95,30 @@ exports.respondToInvitation = async (req, res) => {
         }
 
         if (action === 'accept') {
-            const project = await Project.findById(notification.project);
-            if (project) {
-                const fs = require('fs');
-                try { fs.appendFileSync('debug.log', `[${new Date().toISOString()}] Project found. Adding member: ${req.user.id}\n`); } catch (e) { }
-                // Check if already a member
-                if (!project.members.some(m => m.toString() === req.user.id)) {
-                    project.members.push(req.user.id);
-                    await project.save();
-                    try { fs.appendFileSync('debug.log', `[${new Date().toISOString()}] Member added to project\n`); } catch (e) { }
-                } else {
-                    try { fs.appendFileSync('debug.log', `[${new Date().toISOString()}] Member already in project\n`); } catch (e) { }
+            if (notification.campaign) {
+                const Campagne = require('../models/Campagne');
+                const campaign = await Campagne.findById(notification.campaign);
+                if (campaign) {
+                    if (!campaign.participants) campaign.participants = [];
+                    if (!campaign.participants.includes(req.user.id)) {
+                        campaign.participants.push(req.user.id);
+                        await campaign.save();
+                    }
                 }
             } else {
-                try { fs.appendFileSync('debug.log', `[${new Date().toISOString()}] Project not found for invitation: ${notification.project}\n`); } catch (e) { }
+                const project = await Project.findById(notification.project);
+                if (project) {
+                    if (!project.members.some(m => m.toString() === req.user.id)) {
+                        project.members.push(req.user.id);
+                        await project.save();
+                    }
+                }
             }
-            notification.actionStatus = 'accepted';
 
-            // Notify sender that invitation was accepted (Optional - can be done by creating another notification)
-            const acceptanceNotification = new Notification({
-                recipient: notification.sender,
-                sender: req.user.id,
-                type: 'INFO',
-                project: notification.project,
-                message: `Votre invitation pour rejoindre le projet a été acceptée.`,
-            });
-            await acceptanceNotification.save();
+            notification.actionStatus = 'accepted';
 
         } else {
             notification.actionStatus = 'declined';
-            // Notify sender that invitation was declined
-            const declineNotification = new Notification({
-                recipient: notification.sender,
-                sender: req.user.id,
-                type: 'INFO',
-                project: notification.project,
-                message: `Votre invitation pour rejoindre le projet a été refusée.`,
-            });
-            await declineNotification.save();
         }
 
         notification.status = 'read';

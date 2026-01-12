@@ -11,6 +11,11 @@ const livrableSchema = new mongoose.Schema({
         ref: 'Project',
         required: true
     },
+    milestoneId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Milestone',
+        required: false
+    },
     fileId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true

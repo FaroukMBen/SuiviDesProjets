@@ -76,7 +76,7 @@ export function RecentCampaigns() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {campaigns.map((campaign) => (
-          <Link key={campaign._id} href={`/dashboard/campaigns/${campaign._id}`} className="block group">
+          <Link key={campaign._id} href={`/campaigns/${campaign._id}`} className="block group">
             <Card className="h-full hover:shadow-md hover:border-purple-200 transition-all cursor-pointer relative flex flex-col p-5">
               
               {/* Badge Statut */}

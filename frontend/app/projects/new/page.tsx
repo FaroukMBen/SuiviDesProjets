@@ -1,15 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/auth';
-
 import { UserSearch } from '@/components/UserSearch';
+import { LayoutTemplate, PenTool } from 'lucide-react';
+
+interface Campaign {
+    _id: string;
+    title: string;
+    endDate: string;
+    tags?: string[];
+}
 
 export default function NewProjectPage() {
   const router = useRouter();
+  
+  // Tabs
+  const [mode, setMode] = useState<'classic' | 'campaign'>('classic');
+  const [availableCampaigns, setAvailableCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState('');
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -17,9 +30,41 @@ export default function NewProjectPage() {
     deadline: '',
     tags: ''
   });
-  const [selectedMembers, setSelectedMembers] = useState<any[]>([]); // To store invited members
+  const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+        try {
+            const res = await api.get('/api/campaigns?scope=student');
+            setAvailableCampaigns(res.data.campaigns);
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const campId = urlParams.get('campaignId');
+            if (campId) {
+                setMode('campaign');
+                setSelectedCampaignId(campId);
+                handleCampaignSelect(campId, res.data.campaigns);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+    fetchCampaigns();
+  }, []);
+
+  const handleCampaignSelect = (campId: string, campaignsList = availableCampaigns) => {
+      setSelectedCampaignId(campId);
+      const camp = campaignsList.find(c => c._id === campId);
+      if (camp) {
+          setFormData(prev => ({
+              ...prev,
+              deadline: camp.endDate ? camp.endDate.split('T')[0] : '',
+              tags: camp.tags ? camp.tags.join(', ') : ''
+          }));
+      }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -31,11 +76,17 @@ export default function NewProjectPage() {
     setLoading(true);
 
     try {
-      const response = await api.post('/api/projects', {
+      const payload: any = {
         ...formData,
         tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
         members: selectedMembers.map(m => m._id)
-      });
+      };
+
+      if (mode === 'campaign' && selectedCampaignId) {
+          payload.campaignId = selectedCampaignId;
+      }
+
+      const response = await api.post('/api/projects', payload);
       router.push(`/projects/${response.data.project._id}`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la création du projet');
@@ -50,13 +101,37 @@ export default function NewProjectPage() {
         <Navbar />
 
         <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* En-tête de page */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Nouveau Projet</h1>
             <p className="text-gray-500 mt-1">Créez un espace collaboratif pour votre équipe.</p>
           </div>
 
-          {/* Carte du formulaire */}
+          {/* MODE SELECTION TABS */}
+          <div className="flex gap-4 mb-6">
+              <button 
+                onClick={() => setMode('classic')}
+                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition font-bold
+                    ${mode === 'classic' 
+                        ? 'border-blue-600 bg-blue-50 text-blue-700' 
+                        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                    }`}
+              >
+                  <PenTool size={20} />
+                  Projet Libre
+              </button>
+              <button 
+                onClick={() => setMode('campaign')}
+                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition font-bold
+                    ${mode === 'campaign' 
+                        ? 'border-purple-600 bg-purple-50 text-purple-700' 
+                        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                    }`}
+              >
+                  <LayoutTemplate size={20} />
+                  À partir d'une Campagne
+              </button>
+          </div>
+
           <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-soft">
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
@@ -66,6 +141,32 @@ export default function NewProjectPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* CAMPAIGN SELECTION DROPDOWN */}
+              {mode === 'campaign' && (
+                  <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-100">
+                      <label className="block text-sm font-bold text-purple-900 mb-2">
+                          Sélectionnez la campagne pédagogique
+                      </label>
+                      <select 
+                        value={selectedCampaignId}
+                        onChange={(e) => handleCampaignSelect(e.target.value)}
+                        required={mode === 'campaign'}
+                        className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                      >
+                          <option value="">-- Choisir une campagne --</option>
+                          {availableCampaigns.map(c => (
+                              <option key={c._id} value={c._id}>
+                                  {c.title} (Fin : {new Date(c.endDate).toLocaleDateString()})
+                              </option>
+                          ))}
+                      </select>
+                      <p className="text-xs text-purple-600 mt-2">
+                          La date limite et les tags seront automatiquement remplis selon la campagne choisie.
+                      </p>
+                  </div>
+              )}
+
               {/* Titre */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -127,8 +228,12 @@ export default function NewProjectPage() {
                     name="deadline"
                     value={formData.deadline}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors text-gray-900"
+                    readOnly={mode === 'campaign'} // Readonly if campaign handles it? User asked for "automatic", usually implies enforced, but editable is safer. Let's start with ReadOnly to enforce sync.
+                    className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors text-gray-900
+                        ${mode === 'campaign' ? 'bg-gray-100 cursor-not-allowed' : ''}
+                    `}
                   />
+                  {mode === 'campaign' && <p className="text-xs text-gray-500 mt-1">Imposée par la campagne</p>}
                 </div>
               </div>
 

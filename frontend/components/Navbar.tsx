@@ -48,7 +48,9 @@ export function Navbar() {
     router.push('/login');
   };
 
-  const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
+  const isInstructor = user?.role === 'instructor' 
+  const isStudent = user?.role === 'student';
+  const isAdmin = user?.role === 'admin';
 
   // --- MENU ÉTUDIANT ---
   const studentItems = [
@@ -70,8 +72,22 @@ export function Navbar() {
     { name: 'Paramètres', href: '/settings', icon: Settings },
   ];
 
+  const adminItems = [
+    { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Utilisateurs', href: '/admin/users', icon: CheckSquare},
+    { name: 'Campagnes', href: '/admin/campaigns', icon: CheckSquare},
+    { name: 'Projets', href: '/admin/projects', icon: CheckSquare}
+  ]
+
   // On choisit quelle liste afficher
-  const navItems = isInstructor ? instructorItems : studentItems;
+  let navItems;
+  if(isInstructor) {
+    navItems = instructorItems
+  } else if( isStudent){
+    navItems = studentItems;
+  } else {
+    navItems = adminItems
+  }
 
   return (
     <div className="w-64 bg-[#1e293b] text-white flex flex-col h-screen fixed left-0 top-0 z-50">
@@ -119,7 +135,7 @@ export function Navbar() {
             </div>
             <div className="overflow-hidden">
                 <p className="text-sm font-medium truncate">{user?.name}</p>
-                <p className="text-xs truncate">{user?.role === 'instructor' ? 'Professeur' : 'Étudiant'}</p>
+                <p className="text-xs truncate">{user?.role}</p>
             </div>
         </div>
 

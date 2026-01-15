@@ -32,7 +32,7 @@ export function RecentCampaigns() {
         // On récupère les campagnes du prof
         const response = await api.get(`/api/campaigns?manager=${userId}`);
         // On prend les 3 premières (ou actives)
-        setCampaigns(response.data.campaigns.slice(0, 3));
+        setCampaigns(response.data.campaigns.slice(0, 6));
       } catch (err) {
         console.error("Erreur chargement campagnes", err);
       } finally {

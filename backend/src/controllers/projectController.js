@@ -6,36 +6,49 @@ const { Readable } = require('stream');
 const path = require('path');
 
 class ProjectController {
+  
   static async getAllProjects(req, res) {
-    try {
-      const { campaign } = req.query; // Récupère le paramètre ?campaign=... de l'URL -- on ne va plus l'utiliser normalement
-      let filter = {};
+      try {
+        const { campaign } = req.query; 
+        let filter = {};
 
-      if (campaign) {
-        filter.campaignId = campaign;
+        // 1. Filtre par campagne (valable pour tout le monde)
+        if (campaign) {
+          // Attention : vérifie si ton schéma utilise 'campaign' ou 'campaignId'
+          // Dans le doute, on vérifie souvent 'campaign' car c'est la ref Mongoose standard
+          filter.campaign = campaign; 
+        }
+
+        // --- LOGIQUE DE SÉCURITÉ PAR RÔLE ---
+
+        if (req.user.role === 'student') {
+          // ✅ STUDENT : Ne voit que SES projets
+          filter.$or = [
+            { owner: req.user.id },
+            { members: req.user.id }
+          ];
+        } 
+        
+        // ✅ ADMIN & INSTRUCTOR :
+        // Ils passent ici. Le filtre reste vide (ou juste filtré par campagne).
+        // Donc ils voient TOUS les projets correspondants.
+
+        // Exécution
+        const projects = await Project.find(filter)
+          .populate('owner', 'name')
+          .populate('members', 'name profilePicture')
+          .populate('campaignId', 'title')
+          .sort({ updatedAt: -1 });
+
+        res.status(200).json({
+          success: true,
+          count: projects.length,
+          projects
+        });
+
+      } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
       }
-
-      if (req.user.role === 'student') {
-        filter.$or = [
-          { owner: req.user.id },
-          { members: req.user.id }
-        ];
-      }
-
-      const projects = await Project.find(filter)
-        .populate('owner', 'name')
-        .populate('members', 'name profilePicture')
-        .sort({ updatedAt: -1 });
-
-      res.status(200).json({
-        success: true,
-        count: projects.length,
-        projects
-      });
-
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
   }
 
   static async createProject(req, res) {

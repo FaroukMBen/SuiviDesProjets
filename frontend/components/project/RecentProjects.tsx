@@ -27,7 +27,7 @@ export function RecentProjects() {
       try {
         const response = await api.get('/api/projects');
         // On prend juste les 3 premiers si le back ne limite pas déjà
-        setProjects(response.data.projects.slice(0, 3)); 
+        setProjects(response.data.projects.slice(0, 6)); 
         console.log(response)
       } catch (err) {
         console.error("Erreur chargement projets", err);

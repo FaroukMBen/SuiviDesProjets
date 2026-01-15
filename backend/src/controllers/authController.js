@@ -51,6 +51,7 @@ class AuthController {
 
       const user = await User.findOne({ email });
       if (!user || !(await user.comparePassword(password))) {
+        console.log(res.status(401).json)
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 

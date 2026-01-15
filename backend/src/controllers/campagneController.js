@@ -16,45 +16,55 @@ class CampaignController {
   }
 
   static async getAllCampaigns(req, res) {
-    try {
-      const filter = {};
+      try {
+        let filter = {};
 
-      if (req.query.status) filter.status = req.query.status;
+        // 1. Filtres optionnels (URL) valables pour tout le monde
+        if (req.query.status) filter.status = req.query.status;
 
-      if (req.query.manager) {
-        filter.manager = req.query.manager;
-      }
+        // --- LOGIQUE DE SÉCURITÉ PAR RÔLE ---
 
-      if (req.query.scope === 'student' && req.user) {
-        const userYear = req.user.academicYear;
-        const userGroup = req.user.group;
+        if (req.user.role === 'admin') {
+          // ✅ ADMIN : Voit TOUT par défaut.
+          // Peut filtrer par manager s'il le demande explicitement via l'URL
+          if (req.query.manager) {
+              filter.manager = req.query.manager;
+          }
+        
+        } else if (req.user.role === 'instructor') {
+          // ✅ INSTRUCTOR : Ne voit que SES campagnes
+          filter.manager = req.user.id;
 
-        filter.$or = [
-          {
-            targetYear: userYear,
-            $or: [
-              { targetGroups: { $size: 0 } },
-              { targetGroups: { $exists: false } },
-              { targetGroups: userGroup }
-            ]
-          },
-          { participants: req.user.id }
-        ];
+        } else if (req.user.role === 'student') {
+          // ✅ STUDENT : Logique de ciblage complexe (On garde ton code)
+          const userYear = req.user.academicYear;
+          const userGroup = req.user.group;
 
-        if (!filter.status) {
+          filter.$or = [
+            {
+              targetYear: userYear,
+              $or: [
+                { targetGroups: { $size: 0 } },   // Tableau vide = tout le monde
+                { targetGroups: { $exists: false } }, // Champ inexistant = tout le monde
+                { targetGroups: userGroup }       // Groupe spécifique match
+              ]
+            },
+            { participants: req.user.id } // Si l'élève est déjà inscrit
+          ];
+
+          // Un élève ne voit jamais les brouillons
           filter.status = { $ne: 'draft' };
         }
-        console.log("Student Filter:", JSON.stringify(filter, null, 2));
+
+        // Exécution
+        const campaigns = await Campaign.find(filter)
+          .populate('manager', 'name email')
+          .sort({ createdAt: -1 });
+
+        res.json({ success: true, campaigns });
+      } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
       }
-
-      const campaigns = await Campaign.find(filter)
-        .populate('manager', 'name email')
-        .sort({ createdAt: -1 });
-
-      res.json({ success: true, campaigns });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
   }
 
   static async getCampaignById(req, res) {

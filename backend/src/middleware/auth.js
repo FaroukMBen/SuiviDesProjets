@@ -85,4 +85,11 @@ const checkProjectAccess = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticate, authorize, checkProjectAccess };
+const requireAdmin = async (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Accès refusé. Réservé aux administrateurs." });
+  }
+  next();
+};
+
+module.exports = { authenticate, authorize, checkProjectAccess, requireAdmin };

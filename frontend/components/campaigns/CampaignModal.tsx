@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/auth';
 import { X, Save, AlertTriangle, FileText } from 'lucide-react';
-import { EvaluationGridEditor } from './EvaluationGridEditor'; // On réutilise ton composant !
+import { EvaluationGridEditor } from './EvaluationGridEditor';
 
-// Définition de la structure (tu peux aussi mettre ça dans un fichier constants.ts)
 const SCHOOL_STRUCTURE: Record<string, string[]> = {
   'BUT1': ['G1', 'G2', 'G3', 'G4'],
   'BUT2': ['RA1', 'RA2', 'RA3', 'AGED1', 'AGED2', 'DACS'],
@@ -15,15 +14,15 @@ const SCHOOL_STRUCTURE: Record<string, string[]> = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (campaign: any) => void; // Appelé après sauvegarde pour rafraîchir la liste
-  campaignToEdit?: any; // Optionnel : si présent, on est en mode EDIT
+  onSuccess: (campaign: any) => void;
+  campaignToEdit?: any;
 }
 
 export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Props) {
-  const isEditing = !!campaignToEdit; // true si on modifie, false si on crée
+  const isEditing = !!campaignToEdit;
   const [loading, setLoading] = useState(false);
 
-  // État initial vide
+
   const initialState = {
     title: '',
     academicYear: '2025-2026',
@@ -37,20 +36,18 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
 
   const [formData, setFormData] = useState<any>(initialState);
 
-  // 🔄 EFFET : Quand le modal s'ouvre, on remplit le formulaire ou on le vide
+
   useEffect(() => {
     if (isOpen) {
       if (campaignToEdit) {
-        // Mode EDIT : On remplit avec les données existantes
         setFormData({
           ...campaignToEdit,
           description: campaignToEdit.description || '',
           endDate: campaignToEdit.endDate ? campaignToEdit.endDate.split('T')[0] : '',
           startDate: campaignToEdit.startDate ? campaignToEdit.startDate.split('T')[0] : '',
-          targetGroups: campaignToEdit.targetGroups || [] // Sécurité
+          targetGroups: campaignToEdit.targetGroups || []
         });
       } else {
-        // Mode CREATE : On remet à zéro
         setFormData(initialState);
       }
     }
@@ -71,20 +68,15 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. NETTOYAGE : On ne garde que les critères qui ont un nom
+
     const cleanTemplate = formData.evaluationTemplate.filter(
       (c: any) => c.name && c.name.trim() !== ''
     );
 
-    // 2. SÉCURITÉ : On vérifie qu'il reste au moins un critère
-    if (cleanTemplate.length === 0) {
-      alert("La grille d'évaluation doit contenir au moins un critère valide.");
-      return;
-    }
 
     const formattedTemplate = cleanTemplate.map((c: any) => ({
       name: c.name,
-      description: c.description || "", // On gère le cas vide
+      description: c.description || "",
       weight: Number(c.weight || 1),
       maxScore: Number(c.maxScore || 20)
     }));
@@ -190,7 +182,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
               </div>
             </div>
 
-            {/* 2. Ciblage (Promo & Groupes) */}
+            {/* 2. Ciblage  */}
             <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">🎯 Ciblage Étudiants</h3>
 
@@ -215,7 +207,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 <div className="flex flex-wrap gap-2">
                   {SCHOOL_STRUCTURE[formData.targetYear]?.map((group) => (
                     <button
-                      type="button" // Important pour ne pas submit le form
+                      type="button"
                       key={group}
                       onClick={() => toggleGroup(group)}
                       className={`
@@ -239,7 +231,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
               </div>
             </div>
 
-            {/* 3. Grille d'évaluation (LE COMPOSANT RÉUTILISABLE) */}
+            {/* 3. Grille d'évaluation  */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <label className="block text-sm font-medium text-gray-700">Grille de notation</label>
@@ -269,7 +261,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
           </button>
           <button
             type="submit"
-            form="campaignForm" // Lie le bouton au formulaire via ID
+            form="campaignForm"
             disabled={loading}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
           >

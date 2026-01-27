@@ -10,9 +10,10 @@ import {
   Settings, 
   LogOut, 
   Bell,
-  LayoutTemplate, // Pour Campagnes
-  ClipboardCheck, // Pour Validations
-  Users           // Pour Suivi des étudiants/groupes
+  LayoutTemplate,
+  ClipboardCheck,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { authService } from '@/lib/auth';
@@ -23,7 +24,7 @@ import { useState, useEffect } from 'react';
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore(); // On récupère 'user' pour vérifier le rôle
+  const { user, logout } = useAuthStore();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadCount = async () => {
@@ -58,6 +59,7 @@ export function Navbar() {
     { name: 'Mes Projets', href: '/projects', icon: Folder },
     { name: 'Tâches', href: '/tasks', icon: CheckSquare },
     { name: 'Évaluations', href: '/evaluations', icon: FileText },
+    { name: 'Messagerie', href: '/messagerie', icon: MessageSquare },
     { name: 'Notifications', href: '/notifications', icon: Bell },
     { name: 'Paramètres', href: '/settings', icon: Settings },
   ];
@@ -67,7 +69,7 @@ export function Navbar() {
     { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Mes Campagnes', href: '/campaigns', icon: LayoutTemplate }, // Gestion des promos
     { name: 'Validations', href: '/validations', icon: ClipboardCheck }, // Corriger les livrables
-    { name: 'Étudiants', href: '/students', icon: Users }, // Annuaire / Groupes
+    { name: 'Messagerie', href: '/messagerie', icon: MessageSquare }, // Discussion
     { name: 'Notifications', href: '/notifications', icon: Bell },
     { name: 'Paramètres', href: '/settings', icon: Settings },
   ];

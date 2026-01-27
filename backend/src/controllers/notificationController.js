@@ -105,12 +105,21 @@ exports.respondToInvitation = async (req, res) => {
                         await campaign.save();
                     }
                 }
-            } else {
+            } else if (notification.project) {
                 const project = await Project.findById(notification.project);
                 if (project) {
                     if (!project.members.some(m => m.toString() === req.user.id)) {
                         project.members.push(req.user.id);
                         await project.save();
+                    }
+                }
+            } else if (notification.conversation) {
+                const Conversation = require('../models/Conversation');
+                const conversation = await Conversation.findById(notification.conversation);
+                if (conversation) {
+                    if (!conversation.participants.includes(req.user.id)) {
+                        conversation.participants.push(req.user.id);
+                        await conversation.save();
                     }
                 }
             }

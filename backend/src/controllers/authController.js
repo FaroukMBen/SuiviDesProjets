@@ -82,7 +82,18 @@ class AuthController {
   static async getProfile(req, res) {
     try {
       const user = await User.findById(req.user.id).select('-password');
-      res.json({ success: true, user });
+      res.json({
+        success: true,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          profilePicture: user.profilePicture,
+          academicYear: user.academicYear,
+          group: user.group
+        }
+      });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

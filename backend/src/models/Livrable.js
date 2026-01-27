@@ -32,6 +32,22 @@ const livrableSchema = new mongoose.Schema({
     uploadDate: {
         type: Date,
         default: Date.now
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected', 'revision_requested'],
+        default: 'pending'
+    },
+    feedback: {
+        type: String,
+        default: ''
+    },
+    validatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    validatedAt: {
+        type: Date
     }
 }, { timestamps: true });
 

@@ -13,6 +13,7 @@ const requireInstructor = (req, res, next) => {
 
 // Routes Publiques (pour les étudiants connectés)
 router.get('/', authenticate, CampaignController.getAllCampaigns);
+router.get('/groups/:year', authenticate, CampaignController.getGroupsByYear); // DOIT ÊTRE AVANT /:id
 router.get('/:id', authenticate, CampaignController.getCampaignById);
 
 // Routes Protégées (Enseignants uniquement)

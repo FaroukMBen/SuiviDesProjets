@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Folder, 
-  CheckSquare, 
-  FileText, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Folder,
+  CheckSquare,
+  FileText,
+  Settings,
+  LogOut,
   Bell,
   LayoutTemplate, // Pour Campagnes
   ClipboardCheck, // Pour Validations
@@ -48,7 +48,7 @@ export function Navbar() {
     router.push('/login');
   };
 
-  const isInstructor = user?.role === 'instructor' 
+  const isInstructor = user?.role === 'instructor'
   const isStudent = user?.role === 'student';
   const isAdmin = user?.role === 'admin';
 
@@ -74,16 +74,16 @@ export function Navbar() {
 
   const adminItems = [
     { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Utilisateurs', href: '/admin/users', icon: CheckSquare},
-    { name: 'Campagnes', href: '/admin/campaigns', icon: CheckSquare},
-    { name: 'Projets', href: '/admin/projects', icon: CheckSquare}
+    { name: 'Utilisateurs', href: '/admin/users', icon: CheckSquare },
+    { name: 'Campagnes', href: '/admin/campaigns', icon: CheckSquare },
+    { name: 'Projets', href: '/admin/projects', icon: CheckSquare }
   ]
 
   // On choisit quelle liste afficher
   let navItems;
-  if(isInstructor) {
+  if (isInstructor) {
     navItems = instructorItems
-  } else if( isStudent){
+  } else if (isStudent) {
     navItems = studentItems;
   } else {
     navItems = adminItems
@@ -95,7 +95,7 @@ export function Navbar() {
       <div className="p-6 border-b border-slate-700">
         <h1 className="text-xl font-bold tracking-wider">NEXUS <span className="text-blue-400 font-light">Portal</span></h1>
         <p className="text-xs text-slate-400 mt-1">
-          {isInstructor ? 'Espace Enseignant' : 'Espace Étudiant'}
+          {isInstructor ? 'Espace Enseignant' : isAdmin ? 'Espace Administrateur' : 'Espace Étudiant'}
         </p>
       </div>
 
@@ -115,7 +115,7 @@ export function Navbar() {
             >
               <item.icon size={20} />
               {item.name}
-              
+
               {/* Badge de notifications */}
               {item.name === 'Notifications' && unreadCount > 0 && (
                 <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -130,13 +130,13 @@ export function Navbar() {
       <div className="p-4 border-t border-slate-700">
         {/* Info utilisateur rapide */}
         <div className="mb-4 px-4 flex items-center gap-3 opacity-60">
-            <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold">
-                {user?.name ? user.name[0] : 'U'}
-            </div>
-            <div className="overflow-hidden">
-                <p className="text-sm font-medium truncate">{user?.name}</p>
-                <p className="text-xs truncate">{user?.role}</p>
-            </div>
+          <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold">
+            {user?.name ? user.name[0] : 'U'}
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-sm font-medium truncate">{user?.name}</p>
+            <p className="text-xs truncate">{user?.role}</p>
+          </div>
         </div>
 
         <button

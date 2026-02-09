@@ -120,7 +120,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
           </button>
         </div>
 
-        {/* Formulaire Scrollable */}
+        {/* Formulaire  */}
         <div className="p-6 overflow-y-auto">
           <form id="campaignForm" onSubmit={handleSubmit} className="space-y-6">
 
@@ -254,7 +254,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
           </form>
         </div>
 
-        {/* Footer Actions */}
+        {/* Footer  */}
         <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium transition">
             Annuler

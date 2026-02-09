@@ -14,6 +14,7 @@ const campaignSchema = new mongoose.Schema({
   tags: { type: [String], default: [] },
 
   manager: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  coManagers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },

@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs'); // <--- 1. IMPORT MANQUANT AJOUTÉ
 
 class UserController {
-  
+
   // 1. CRÉER UN UTILISATEUR
   static async createUser(req, res) {
     try {
@@ -75,13 +75,19 @@ class UserController {
   // 5. RECHERCHER (Pour l'admin ou général)
   static async searchUsers(req, res) {
     try {
-      const { q } = req.query; 
-      if (!q) return res.json({ success: true, users: [] });
+      const { q, role } = req.query;
+      if (!q && !role) return res.json({ success: true, users: [] });
 
-      const users = await User.find({
-        name: { $regex: q, $options: 'i' }
-      }).select('-password');
-      
+      let filter = {};
+      if (q) {
+        filter.name = { $regex: q, $options: 'i' };
+      }
+      if (role) {
+        filter.role = role;
+      }
+
+      const users = await User.find(filter).select('-password');
+
       res.json({ success: true, users });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -92,7 +98,7 @@ class UserController {
   static async getStudents(req, res) {
     try {
       const { year, group, search } = req.query;
-      
+
       let query = { role: 'student' };
 
       if (year) query.academicYear = year;

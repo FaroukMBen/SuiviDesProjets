@@ -116,7 +116,24 @@ export default function CampaignSettingsPage() {
         e.preventDefault();
         setSaving(true);
         try {
-            await api.put(`/api/campaigns/${id}`, formData);
+            // Clean validation: remove empty criteria or sub-criteria
+            const cleanedTemplate = formData.evaluationTemplate.filter(c => c.name.trim() !== '')
+                .map(c => {
+                    const cleanedSubCriteria = c.subCriteria
+                        ? c.subCriteria.filter((s: any) => s.name.trim() !== '')
+                        : [];
+                    // Return clean object without potentially existing but empty properties if filtered
+                    return {
+                        ...c,
+                        subCriteria: cleanedSubCriteria
+                    };
+                });
+
+            // Also update local state so UI reflects what was saved (removes empty lines)
+            setFormData(prev => ({ ...prev, evaluationTemplate: cleanedTemplate }));
+
+            await api.put(`/api/campaigns/${id}`, { ...formData, evaluationTemplate: cleanedTemplate });
+
             alert("Modifications enregistrées avec succès !");
             router.refresh();
         } catch (err) {

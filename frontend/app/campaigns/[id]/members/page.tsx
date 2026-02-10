@@ -37,6 +37,7 @@ interface Campaign {
     targetYear: string;
     targetGroups: string[];
     participants: string[];
+    status: string;
 }
 
 export default function CampaignMembersPage() {
@@ -112,6 +113,10 @@ export default function CampaignMembersPage() {
 
     const handleSendInvite = async (student: User) => {
         if (!campaign) return;
+        if (campaign.status === 'draft') {
+            alert("La campagne est en brouillon. Veuillez l'activer dans les paramètres avant d'envoyer des invitations.");
+            return;
+        }
         if (!confirm(`Envoyer une notification à ${student.name} ?`)) return;
 
         try {
@@ -130,14 +135,18 @@ export default function CampaignMembersPage() {
                 participants: [...(prev.participants || []), student._id]
             } : null);
 
-        } catch (err) {
+        } catch (err: any) {
             console.error("Erreur envoi notif:", err);
-            alert("Erreur lors de l'envoi de la notification.");
+            alert(err.response?.data?.message || "Erreur lors de l'envoi de la notification.");
         }
     };
 
     const handleRemindAll = async () => {
         if (!campaign) return;
+        if (campaign.status === 'draft') {
+            alert("La campagne est en brouillon. Veuillez l'activer dans les paramètres avant d'envoyer des invitations.");
+            return;
+        }
         const pendingStudents = filteredStudents.filter(s => getStudentStatus(s._id).status === 'pending');
 
         if (pendingStudents.length === 0) {
@@ -244,10 +253,13 @@ export default function CampaignMembersPage() {
                 </div>
 
                 {/* Boutons d'action : Relancer tous les manquants */}
+                {/* Boutons d'action : Relancer tous les manquants */}
                 <button
                     onClick={handleRemindAll}
-                    disabled={sendingReminders || pendingCount === 0}
-                    className="hidden md:flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={sendingReminders || pendingCount === 0 || campaign?.status === 'draft'}
+                    className={`hidden md:flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 font-medium rounded-xl transition ${campaign?.status === 'draft' || pendingCount === 0 ? 'text-gray-400 cursor-not-allowed bg-gray-50' : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                    title={campaign?.status === 'draft' ? "Campagne en brouillon" : "Envoyer un rappel"}
                 >
                     <Mail size={18} />
                     <span>
@@ -255,6 +267,19 @@ export default function CampaignMembersPage() {
                     </span>
                 </button>
             </div>
+
+            {campaign?.status === 'draft' && (
+                <div className="mb-6 bg-orange-50 border border-orange-200 text-orange-800 px-4 py-3 rounded-xl flex items-center gap-3">
+                    <AlertCircle size={20} className="shrink-0" />
+                    <p className="text-sm">
+                        <span className="font-bold">Campagne en mode brouillon.</span> Les invitations et rappels sont désactivés.
+                        Activez la campagne dans les paramètres pour pouvoir communiquer avec les étudiants.
+                    </p>
+                    <Link href={`/campaigns/${campaignId}/settings`} className="ml-auto text-sm font-semibold underline hover:text-orange-900 whitespace-nowrap">
+                        Allez aux paramètres
+                    </Link>
+                </div>
+            )}
 
             {/* Tableau des étudiants */}
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
@@ -324,8 +349,12 @@ export default function CampaignMembersPage() {
                                                 {status === 'pending' && !campaign?.participants?.includes(student._id) && (
                                                     <button
                                                         onClick={() => handleSendInvite(student)}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                        title="Inviter à rejoindre"
+                                                        disabled={campaign?.status === 'draft'}
+                                                        className={`p-2 rounded-lg transition ${campaign?.status === 'draft'
+                                                                ? 'text-gray-300 cursor-not-allowed'
+                                                                : 'text-blue-600 hover:bg-blue-50'
+                                                            }`}
+                                                        title={campaign?.status === 'draft' ? "Campagne en brouillon - Invitation désactivée" : "Inviter à rejoindre"}
                                                     >
                                                         <Bell size={18} />
                                                     </button>

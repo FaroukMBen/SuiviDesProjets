@@ -1,0 +1,124 @@
+//================================================================================================================//
+
+Administration & Gestion Utilisateurs
+- Import CSV avancé : Importer une liste d'étudiants et mettre à jour les comptes existants (au lieu de doublonner/échouer).
+
+- Création Utilisateur : Pouvoir sélectionner un groupe (TD/TP) lors de la création manuelle d'un étudiant.
+
+- Sidebar Admin : Nettoyer le menu (retirer l'accès "Espace Étudiant" inutile pour l'admin).
+
+- Gestion Campagnes (Vue Admin) : Possibilité de consulter/modifier toutes les campagnes (dont la description).
+
+- Gestion Projets (Vue Admin) :
+
+- Peaufiner le CRUD Projet.
+
+- Voir la description des projets.
+
+- Possibilité d'ajouter des étudiants à un projet manuellement.
+
+//================================================================================================================//
+
+Authentification & Compte
+    - Onboarding : Création du mot de passe par l'utilisateur via un lien email à la réception du compte (au lieu d'un MDP par défaut).
+
+    - Reset Password : Réinitialisation du mot de passe par email (plus de reset "à la dure" par l'admin).
+
+    - Persistance : Fonctionnalité "Rester connecté" (Session).
+
+    - Profil : Séparer les champs "Nom" et "Prénom" en base de données et dans l'interface.
+
+    - Paramètres :
+
+    - Créer une page "Paramètres".
+
+    - Ajouter le lien vers paramètres dans le menu déroulant (clic sur avatar/logo).
+
+    - Gestion de l'email oublié (notification à l'admin).
+
+//================================================================================================================//
+
+ Espace Enseignant : Gestion des Campagnes
+    - Ressources : Ajouter des fichiers/PDF associés à une campagne (type Moodle).
+
+    - Co-Animation :
+
+    - Inviter d'autres enseignants dans une campagne.
+
+    - Mode "Lecture seule" pour les profs rattachés mais non-responsables.
+
+    - Participants : Filtrer la liste des participants par groupe (TP/TD).
+
+    - Interface / UX :
+
+    - Afficher le nombre de projets inscrits directement sur la carte de la campagne.
+
+    - Ajouter/Gérer le statut (Brouillon/Actif) lors de la création.
+
+    - Améliorer l'UX du statut (code couleur uniforme).
+
+    - Sécurité Draft :
+
+Ne pas envoyer de notifications/mails si la campagne est en "Brouillon".
+
+    - Alerte bloquante si un prof essaie d'inviter un élève dans une campagne "Brouillon".
+
+//================================================================================================================//
+
+ Espace Enseignant : Évaluation
+    - Grilles de Notation :
+
+    - Créer des critères et sous-critères (sous-grilles).
+
+    - Ajouter un commentaire par critère.
+
+    - Bibliothèque : Sauvegarder des modèles de grilles pour les réutiliser ou les importer d'autres campagnes.
+
+    - Processus de Notation :
+
+    - Page dédiée "Évaluation Professeur".
+
+    - Exclure les "Projets Libres" (non liés à une campagne) des évaluations.
+
+    - Vue globale des "Cahiers des charges" (Livrables) pour corriger à la chaîne sans entrer dans chaque projet.
+
+    - Suivi : Bouton "Relancer tous" (ceux qui n'ont pas rendu).
+
+//================================================================================================================//
+
+ Espace Étudiant & Projets
+    -  Dashboard :
+
+    -  Corriger les "Stat Cards" (enlever les stats non pertinentes).
+
+    -  Connecter les alertes du dashboard aux données réelles.
+
+    -  UX : Lien rapide ("Quick Action") pour déposer un livrable directement depuis l'accueil.
+
+    -  Visibilité : Le prof doit voir clairement "Qui travaille avec qui" (Vue groupe).
+
+//================================================================================================================//
+
+ Communication & Notifications :
+    - Design : Refaire le CSS des notifications (Toasts).
+    
+    - Emails : Connecter le système de notification à l'envoi de mails (SendGrid/Nodemailer).
+
+    - Chat / Feedback :
+
+    - Discussion globale ou par campagne.
+
+    - Discussion sur les projets (Feedback).
+
+    - Rafraîchissement automatique des messages (Polling ou Socket).
+
+//================================================================================================================//
+
+ Global & Technique
+    -  Navigation : Système de Pagination et Barre de recherche partout (Projets, Campagnes, Étudiants).
+    
+    -  Kanban : Ajouter un filtre (ex: afficher uniquement les tâches assignées à moi).
+    
+    -  Bonus (Luxe) : Ajouter d'autres vues de gestion de projet (Gantt, Calendrier...).
+
+//================================================================================================================//    

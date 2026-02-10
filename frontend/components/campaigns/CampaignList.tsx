@@ -13,6 +13,7 @@ interface Campaign {
   endDate: string | Date;
   manager?: { name: string };
   evaluationTemplate: any[];
+  projectCount?: number;
 }
 
 interface CampaignListProps {
@@ -25,7 +26,7 @@ interface CampaignListProps {
 
 export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArchive }: CampaignListProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  
+
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Chargement des campagnes...</div>;
@@ -42,16 +43,16 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
       {campaigns.map((campaign) => (
-        <div 
-          key={campaign._id} 
+        <div
+          key={campaign._id}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative group"
-          onMouseLeave={() => setOpenMenuId(null)} 
+          onMouseLeave={() => setOpenMenuId(null)}
         >
-          
+
           {/* Badge Statut */}
           <div className="absolute top-6 right-6">
             <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize
-              ${campaign.status === 'active' ? 'bg-green-100 text-green-700' : 
+              ${campaign.status === 'active' ? 'bg-green-100 text-green-700' :
                 campaign.status === 'draft' ? 'bg-gray-100 text-gray-600' : 'bg-red-50 text-red-600'}`}>
               {campaign.status === 'active' ? 'En cours' : campaign.status}
             </span>
@@ -82,22 +83,27 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
               <FileText size={16} className="text-gray-400" />
               <span>{campaign.evaluationTemplate?.length || 0} Critères d'évaluation</span>
             </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs font-semibold">
+                {campaign.projectCount || 0} Projets inscrits
+              </span>
+            </div>
           </div>
 
           {/* Actions */}
           <div className="mt-6 flex gap-2 relative">
-            <Link 
-                href={`/campaigns/${campaign._id}`}
-                className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition flex items-center justify-center gap-2"
+            <Link
+              href={`/campaigns/${campaign._id}`}
+              className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition flex items-center justify-center gap-2"
             >
               <Eye size={16} />
               Voir détails
             </Link>
-            
+
             {/* Bouton Menu (Prof uniquement) */}
             {isInstructor && (
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setOpenMenuId(openMenuId === campaign._id ? null : campaign._id)}
                   className={`p-2 rounded-lg transition ${openMenuId === campaign._id ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
                 >
@@ -109,22 +115,22 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
                   <div className="absolute right-0 bottom-12 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-1 space-y-1">
 
-                     {/* Option 0 : OBJECTIFS (Important) */}
-                      <Link 
+                      {/* Option 0 : OBJECTIFS (Important) */}
+                      <Link
                         href={`/campaigns/${campaign._id}/milestones`}
                         onClick={() => setOpenMenuId(null)}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2 transition-colors"
                       >
-                         <Flag size={16} className="text-blue-500" />
-                         Objectifs & Jalons
+                        <Flag size={16} className="text-blue-500" />
+                        Objectifs & Jalons
                       </Link>
-                      
+
                       {/* Option 1: ARCHIVER */}
                       {campaign.status !== 'archived' && (
-                        <button 
+                        <button
                           onClick={() => {
-                              onArchive(campaign._id);
-                              setOpenMenuId(null);
+                            onArchive(campaign._id);
+                            setOpenMenuId(null);
                           }}
                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2 transition-colors"
                         >
@@ -134,12 +140,12 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
                       )}
 
                       {/* Option 2: SUPPRIMER */}
-                      <button 
+                      <button
                         onClick={() => {
-                            if(confirm('⚠️ Attention : Cette action est irréversible. Voulez-vous supprimer définitivement ?')) {
-                                onDelete(campaign._id);
-                                setOpenMenuId(null);
-                            }
+                          if (confirm('⚠️ Attention : Cette action est irréversible. Voulez-vous supprimer définitivement ?')) {
+                            onDelete(campaign._id);
+                            setOpenMenuId(null);
+                          }
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors"
                       >

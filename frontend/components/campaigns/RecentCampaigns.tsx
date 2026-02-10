@@ -15,6 +15,7 @@ interface Campaign {
   startDate: string;
   endDate: string;
   manager: { name: string };
+  projectCount?: number;
 }
 
 export function RecentCampaigns() {
@@ -78,23 +79,23 @@ export function RecentCampaigns() {
         {campaigns.map((campaign) => (
           <Link key={campaign._id} href={`/campaigns/${campaign._id}`} className="block group">
             <Card className="h-full hover:shadow-md hover:border-purple-200 transition-all cursor-pointer relative flex flex-col p-5">
-              
+
               {/* Badge Statut */}
               <div className="absolute top-4 right-4">
-                 <span className={`w-2 h-2 rounded-full block ${campaign.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+                <span className={`w-2 h-2 rounded-full block ${campaign.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
               </div>
 
               <div className="mb-4">
                 <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-md mb-3 inline-block">
                   {campaign.academicYear}
                 </span>
-                
+
                 <h3 className="font-bold text-gray-900 text-lg group-hover:text-purple-600 transition-colors line-clamp-1">
                   {campaign.title}
                 </h3>
-                
+
                 <p className="text-xs text-gray-500 mt-1">
-                   Resp. {campaign.manager?.name}
+                  Resp. {campaign.manager?.name}
                 </p>
               </div>
 
@@ -104,11 +105,10 @@ export function RecentCampaigns() {
                   <Calendar size={12} />
                   <span>Fin : {new Date(campaign.endDate).toLocaleDateString()}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-1 text-xs text-gray-400">
-                   <Users size={12} />
-                   {/* Tu pourras mettre le nb d'étudiants ici plus tard */}
-                   <span>Voir</span>
+                  <Users size={12} />
+                  <span>{campaign.projectCount || 0} Projets</span>
                 </div>
               </div>
             </Card>

@@ -65,7 +65,17 @@ class CampaignController {
         .populate('coManagers', 'name email profilePicture')
         .sort({ createdAt: -1 });
 
-      res.json({ success: true, campaigns });
+      const Project = require('../models/Project');
+
+      const campaignsWithStats = await Promise.all(campaigns.map(async (c) => {
+        const projectCount = await Project.countDocuments({ campaignId: c._id });
+        return {
+          ...c.toObject(),
+          projectCount
+        };
+      }));
+
+      res.json({ success: true, campaigns: campaignsWithStats });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

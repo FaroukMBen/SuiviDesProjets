@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import ProtectedRoute  from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { RecentProjects } from '@/components/project/RecentProjects';
 import { RecentCampaigns } from '@/components/campaigns/RecentCampaigns';
 import { QuickActions } from '@/components/QuickActions';
-import AdminDashboard from '@/components/admin/AdminDashboard'; // 👈 IMPORT DU NOUVEAU COMPOSANT
+import AdminDashboard from '@/components/admin/AdminDashboard';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import {
   Clock,
@@ -18,7 +18,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-// --- Composant Carte Statistique ---
+
 const StatCard = ({ title, value, icon: Icon, color, subtext }: any) => (
   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between transition hover:shadow-md">
     <div>
@@ -36,15 +36,15 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const { stats, loading } = useDashboardStats();
 
-  // On distingue bien les rôles
+
   const isAdmin = user?.role === 'admin';
   const isInstructor = user?.role === 'instructor';
-  // Le reste = étudiant
+
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#f3f4f6] flex font-sans">
-        
+
         {/* 1. Sidebar Fixe */}
         <Navbar />
 
@@ -54,7 +54,7 @@ export default function DashboardPage() {
           {/* Header Commun (Top Bar) */}
           <header className="bg-white h-20 border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-40">
             <h2 className="text-xl font-bold text-gray-800">
-                {isAdmin ? 'Administration' : 'Tableau de bord'}
+              {isAdmin ? 'Administration' : 'Tableau de bord'}
             </h2>
 
             <div className="flex items-center gap-4">
@@ -63,7 +63,7 @@ export default function DashboardPage() {
               <div className="text-right">
                 <p className="text-sm font-bold text-gray-900">{user?.name || 'Utilisateur'}</p>
                 <p className="text-xs text-gray-500">
-                    {isAdmin ? 'Administrateur' : user?.role || 'Étudiant'}
+                  {isAdmin ? 'Administrateur' : user?.role || 'Étudiant'}
                 </p>
               </div>
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm">
@@ -75,77 +75,76 @@ export default function DashboardPage() {
           <main className="p-8 max-w-[1600px] mx-auto space-y-8">
 
             {/* 🔥 LOGIQUE D'AFFICHAGE CONDITIONNEL 🔥 */}
-            
+
             {isAdmin ? (
-                // 🅰️ VUE ADMIN (Le composant qu'on vient de créer)
-                <AdminDashboard />
+              <AdminDashboard />
             ) : (
-                // 🅱️ VUE STANDARD (Prof / Élève) - Ton code existant
-                <>
-                    {/* 1. Cartes Statistiques */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <StatCard 
-                        title="Projets en cours" 
-                        value={loading ? "..." : stats.projects} 
-                        icon={Folder} 
-                        color="text-blue-600"
-                      />
-                      <StatCard 
-                        title="Livrables à valider" 
-                        value={loading ? "..." : stats.toValidate} 
-                        icon={FileText} 
-                        color="text-yellow-500" 
-                        subtext="Attention requise"
-                      />
-                      <StatCard 
-                        title="Tâches en retard" 
-                        value={loading ? "..." : stats.tasksLate} 
-                        icon={AlertTriangle} 
-                        color="text-red-500" 
-                        subtext="Critique"
-                      />
-                      <StatCard 
-                        title="Progression Globale" 
-                        value={loading ? "..." : `${stats.progress}%`} 
-                        icon={TrendingUp} 
-                        color="text-emerald-500" 
-                        subtext={loading ? "..." : `${stats.completedTasks} sur ${stats.totalTasks} tâches finies`}
-                      />
-                    </div>
+              <>
+                {/* 1. Cartes Statistiques */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <StatCard
+                    title="Projets Actifs"
+                    value={loading ? "..." : stats.activeProjects}
+                    icon={Folder}
+                    color="text-blue-600"
+                    subtext="En cours"
+                  />
+                  <StatCard
+                    title="Mes Tâches"
+                    value={loading ? "..." : stats.myTasks}
+                    icon={FileText}
+                    color="text-emerald-500"
+                    subtext="À faire ou en cours"
+                  />
+                  <StatCard
+                    title="Prochains Rendus"
+                    value={loading ? "..." : stats.upcomingDeadlines}
+                    icon={Clock}
+                    color="text-yellow-500"
+                    subtext="7 prochains jours"
+                  />
+                  <StatCard
+                    title="Prochain Point de Contrôle"
+                    value={loading ? "..." : (stats.nextCheckpoint ? stats.nextCheckpoint.title : 'Aucun')}
+                    icon={TrendingUp} // Or maybe a flag/milestone icon if available, but TrendingUp was requested to be replaced.
+                    color="text-purple-600"
+                    subtext={loading ? "..." : (stats.nextCheckpoint ? new Date(stats.nextCheckpoint.date).toLocaleDateString() : 'Aucun point de contrôle')}
+                  />
+                </div>
 
-                    {/* 2. Grille Principale */}
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                      {/* Colonne Gauche : Tableaux */}
-                      <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                          {isInstructor ? <RecentCampaigns /> : <RecentProjects />}
-                      </div>
+                {/* 2. Grille Principale */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                  {/* Colonne Gauche : Tableaux */}
+                  <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    {isInstructor ? <RecentCampaigns /> : <RecentProjects />}
+                  </div>
 
-                      {/* Colonne Droite : Actions & Alertes */}
-                      <div className="space-y-8">
-                        <QuickActions />  
+                  {/* Colonne Droite : Actions & Alertes */}
+                  <div className="space-y-8">
+                    <QuickActions />
 
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                          <h3 className="font-bold text-gray-800 mb-4">🔔 Alertes importantes</h3>
-                          <div className="space-y-3">
-                            <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800 flex gap-3">
-                              <AlertTriangle className="shrink-0 w-5 h-5 text-red-500" />
-                              <div>
-                                <span className="font-bold block mb-1">Retard Critique</span>
-                                Le groupe "App Santé" n'a pas commité depuis 5 jours.
-                              </div>
-                            </div>
-                            <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-sm text-yellow-800 flex gap-3">
-                              <Clock className="shrink-0 w-5 h-5 text-yellow-600" />
-                              <div>
-                                <span className="font-bold block mb-1">Jalon Approche</span>
-                                Rendu final SAE S3 attendu pour demain.
-                              </div>
-                            </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                      <h3 className="font-bold text-gray-800 mb-4">🔔 Alertes importantes</h3>
+                      <div className="space-y-3">
+                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800 flex gap-3">
+                          <AlertTriangle className="shrink-0 w-5 h-5 text-red-500" />
+                          <div>
+                            <span className="font-bold block mb-1">Retard Critique</span>
+                            Le groupe "App Santé" n'a pas commité depuis 5 jours.
+                          </div>
+                        </div>
+                        <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-sm text-yellow-800 flex gap-3">
+                          <Clock className="shrink-0 w-5 h-5 text-yellow-600" />
+                          <div>
+                            <span className="font-bold block mb-1">Jalon Approche</span>
+                            Rendu final SAE S3 attendu pour demain.
                           </div>
                         </div>
                       </div>
                     </div>
-                </>
+                  </div>
+                </div>
+              </>
             )}
 
           </main>

@@ -53,6 +53,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/milestones', require('./routes/milestones'));
 app.use('/api/livrables', require('./routes/livrables'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 
 // Error handling middleware

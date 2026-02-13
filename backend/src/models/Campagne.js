@@ -1,10 +1,18 @@
 const mongoose = require('mongoose');
 
-const templateCriterionSchema = new mongoose.Schema({
+const subCriterionSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
   weight: { type: Number, default: 1 },
   maxScore: { type: Number, default: 20 }
+}, { _id: false });
+
+const templateCriterionSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String },
+  weight: { type: Number, default: 1 },
+  maxScore: { type: Number, default: 20 },
+  subCriteria: [subCriterionSchema]
 }, { _id: false });
 
 const campaignSchema = new mongoose.Schema({
@@ -14,6 +22,7 @@ const campaignSchema = new mongoose.Schema({
   tags: { type: [String], default: [] },
 
   manager: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  coManagers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },

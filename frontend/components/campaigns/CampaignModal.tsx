@@ -27,6 +27,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
     endDate: '',
     targetYear: 'BUT1',
     targetGroups: [] as string[],
+    status: 'draft',
     evaluationTemplate: []
   };
 
@@ -38,10 +39,9 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
       if (campaignToEdit) {
         setFormData({
           ...campaignToEdit,
-          description: campaignToEdit.description || '',
           endDate: campaignToEdit.endDate ? campaignToEdit.endDate.split('T')[0] : '',
           startDate: campaignToEdit.startDate ? campaignToEdit.startDate.split('T')[0] : '',
-          targetGroups: campaignToEdit.targetGroups || []
+          targetGroups: campaignToEdit.targetGroups || [] // Sécurité
         });
       } else {
         setFormData(initialState);
@@ -69,10 +69,15 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
       (c: any) => c.name && c.name.trim() !== ''
     );
 
+    // 2. SÉCURITÉ : On vérifie qu'il reste au moins un critère
+    if (cleanTemplate.length === 0) {
+      alert("La grille d'évaluation doit contenir au moins un critère valide.");
+      return;
+    }
 
     const formattedTemplate = cleanTemplate.map((c: any) => ({
       name: c.name,
-      description: c.description || "",
+      description: c.description || "", // On gère le cas vide
       weight: Number(c.weight || 1),
       maxScore: Number(c.maxScore || 20)
     }));
@@ -133,16 +138,6 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 />
               </div>
 
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optionnel)</label>
-                <textarea
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-24"
-                  placeholder="Courte description de la campagne..."
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Début</label>
@@ -176,9 +171,24 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                   <option>2026-2027</option>
                 </select>
               </div>
+              <div className="flex items-center gap-3 bg-green-50 p-3 rounded-lg border border-green-100">
+                <input
+                  type="checkbox"
+                  id="activeCheck"
+                  className="w-4 h-4 text-green-600 rounded focus:ring-green-500 border-gray-300"
+                  checked={formData.status === 'active'}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'active' : 'draft' })}
+                />
+                <label htmlFor="activeCheck" className="text-sm font-medium text-green-900 cursor-pointer">
+                  Activer immédiatement cette campagne
+                  <span className="block text-xs text-green-600 font-normal">
+                    Les étudiants pourront voir et rejoindre la campagne dès sa création.
+                  </span>
+                </label>
+              </div>
             </div>
 
-            {/* 2. Ciblage  */}
+            {/* 2. Ciblage (Promo & Groupes) */}
             <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">🎯 Ciblage Étudiants</h3>
 
@@ -203,7 +213,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 <div className="flex flex-wrap gap-2">
                   {SCHOOL_STRUCTURE[formData.targetYear]?.map((group) => (
                     <button
-                      type="button"
+                      type="button" // Important pour ne pas submit le form
                       key={group}
                       onClick={() => toggleGroup(group)}
                       className={`
@@ -227,7 +237,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
               </div>
             </div>
 
-            {/* 3. Grille d'évaluation  */}
+            {/* 3. Grille d'évaluation (LE COMPOSANT RÉUTILISABLE) */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <label className="block text-sm font-medium text-gray-700">Grille de notation</label>

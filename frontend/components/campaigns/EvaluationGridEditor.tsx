@@ -1,13 +1,21 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, CornerDownRight, Info } from 'lucide-react';
+import { useEffect } from 'react';
 
-// ✅ 1. L'interface correspond maintenant à 100% au Schema Mongoose
-interface Criterion {
+export interface SubCriterion {
   name: string;
-  maxScore: number;  // C'était maxPoints avant
-  weight: number;    // Ajout du coefficient
+  maxScore: number;
+  weight: number;
   description?: string;
+}
+
+export interface Criterion {
+  name: string;
+  maxScore: number;
+  weight: number; // Coeff
+  description?: string;
+  subCriteria?: SubCriterion[];
 }
 
 interface Props {
@@ -17,11 +25,29 @@ interface Props {
 
 export function EvaluationGridEditor({ criteria, onChange }: Props) {
 
-  // Ajouter une ligne vide (avec les valeurs par défaut du Back)
+  // Auto-recalculate parent maxScore when subCriteria change
+  useEffect(() => {
+    let changed = false;
+    const newCriteria = criteria.map(crit => {
+      if (crit.subCriteria && crit.subCriteria.length > 0) {
+        const sumSubDetails = crit.subCriteria.reduce((acc, sub) => acc + (sub.maxScore || 0), 0);
+        if (crit.maxScore !== sumSubDetails) {
+          changed = true;
+          return { ...crit, maxScore: sumSubDetails };
+        }
+      }
+      return crit;
+    });
+
+    if (changed) {
+      onChange(newCriteria);
+    }
+  }, [criteria, onChange]);
+
   const handleAdd = () => {
     onChange([
-      ...criteria, 
-      { name: '', maxScore: 20, weight: 1, description: '' }
+      ...criteria,
+      { name: '', maxScore: 20, weight: 1, description: '', subCriteria: [] }
     ]);
   };
 
@@ -32,13 +58,51 @@ export function EvaluationGridEditor({ criteria, onChange }: Props) {
 
   const handleChange = (index: number, field: keyof Criterion, value: any) => {
     const newList = [...criteria];
-    // @ts-ignore (Parfois TS râle sur l'assignation dynamique, on l'ignore ici pour simplifier)
+    // @ts-ignore
     newList[index] = { ...newList[index], [field]: value };
     onChange(newList);
   };
 
-  // Calcul du total (maxScore * weight ?) ou juste la somme des maxScore
-  // Ici je fais la somme simple des Notes Max
+  // --- Sub Criteria Handlers ---
+
+  const handleAddSub = (parentIndex: number) => {
+    const newList = [...criteria];
+    const parent = newList[parentIndex];
+    // Init subCriteria array if undefined
+    const currentSubs = parent.subCriteria || [];
+
+    newList[parentIndex] = {
+      ...parent,
+      subCriteria: [...currentSubs, { name: '', maxScore: 5, weight: 1, description: '' }]
+    };
+
+    onChange(newList);
+  };
+
+  const handleRemoveSub = (parentIndex: number, subIndex: number) => {
+    const newList = [...criteria];
+    const parent = newList[parentIndex];
+    if (!parent.subCriteria) return;
+
+    const newSubs = parent.subCriteria.filter((_, i) => i !== subIndex);
+    newList[parentIndex] = { ...parent, subCriteria: newSubs };
+    onChange(newList);
+  };
+
+  const handleChangeSub = (parentIndex: number, subIndex: number, field: keyof SubCriterion, value: any) => {
+    const newList = [...criteria];
+    const parent = newList[parentIndex];
+    if (!parent.subCriteria) return;
+
+    const newSubs = [...parent.subCriteria];
+    // @ts-ignore
+    newSubs[subIndex] = { ...newSubs[subIndex], [field]: value };
+
+    newList[parentIndex] = { ...parent, subCriteria: newSubs };
+    onChange(newList);
+  };
+
+
   const totalPoints = criteria.reduce((sum, item) => sum + Number(item.maxScore || 0), 0);
 
   return (
@@ -50,73 +114,141 @@ export function EvaluationGridEditor({ criteria, onChange }: Props) {
         </span>
       </div>
 
-      <div className="space-y-3">
-        {criteria.map((crit, index) => (
-          <div key={index} className="flex flex-col gap-2 p-3 bg-white border border-gray-200 rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-2">
-            
-            {/* Ligne 1 : Nom, Coeff, Note Max */}
-            <div className="flex gap-3 items-center">
-                {/* NOM */}
-                <input
+      <div className="space-y-4">
+        {criteria.map((crit, index) => {
+          const hasSubCriteria = crit.subCriteria && crit.subCriteria.length > 0;
+
+          return (
+            <div key={index} className="flex flex-col gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm animate-in fade-in slide-in-from-bottom-2">
+
+              {/* Ligne 1 : Parent Principal */}
+              <div className="flex gap-3 items-start">
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Catégorie / Critère principal"
+                      value={crit.name}
+                      onChange={(e) => handleChange(index, 'name', e.target.value)}
+                      className="flex-1 px-3 py-2 font-bold text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <input
                     type="text"
-                    placeholder="Nom du critère (ex: Qualité Code)"
-                    value={crit.name}
-                    onChange={(e) => handleChange(index, 'name', e.target.value)}
-                    className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-
-                {/* COEFF (Weight) */}
-                <div className="w-20">
-                    <label className="block text-[10px] text-gray-400 mb-0.5 text-center">Coeff.</label>
-                    <input
-                        type="number"
-                        min="1"
-                        value={crit.weight}
-                        onChange={(e) => handleChange(index, 'weight', Number(e.target.value))}
-                        className="w-full p-1.5 text-sm border border-gray-300 rounded-lg text-center outline-none focus:border-blue-500"
-                    />
+                    placeholder="Description générale (optionnelle)"
+                    value={crit.description || ''}
+                    onChange={(e) => handleChange(index, 'description', e.target.value)}
+                    className="w-full text-xs text-gray-500 border-b border-transparent focus:border-gray-300 outline-none bg-transparent placeholder-gray-300 pb-1"
+                  />
                 </div>
 
-                {/* NOTE MAX (MaxScore) */}
-                <div className="w-20">
-                    <label className="block text-[10px] text-gray-400 mb-0.5 text-center">Max Pts</label>
-                    <input
-                        type="number"
-                        value={crit.maxScore} // ✅ Modifié ici
-                        onChange={(e) => handleChange(index, 'maxScore', Number(e.target.value))} // ✅ Modifié ici
-                        className="w-full p-1.5 text-sm border border-gray-300 rounded-lg text-center font-bold outline-none focus:border-blue-500"
-                    />
+                {/* COEFF */}
+                <div className="w-16">
+                  <label className="block text-[9px] uppercase font-bold text-gray-400 mb-0.5 text-center">Coeff.</label>
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={crit.weight}
+                    onChange={(e) => handleChange(index, 'weight', Number(e.target.value))}
+                    className="w-full p-2 text-sm border border-gray-300 rounded-lg text-center outline-none focus:border-blue-500 bg-gray-50"
+                  />
                 </div>
 
-                {/* SUPPRIMER */}
+                {/* NOTE MAX */}
+                <div className="w-16">
+                  <label className="block text-[9px] uppercase font-bold text-gray-400 mb-0.5 text-center">Total</label>
+                  <input
+                    type="number"
+                    value={crit.maxScore}
+                    onChange={(e) => handleChange(index, 'maxScore', Number(e.target.value))}
+                    disabled={hasSubCriteria} // Désactivé si calculé via sous-critères
+                    className={`w-full p-2 text-sm border border-gray-300 rounded-lg text-center font-bold outline-none focus:border-blue-500 
+                              ${hasSubCriteria ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                  />
+                </div>
+
                 <button
-                    onClick={() => handleRemove(index)}
-                    className="p-2 mt-4 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
-                    title="Supprimer"
+                  type="button"
+                  onClick={() => handleRemove(index)}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition mt-4"
+                  title="Supprimer ce bloc"
                 >
-                    <Trash2 size={18} />
+                  <Trash2 size={18} />
                 </button>
+              </div>
+
+              {/* Sous-critères */}
+              <div className="pl-6 mt-2 space-y-2 border-l-2 border-gray-100 ml-2">
+                {crit.subCriteria?.map((sub, subIdx) => (
+                  <div key={subIdx} className="flex gap-2 items-center group">
+                    <CornerDownRight size={14} className="text-gray-300 shrink-0" />
+
+                    <div className="flex-1 flex flex-col gap-1">
+                      <input
+                        type="text"
+                        placeholder="Sous-critère (ex: Orthographe)"
+                        value={sub.name}
+                        onChange={(e) => handleChangeSub(index, subIdx, 'name', e.target.value)}
+                        className="w-full p-1.5 text-sm border border-gray-200 rounded focus:border-blue-400 outline-none"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Description (optionnelle)"
+                        value={sub.description || ''}
+                        onChange={(e) => handleChangeSub(index, subIdx, 'description', e.target.value)}
+                        className="w-full text-xs text-gray-400 bg-transparent outline-none placeholder-gray-200"
+                      />
+                    </div>
+
+                    {/* Note Max du sous-critère */}
+                    <div className="w-16">
+                      <input
+                        type="number"
+                        placeholder="Pts"
+                        value={sub.maxScore}
+                        onChange={(e) => handleChangeSub(index, subIdx, 'maxScore', Number(e.target.value))}
+                        className="w-full p-1.5 text-sm border border-gray-200 rounded text-center outline-none focus:border-blue-400"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSub(index, subIdx)}
+                      className="p-1.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+
+                {/* Bouton Ajouter Sous-critère */}
+                <button
+                  type="button"
+                  onClick={() => handleAddSub(index)}
+                  className="flex items-center gap-2 text-xs font-semibold text-blue-500 hover:text-blue-700 mt-2 px-2 py-1 rounded hover:bg-blue-50 transition w-fit"
+                >
+                  <Plus size={12} /> Ajouter un sous-critère
+                </button>
+              </div>
+
             </div>
-            
-            {/* Ligne 2 : Description */}
-            <input
-                type="text"
-                placeholder="Description optionnelle (visible par l'étudiant)"
-                value={crit.description || ''}
-                onChange={(e) => handleChange(index, 'description', e.target.value)}
-                className="w-full p-2 text-xs border border-gray-100 bg-gray-50 text-gray-600 rounded-lg focus:bg-white focus:border-blue-300 outline-none transition-colors"
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <button
-        type="button" // Important pour ne pas submit le form parent
+        type="button"
         onClick={handleAdd}
-        className="mt-4 w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-blue-400 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm font-medium"
+        className="mt-6 w-full py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-blue-400 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm font-medium"
       >
-        <Plus size={16} /> Ajouter un critère
+        <Plus size={18} /> Ajouter une catégorie principale
       </button>
+
+      <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
+        <Info size={12} />
+        Si vous ajoutez des sous-critères, le total de la catégorie sera la somme des points définis pour chaque sous-critère.
+      </p>
     </div>
   );
 }

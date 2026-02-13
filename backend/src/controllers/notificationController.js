@@ -28,6 +28,21 @@ exports.sendCampaignNotification = async (req, res) => {
 
         const Campagne = require('../models/Campagne');
 
+        const campaign = await Campagne.findById(campaignId);
+        if (!campaign) {
+            return res.status(404).json({ message: 'Campagne non trouvée' });
+        }
+        if (campaign.status !== 'active') { // Ou 'draft', mais le client demande "Il faut qu'elle soit active"
+            // Le client dit : "ni message aux eleve si la campagne est toujours en draft. Il faut qu'elle soit active"
+            // Donc si status != active, on bloque ? Ou juste si draft ?
+            // "si la campagne est toujours en draft" -> bloquer si draft.
+            // "Il faut qu'elle soit active" -> bloquer si != active ?
+            // Soyons stricts : on bloque si != active.
+            if (campaign.status === 'draft') {
+                return res.status(403).json({ message: "La campagne est en brouillon. Vous devez l'activer avant d'envoyer des invitations." });
+            }
+        }
+
         await Campagne.findByIdAndUpdate(campaignId, {
             $addToSet: { participants: recipientId }
         });

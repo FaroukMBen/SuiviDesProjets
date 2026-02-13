@@ -17,32 +17,56 @@ class EvaluationController {
     try {
       const { projectId, criteria, feedback } = req.body;
 
-      // Only instructors and admins can create evaluations
       if (req.user.role !== 'instructor' && req.user.role !== 'admin') {
         return res.status(403).json({ success: false, message: 'Insufficient permissions' });
       }
 
-      // Calculate total score
-      let totalScore = 0;
-      let weightSum = 0;
+      // Helper function to process criteria recursively
+      const processCriteria = (list) => {
+        let earned = 0;
+        let possible = 0;
 
-      const processedCriteria = criteria.map(c => {
-        totalScore += (c.score || 0) * (c.weight || 0);
-        weightSum += c.weight || 0;
-        return {
-          name: c.name,
-          weight: c.weight,
-          maxScore: c.maxScore,
-          score: c.score
-        };
-      });
+        const processed = list.map(c => {
+          let score = c.score || 0;
+          let maxScore = c.maxScore || 20;
 
-      totalScore = weightSum > 0 ? (totalScore / weightSum).toFixed(2) : 0;
+          // Process sub-criteria if any
+          let subs = undefined;
+          if (c.subCriteria && c.subCriteria.length > 0) {
+            const subResult = processCriteria(c.subCriteria);
+            subs = subResult.processed;
+            // Parent score is sum of sub-criteria scores (simple sum)
+            score = subs.reduce((acc, s) => acc + (s.score || 0), 0);
+            // Parent maxScore is sum of sub-criteria maxScores
+            maxScore = subs.reduce((acc, s) => acc + (s.maxScore || 0), 0);
+          }
+
+          earned += score * (c.weight || 1);
+          possible += maxScore * (c.weight || 1);
+
+          return {
+            name: c.name,
+            weight: c.weight,
+            maxScore: maxScore,
+            score: score,
+            description: c.description,
+            subCriteria: subs
+          };
+        });
+
+        return { processed, earned, possible };
+      };
+
+      const result = processCriteria(criteria);
+
+      // Calculate final score out of 20
+      // If possible is 0 (empty grid), score is 0.
+      let totalScore = result.possible > 0 ? ((result.earned / result.possible) * 20).toFixed(2) : 0;
 
       const evaluation = new Evaluation({
         projectId,
         evaluator: req.user.id,
-        criteria: processedCriteria,
+        criteria: result.processed,
         totalScore,
         feedback,
         status: 'completed'
@@ -71,21 +95,44 @@ class EvaluationController {
       }
 
       if (criteria) {
-        let totalScore = 0;
-        let weightSum = 0;
+        // Helper function to process criteria recursively
+        const processCriteria = (list) => {
+          let earned = 0;
+          let possible = 0;
 
-        evaluation.criteria = criteria.map(c => {
-          totalScore += (c.score || 0) * (c.weight || 0);
-          weightSum += c.weight || 0;
-          return {
-            name: c.name,
-            weight: c.weight,
-            maxScore: c.maxScore,
-            score: c.score
-          };
-        });
+          const processed = list.map(c => {
+            let score = c.score || 0;
+            let maxScore = c.maxScore || 20;
 
-        evaluation.totalScore = weightSum > 0 ? (totalScore / weightSum).toFixed(2) : 0;
+            // Process sub-criteria if any
+            let subs = undefined;
+            if (c.subCriteria && c.subCriteria.length > 0) {
+              const subResult = processCriteria(c.subCriteria);
+              subs = subResult.processed;
+              score = subs.reduce((acc, s) => acc + (s.score || 0), 0);
+              maxScore = subs.reduce((acc, s) => acc + (s.maxScore || 0), 0);
+            }
+
+            earned += score * (c.weight || 1);
+            possible += maxScore * (c.weight || 1);
+
+            return {
+              name: c.name,
+              weight: c.weight,
+              maxScore: maxScore,
+              score: score,
+              description: c.description,
+              subCriteria: subs
+            };
+          });
+
+          return { processed, earned, possible };
+        };
+
+        const result = processCriteria(criteria);
+
+        evaluation.criteria = result.processed;
+        evaluation.totalScore = result.possible > 0 ? ((result.earned / result.possible) * 20).toFixed(2) : 0;
       }
 
       if (feedback) evaluation.feedback = feedback;

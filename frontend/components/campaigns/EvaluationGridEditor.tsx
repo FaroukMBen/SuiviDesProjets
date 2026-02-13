@@ -130,7 +130,7 @@ export function EvaluationGridEditor({ criteria, onChange }: Props) {
                       placeholder="Catégorie / Critère principal"
                       value={crit.name}
                       onChange={(e) => handleChange(index, 'name', e.target.value)}
-                      className="flex-1 px-3 py-2 font-bold text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="flex-1 px-4 py-3 font-black text-gray-800 border border-gray-100 bg-gray-50/30 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all placeholder:font-normal"
                     />
                   </div>
                   <input
@@ -151,7 +151,7 @@ export function EvaluationGridEditor({ criteria, onChange }: Props) {
                     step="0.1"
                     value={crit.weight}
                     onChange={(e) => handleChange(index, 'weight', Number(e.target.value))}
-                    className="w-full p-2 text-sm border border-gray-300 rounded-lg text-center outline-none focus:border-blue-500 bg-gray-50"
+                    className="w-full p-2.5 text-sm border border-gray-100 rounded-xl text-center outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-gray-50 font-black text-gray-700 transition-all"
                   />
                 </div>
 
@@ -163,8 +163,8 @@ export function EvaluationGridEditor({ criteria, onChange }: Props) {
                     value={crit.maxScore}
                     onChange={(e) => handleChange(index, 'maxScore', Number(e.target.value))}
                     disabled={hasSubCriteria} // Désactivé si calculé via sous-critères
-                    className={`w-full p-2 text-sm border border-gray-300 rounded-lg text-center font-bold outline-none focus:border-blue-500 
-                              ${hasSubCriteria ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                    className={`w-full p-2.5 text-sm border border-gray-100 rounded-xl text-center font-black outline-none transition-all
+                              ${hasSubCriteria ? 'bg-gray-200/50 text-gray-400 cursor-not-allowed' : 'bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500'}`}
                   />
                 </div>
 
@@ -190,7 +190,7 @@ export function EvaluationGridEditor({ criteria, onChange }: Props) {
                         placeholder="Sous-critère (ex: Orthographe)"
                         value={sub.name}
                         onChange={(e) => handleChangeSub(index, subIdx, 'name', e.target.value)}
-                        className="w-full p-1.5 text-sm border border-gray-200 rounded focus:border-blue-400 outline-none"
+                        className="w-full px-3 py-2 text-sm border border-gray-100 bg-gray-50/50 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 outline-none transition-all font-bold text-gray-700"
                       />
                       <input
                         type="text"
@@ -208,7 +208,7 @@ export function EvaluationGridEditor({ criteria, onChange }: Props) {
                         placeholder="Pts"
                         value={sub.maxScore}
                         onChange={(e) => handleChangeSub(index, subIdx, 'maxScore', Number(e.target.value))}
-                        className="w-full p-1.5 text-sm border border-gray-200 rounded text-center outline-none focus:border-blue-400"
+                        className="w-full p-2 text-sm border border-gray-100 bg-white rounded-xl text-center font-black text-gray-700 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 outline-none transition-all"
                       />
                     </div>
 

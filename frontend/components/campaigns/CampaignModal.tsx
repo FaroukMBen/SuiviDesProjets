@@ -131,7 +131,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
                 <input
                   required type="text"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-gray-50/50 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-gray-900"
                   placeholder="Ex: Projets Tutorés S4 2025"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
@@ -140,19 +140,19 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Début</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Début</label>
                   <input
                     required type="date"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/50 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-gray-700 transition-all"
                     value={formData.startDate}
                     onChange={e => setFormData({ ...formData, startDate: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fin</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fin</label>
                   <input
                     required type="date"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/50 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-gray-700 transition-all"
                     value={formData.endDate}
                     onChange={e => setFormData({ ...formData, endDate: e.target.value })}
                   />
@@ -160,11 +160,11 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Année Scolaire</label>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Année Scolaire</label>
                 <select
                   value={formData.academicYear}
                   onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 border p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full rounded-xl border border-gray-100 bg-gray-50/50 p-2.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-bold text-gray-700 transition-all"
                 >
                   <option>2024-2025</option>
                   <option>2025-2026</option>
@@ -175,7 +175,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 <input
                   type="checkbox"
                   id="activeCheck"
-                  className="w-4 h-4 text-green-600 rounded focus:ring-green-500 border-gray-300"
+                  className="rounded-lg" // Class added to support global CSS
                   checked={formData.status === 'active'}
                   onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'active' : 'draft' })}
                 />
@@ -197,7 +197,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 <select
                   value={formData.targetYear}
                   onChange={(e) => setFormData({ ...formData, targetYear: e.target.value, targetGroups: [] })}
-                  className="w-full rounded-lg border-gray-300 border p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  className="w-full rounded-xl border border-gray-100 bg-white p-2.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-bold text-gray-700 transition-all"
                 >
                   {Object.keys(SCHOOL_STRUCTURE).map(year => (
                     <option key={year} value={year}>{year}</option>

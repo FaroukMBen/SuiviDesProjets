@@ -12,7 +12,9 @@ import { format } from 'date-fns';
 
 interface User {
   _id: string;
-  name: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
   email: string;
   profilePicture?: string;
   role: string;
@@ -38,6 +40,17 @@ interface Conversation {
 
 export default function MessageriePage() {
   const { user } = useAuthStore();
+  const isModern = user?.theme === 'modern';
+
+  const formatRole = (role?: string) => {
+    switch (role) {
+      case 'admin': return 'Administrateur';
+      case 'instructor': return 'Enseignant';
+      case 'student': return 'Étudiant';
+      default: return role || 'Utilisateur';
+    }
+  };
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -241,9 +254,15 @@ export default function MessageriePage() {
     const myId = user.id || (user as any)._id;
     const other = conv.participants.find(p => p._id !== myId);
 
-    if (!other && conv.participants.length > 0) return conv.participants[0].name;
+    if (!other) {
+      if (conv.participants.length > 0) {
+        const p = conv.participants[0];
+        return p.firstName ? `${p.firstName} ${p.lastName || ''}`.trim() : (p.name || 'Utilisateur inconnu');
+      }
+      return 'Utilisateur inconnu';
+    }
 
-    return other ? other.name : 'Utilisateur inconnu';
+    return other.firstName ? `${other.firstName} ${other.lastName || ''}`.trim() : (other.name || 'Utilisateur inconnu');
   };
 
   const getConversationImage = (conv: Conversation) => {
@@ -259,7 +278,7 @@ export default function MessageriePage() {
     if (!user) return '';
     const myId = user.id || (user as any)._id;
     const other = conv.participants.find(p => p._id !== myId);
-    return other?.role;
+    return formatRole(other?.role);
   }
 
   const isAdminUser = user?.role === 'admin';
@@ -285,38 +304,38 @@ export default function MessageriePage() {
                   {user ? `${user.firstName} ${user.lastName || user.name}` : 'Utilisateur'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {isAdminUser ? 'Administrateur' : user?.role || 'Étudiant'}
+                  {formatRole(user?.role)}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm">
-                {user?.firstName ? user.firstName[0] : (user?.name ? user.name[0] : 'U')}
+              <div className={`w-10 h-10 ${isModern ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-blue-100'} rounded-full flex items-center justify-center ${isModern ? 'text-white' : 'text-blue-700'} font-bold border-2 border-white shadow-sm`}>
+                {user?.firstName ? user.firstName[0] : (user?.name ? user.name[0] : (user?.lastName ? user.lastName[0] : 'U'))}
               </div>
             </div>
           </header>
 
           {/* Main Content */}
           <main className="flex-1 p-6 overflow-hidden flex flex-col">
-            <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-xl border border-slate-200 flex">
+            <div className={`flex-1 ${isModern ? 'bg-white/80 backdrop-blur-xl rounded-[2.5rem]' : 'bg-white rounded-2xl'} overflow-hidden shadow-2xl border border-slate-200 flex`}>
 
               {/* Sidebar - Conversations List */}
-              <div className="w-80 border-r border-slate-200 bg-slate-50 flex flex-col">
-                <div className="p-4 border-b border-slate-200 bg-white shadow-sm z-10 flex flex-col gap-3">
+              <div className={`w-80 border-r border-slate-200 ${isModern ? 'bg-slate-50/50' : 'bg-slate-50'} flex flex-col`}>
+                <div className={`p-5 border-b border-slate-200 ${isModern ? 'bg-transparent' : 'bg-white shadow-sm'} z-10 flex flex-col gap-3`}>
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-slate-800">Discussions</h2>
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Discussions</h2>
                     <div className="flex gap-1">
                       <button
                         onClick={() => { setShowNewChat(!showNewChat); setShowCreateGroup(false); }}
-                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                        className={`p-2.5 ${isModern ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:scale-105' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'} rounded-xl transition-all`}
                         title="Nouveau message"
                       >
-                        <MessageSquare size={18} />
+                        <MessageSquare size={18} strokeWidth={isModern ? 2.5 : 2} />
                       </button>
                       <button
                         onClick={() => { setShowCreateGroup(!showCreateGroup); setShowNewChat(false); }}
-                        className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                        className={`p-2.5 ${isModern ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:scale-105' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'} rounded-xl transition-all`}
                         title="Créer un groupe"
                       >
-                        <Users size={18} />
+                        <Users size={18} strokeWidth={isModern ? 2.5 : 2} />
                       </button>
                     </div>
                   </div>
@@ -368,16 +387,19 @@ export default function MessageriePage() {
                         <div
                           key={conv._id}
                           onClick={() => setActiveConversation(conv)}
-                          className={`p-4 cursor-pointer transition-all hover:bg-white border-b border-slate-100 
-                            ${isActive ? 'bg-white border-l-4 border-l-blue-500 shadow-sm' : ''}`}
+                          className={`p-4 cursor-pointer transition-all border-b border-slate-100 relative
+                            ${isActive
+                              ? (isModern ? 'bg-white shadow-md z-[1] scale-[1.02] rounded-xl mx-2 my-1 border-b-transparent' : 'bg-white border-l-4 border-l-blue-500 shadow-sm')
+                              : (isModern ? 'hover:bg-white/60 hover:shadow-sm hover:scale-[1.01] rounded-lg mx-1' : 'hover:bg-slate-100')}`}
                         >
+                          {isActive && isModern && <div className="absolute left-0 top-3 bottom-3 w-1.5 bg-blue-600 rounded-full" />}
                           <div className="flex items-center gap-3">
                             <div className="relative">
                               {displayImage ? (
-                                <img src={displayImage} alt={displayName} className="w-12 h-12 rounded-full object-cover shadow-sm" />
+                                <img src={displayImage} alt={displayName} className={`w-12 h-12 ${isModern ? 'rounded-2xl' : 'rounded-full'} object-cover shadow-sm`} />
                               ) : (
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${conv.isGroup ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
-                                  {conv.isGroup ? <Users size={20} /> : displayName[0]}
+                                <div className={`w-12 h-12 ${isModern ? 'rounded-2xl shadow-inner' : 'rounded-full'} flex items-center justify-center font-bold text-sm ${conv.isGroup ? (isModern ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-600') : (isModern ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600')}`}>
+                                  {conv.isGroup ? <Users size={20} /> : (displayName ? displayName[0] : '?')}
                                 </div>
                               )}
                             </div>
@@ -396,7 +418,9 @@ export default function MessageriePage() {
                                     {isMeSender ? (
                                       <span className="font-medium text-slate-500">Vous:</span>
                                     ) : (
-                                      <span className="font-medium text-slate-500">{conv.lastMessage.sender.name}:</span>
+                                      <span className="font-medium text-slate-500">
+                                        {conv.lastMessage.sender.firstName || conv.lastMessage.sender.name || 'Inconnu'}:
+                                      </span>
                                     )}
                                     <span className="truncate">{conv.lastMessage.content}</span>
                                   </span>
@@ -418,13 +442,13 @@ export default function MessageriePage() {
                 {activeConversation ? (
                   <>
                     {/* Chat Header */}
-                    <div className="p-4 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-20">
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => { if (activeConversation.isGroup) setShowMembersModal(true) }}>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${activeConversation.isGroup ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
-                          {activeConversation.isGroup ? <Users size={20} /> : getConversationName(activeConversation)[0]}
+                    <div className={`p-4 ${isModern ? 'bg-white/90 backdrop-blur-md px-6' : 'bg-white px-4'} border-b border-slate-200 flex items-center justify-between shadow-sm z-20`}>
+                      <div className="flex items-center gap-4 cursor-pointer" onClick={() => { if (activeConversation.isGroup) setShowMembersModal(true) }}>
+                        <div className={`w-11 h-11 ${isModern ? 'rounded-2xl shadow-lg shadow-blue-500/20' : 'rounded-full'} flex items-center justify-center font-bold ${activeConversation.isGroup ? (isModern ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-600') : (isModern ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600')}`}>
+                          {activeConversation.isGroup ? <Users size={22} /> : getConversationName(activeConversation)[0]}
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-800">{getConversationName(activeConversation)}</h3>
+                          <h3 className={`font-black ${isModern ? 'text-lg tracking-tight' : ''} text-slate-800`}>{getConversationName(activeConversation)}</h3>
                           <p className="text-xs text-slate-500 capitalize">{getConversationRole(activeConversation)}</p>
                         </div>
                       </div>
@@ -516,14 +540,20 @@ export default function MessageriePage() {
                           <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
                             <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
                               {!isSameSenderAsPrevious && !isMe && (
-                                <span className="text-xs text-slate-400 ml-1 mb-1">{msg.sender.name}</span>
+                                <span className="text-xs text-slate-400 ml-1 mb-1">
+                                  {msg.sender.firstName ? `${msg.sender.firstName} ${msg.sender.lastName || ''}`.trim() : (msg.sender.name || 'Inconnu')}
+                                </span>
                               )}
 
                               <div className={`
-                                px-4 py-2 text-sm shadow-sm
+                                px-4 py-2.5 text-sm shadow-sm transition-all
                                 ${isMe
-                                  ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none'
-                                  : 'bg-white text-slate-700 rounded-2xl rounded-tl-none border border-slate-200'}
+                                  ? (isModern
+                                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-[1.5rem] rounded-tr-none shadow-blue-200/50'
+                                    : 'bg-blue-600 text-white rounded-2xl rounded-tr-none')
+                                  : (isModern
+                                    ? 'bg-white text-slate-700 rounded-[1.5rem] rounded-tl-none border border-slate-100 shadow-slate-100'
+                                    : 'bg-white text-slate-700 rounded-2xl rounded-tl-none border border-slate-200')}
                               `}>
                                 {msg.content}
                               </div>
@@ -539,21 +569,21 @@ export default function MessageriePage() {
                     </div>
 
                     {/* Input Area */}
-                    <div className="p-4 bg-white border-t border-slate-200 z-20">
-                      <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                    <div className={`p-4 ${isModern ? 'bg-white/50 backdrop-blur-sm px-6 pb-6' : 'bg-white'} border-t border-slate-200 z-20`}>
+                      <form onSubmit={handleSendMessage} className="flex items-center gap-3">
                         <input
                           type="text"
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
                           placeholder="Écrivez votre message..."
-                          className="flex-1 p-3 bg-slate-100 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                          className={`flex-1 p-3.5 ${isModern ? 'bg-white rounded-2xl shadow-inner border border-slate-100' : 'bg-slate-100 border-0 rounded-xl'} focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm`}
                         />
                         <button
                           type="submit"
                           disabled={!newMessage.trim()}
-                          className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-500/20"
+                          className={`p-3.5 ${isModern ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30' : 'bg-blue-600 shadow-md shadow-blue-500/20'} text-white rounded-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
                         >
-                          <Send size={20} />
+                          <Send size={20} strokeWidth={isModern ? 2.5 : 2} />
                         </button>
                       </form>
                     </div>
@@ -591,12 +621,16 @@ export default function MessageriePage() {
                           <img src={p.profilePicture} className="w-10 h-10 rounded-full object-cover" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">
-                            {p.name[0]}
+                            {p.firstName ? p.firstName[0] : (p.name ? p.name[0] : '?')}
                           </div>
                         )}
                         <div className="flex-1">
-                          <p className="font-medium text-sm">{p.name}</p>
-                          <p className="text-xs text-slate-500">{p.role}</p>
+                          <p className="font-bold text-sm text-slate-800">
+                            {p.firstName ? `${p.firstName} ${p.lastName || ''}`.trim() : (p.name || 'Utilisateur inconnu')}
+                          </p>
+                          <p className={`text-[10px] font-bold uppercase tracking-wider ${isModern ? 'text-blue-500' : 'text-slate-500'}`}>
+                            {formatRole(p.role)}
+                          </p>
                         </div>
 
                         {/* Badges/Actions */}

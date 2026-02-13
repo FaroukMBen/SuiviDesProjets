@@ -18,7 +18,8 @@ export function UserModal({ isOpen, onClose, onSuccess, userToEdit }: Props) {
 
   // State initial
   const initialState = {
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     role: 'student',
@@ -34,6 +35,8 @@ export function UserModal({ isOpen, onClose, onSuccess, userToEdit }: Props) {
       if (userToEdit) {
         setFormData({
           ...userToEdit,
+          firstName: userToEdit.firstName || '',
+          lastName: userToEdit.lastName || userToEdit.name || '',
           password: '',
           group: userToEdit.group || ''
         });
@@ -85,16 +88,29 @@ export function UserModal({ isOpen, onClose, onSuccess, userToEdit }: Props) {
         {/* Formulaire */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
-          {/* Nom */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
-            <div className="relative">
-              <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          {/* Prénom et Nom */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                <input
+                  required type="text"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={formData.firstName}
+                  onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder="Jean"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
               <input
                 required type="text"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                value={formData.lastName}
+                onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                placeholder="Dupont"
               />
             </div>
           </div>

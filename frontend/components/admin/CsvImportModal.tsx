@@ -50,7 +50,7 @@ export function CsvImportModal({ isOpen, onClose, onSuccess }: Props) {
     };
 
     const downloadTemplate = () => {
-        const csvContent = "data:text/csv;charset=utf-8,name,email,academicYear,group\nJean Dupont,jean.dupont@univ.fr,BUT1,G1\nMarie Curie,marie.curie@univ.fr,BUT2,RA1";
+        const csvContent = "data:text/csv;charset=utf-8,firstname,lastname,email,academicYear,group\nJean,Dupont,jean.dupont@univ.fr,BUT1,G1\nMarie,Curie,marie.curie@univ.fr,BUT2,RA1";
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -81,7 +81,7 @@ export function CsvImportModal({ isOpen, onClose, onSuccess }: Props) {
                     {/* Template Download */}
                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800">
                         <p className="font-semibold mb-1">Format attendu : CSV</p>
-                        <p>Colonnes : <span className="font-mono bg-white px-1 rounded border border-blue-200">name, email, academicYear, group</span></p>
+                        <p>Colonnes : <span className="font-mono bg-white px-1 rounded border border-blue-200">firstname, lastname, email, academicYear, group</span></p>
                         <button
                             onClick={downloadTemplate}
                             className="mt-3 text-blue-600 hover:text-blue-800 font-medium underline flex items-center gap-1"

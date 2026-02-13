@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import api from '@/lib/auth';
-import { Plus, Edit2, Trash2, Search, Shield, GraduationCap, Briefcase, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Shield, GraduationCap, Briefcase, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UserModal } from '@/components/admin/UserModal';
 import { CsvImportModal } from '@/components/admin/CsvImportModal';
 
@@ -13,15 +13,22 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(7);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/api/users'); // Route qui liste tout
+      const res = await api.get(`/api/users?page=${page}&limit=${limit}`);
       setUsers(res.data.users);
+      setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (err) {
       console.error(err);
     } finally {
@@ -31,7 +38,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [page, limit]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) {
@@ -55,10 +62,13 @@ export default function AdminUsersPage() {
   };
 
   // Filtrage simple côté client
-  const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => {
+    const fullName = u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur';
+    const email = u.email || '';
+
+    return fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <ProtectedRoute requireAdmin={true}>
@@ -113,7 +123,9 @@ export default function AdminUsersPage() {
                 ) : filteredUsers.map((user) => (
                   <tr key={user._id} className="hover:bg-gray-50 transition">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-gray-900">{user.name}</div>
+                      <div className="font-bold text-gray-900">
+                        {user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Sans nom'}
+                      </div>
                       <div className="text-sm text-gray-500">{user.email}</div>
                     </td>
                     <td className="px-6 py-4">
@@ -160,6 +172,50 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-6 flex flex-col md:flex-row justify-center items-center gap-6 pb-8">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>Afficher</span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value={7}>7</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+              </select>
+              <span>par page</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+              >
+                <ChevronLeft size={20} />
+              </button>
+
+              <span className="text-sm font-medium text-gray-600 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+                Page {page} sur {totalPages}
+              </span>
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Modal User */}

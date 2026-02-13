@@ -34,12 +34,18 @@ const COLUMNS = [
     { id: 'done', label: 'Terminé' }
 ];
 
+import { useAuthStore } from '@/lib/store';
+
+// ... (other imports)
+
 export function GlobalKanbanBoard() {
+    const { user } = useAuthStore();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+    const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
 
     // Pour l'édition, on a besoin des membres du projet de la tâche.
     // C'est complexe car chaque tâche vient d'un projet différent.
@@ -134,11 +140,30 @@ export function GlobalKanbanBoard() {
 
     return (
         <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-6">Toutes mes Tâches & Non Assignées</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">Toutes mes Tâches & Non Assignées</h1>
+
+                <button
+                    onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${showMyTasksOnly
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                >
+                    <User size={16} />
+                    {showMyTasksOnly ? 'Mes tâches' : 'Toutes les tâches'}
+                </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
                 {COLUMNS.map((col) => {
-                    const colTasks = tasks.filter(t => t.status === col.id);
+                    const colTasks = tasks.filter(t => {
+                        const matchesStatus = t.status === col.id;
+                        const matchesUser = showMyTasksOnly
+                            ? (t.assignee && user && t.assignee._id === user.id)
+                            : true;
+                        return matchesStatus && matchesUser;
+                    });
 
                     return (
                         <div

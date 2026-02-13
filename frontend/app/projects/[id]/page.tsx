@@ -98,10 +98,12 @@ export default function ProjectOverviewPage() {
             {project.members?.map((member: any) => (
               <div key={member._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {member.name?.charAt(0).toUpperCase()}
+                  {member.firstName ? member.firstName[0].toUpperCase() : (member.name ? member.name.charAt(0).toUpperCase() : 'U')}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : member.name}
+                  </p>
                   <p className="text-xs text-gray-500">{member.email}</p>
                 </div>
               </div>

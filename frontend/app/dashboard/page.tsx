@@ -57,19 +57,23 @@ export default function DashboardPage() {
               {isAdmin ? 'Administration' : 'Tableau de bord'}
             </h2>
 
+
             <div className="flex items-center gap-4">
               <NotificationBell />
               <div className="h-8 w-px bg-gray-200 mx-2"></div>
               <div className="text-right">
-                <p className="text-sm font-bold text-gray-900">{user?.name || 'Utilisateur'}</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {user ? `${user.firstName} ${user.lastName || user.name}` : 'Utilisateur'}
+                </p>
                 <p className="text-xs text-gray-500">
                   {isAdmin ? 'Administrateur' : user?.role || 'Étudiant'}
                 </p>
               </div>
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm">
-                {user?.name ? user.name[0] : 'U'}
+                {user?.firstName ? user.firstName[0] : (user?.name ? user.name[0] : 'U')}
               </div>
             </div>
+
           </header>
 
           <main className="p-8 max-w-[1600px] mx-auto space-y-8">

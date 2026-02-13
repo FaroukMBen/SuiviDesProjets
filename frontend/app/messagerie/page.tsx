@@ -42,7 +42,7 @@ export default function MessageriePage() {
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  
+
   // UI States
   const [showNewChat, setShowNewChat] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -50,7 +50,7 @@ export default function MessageriePage() {
   const [showMenu, setShowMenu] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   const [groupName, setGroupName] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -89,7 +89,7 @@ export default function MessageriePage() {
 
   const fetchConversations = async () => {
     try {
-      if(!user) return;
+      if (!user) return;
       const { data } = await api.get('/api/chat/conversations');
       setConversations(data.conversations);
     } catch (error) {
@@ -115,7 +115,7 @@ export default function MessageriePage() {
         conversationId: activeConversation._id,
         content: newMessage
       });
-      
+
       setMessages([...messages, data.message]);
       setNewMessage('');
       fetchConversations();
@@ -145,28 +145,28 @@ export default function MessageriePage() {
     if (!groupName.trim()) return;
 
     try {
-        const { data } = await api.post('/api/chat/create-group', { name: groupName });
-        setConversations([data.conversation, ...conversations]);
-        setActiveConversation(data.conversation);
-        setGroupName('');
-        setShowCreateGroup(false);
+      const { data } = await api.post('/api/chat/create-group', { name: groupName });
+      setConversations([data.conversation, ...conversations]);
+      setActiveConversation(data.conversation);
+      setGroupName('');
+      setShowCreateGroup(false);
     } catch (error) {
-        console.error('Error creating group', error);
+      console.error('Error creating group', error);
     }
   };
 
   const handleInviteToGroup = async (selectedUser: any) => {
-    if(!activeConversation) return;
+    if (!activeConversation) return;
     try {
-        await api.post('/api/chat/invite-group', {
-            conversationId: activeConversation._id,
-            recipientId: selectedUser._id
-        });
-        
-        alert('Invitation envoyée !');
-        setShowInviteModal(false);
+      await api.post('/api/chat/invite-group', {
+        conversationId: activeConversation._id,
+        recipientId: selectedUser._id
+      });
+
+      alert('Invitation envoyée !');
+      setShowInviteModal(false);
     } catch (error: any) {
-        alert(error.response?.data?.message || 'Erreur lors de l\'invitation');
+      alert(error.response?.data?.message || 'Erreur lors de l\'invitation');
     }
   };
 
@@ -178,76 +178,76 @@ export default function MessageriePage() {
     const isAdmin = activeConversation.admin === myUserId;
 
     if (isGroup && !isAdmin) {
-        alert("Seul le créateur du groupe peut le supprimer. Vous pouvez cependant quitter le groupe.");
-        return;
+      alert("Seul le créateur du groupe peut le supprimer. Vous pouvez cependant quitter le groupe.");
+      return;
     }
 
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette conversation ? Cette action est irréversible.")) {
-        return;
+      return;
     }
 
     try {
-        await api.delete(`/api/chat/${activeConversation._id}`);
-        setConversations(conversations.filter(c => c._id !== activeConversation._id));
-        setActiveConversation(null);
-        alert("Conversation supprimée.");
+      await api.delete(`/api/chat/${activeConversation._id}`);
+      setConversations(conversations.filter(c => c._id !== activeConversation._id));
+      setActiveConversation(null);
+      alert("Conversation supprimée.");
     } catch (error) {
-        console.error("Delete error:", error);
-        alert("Erreur lors de la suppression.");
+      console.error("Delete error:", error);
+      alert("Erreur lors de la suppression.");
     }
   };
 
   const handleLeaveGroup = async () => {
-      if(!activeConversation || !activeConversation.isGroup) return;
-      setShowMenu(false);
-      
-      if (!window.confirm("Voulez-vous vraiment quitter ce groupe ?")) return;
+    if (!activeConversation || !activeConversation.isGroup) return;
+    setShowMenu(false);
 
-      try {
-          await api.post('/api/chat/leave-group', { conversationId: activeConversation._id });
-          setConversations(conversations.filter(c => c._id !== activeConversation._id));
-          setActiveConversation(null);
-          alert("Vous avez quitté le groupe.");
-      } catch (error: any) {
-          alert('Erreur: ' + (error.response?.data?.message || 'Impossible de quitter le groupe'));
-      }
+    if (!window.confirm("Voulez-vous vraiment quitter ce groupe ?")) return;
+
+    try {
+      await api.post('/api/chat/leave-group', { conversationId: activeConversation._id });
+      setConversations(conversations.filter(c => c._id !== activeConversation._id));
+      setActiveConversation(null);
+      alert("Vous avez quitté le groupe.");
+    } catch (error: any) {
+      alert('Erreur: ' + (error.response?.data?.message || 'Impossible de quitter le groupe'));
+    }
   };
 
   const handleKickMember = async (userIdToKick: string) => {
-      if(!activeConversation || !activeConversation.isGroup) return;
-      if(!window.confirm("Voulez-vous retirer ce membre du groupe ?")) return;
+    if (!activeConversation || !activeConversation.isGroup) return;
+    if (!window.confirm("Voulez-vous retirer ce membre du groupe ?")) return;
 
-      try {
-          const { data } = await api.post('/api/chat/remove-member', {
-              conversationId: activeConversation._id,
-              userIdToRemove: userIdToKick
-          });
-        
-          const updatedParticipants = activeConversation.participants.filter(p => p._id !== userIdToKick);
-          const updatedConversation = { ...activeConversation, participants: updatedParticipants };
-          
-          setActiveConversation(updatedConversation);
-          setConversations(conversations.map(c => c._id === activeConversation._id ? updatedConversation : c));
-          
-      } catch (error: any) {
-           alert('Erreur: ' + (error.response?.data?.message || 'Impossible de retirer le membre'));
-      }
+    try {
+      const { data } = await api.post('/api/chat/remove-member', {
+        conversationId: activeConversation._id,
+        userIdToRemove: userIdToKick
+      });
+
+      const updatedParticipants = activeConversation.participants.filter(p => p._id !== userIdToKick);
+      const updatedConversation = { ...activeConversation, participants: updatedParticipants };
+
+      setActiveConversation(updatedConversation);
+      setConversations(conversations.map(c => c._id === activeConversation._id ? updatedConversation : c));
+
+    } catch (error: any) {
+      alert('Erreur: ' + (error.response?.data?.message || 'Impossible de retirer le membre'));
+    }
   }
 
   const getConversationName = (conv: Conversation) => {
-      if (conv.isGroup) return conv.name || 'Groupe sans nom';
-      if (!user) return 'Chargement...';
+    if (conv.isGroup) return conv.name || 'Groupe sans nom';
+    if (!user) return 'Chargement...';
 
-      const myId = user.id || (user as any)._id;
-      const other = conv.participants.find(p => p._id !== myId);
-      
-      if (!other && conv.participants.length > 0) return conv.participants[0].name;
+    const myId = user.id || (user as any)._id;
+    const other = conv.participants.find(p => p._id !== myId);
 
-      return other ? other.name : 'Utilisateur inconnu';
+    if (!other && conv.participants.length > 0) return conv.participants[0].name;
+
+    return other ? other.name : 'Utilisateur inconnu';
   };
 
   const getConversationImage = (conv: Conversation) => {
-    if (conv.isGroup) return null; 
+    if (conv.isGroup) return null;
     if (!user) return null;
     const myId = user.id || (user as any)._id;
     const other = conv.participants.find(p => p._id !== myId);
@@ -255,11 +255,11 @@ export default function MessageriePage() {
   };
 
   const getConversationRole = (conv: Conversation) => {
-      if (conv.isGroup) return `${conv.participants.length} membres`;
-        if (!user) return '';
-      const myId = user.id || (user as any)._id;
-      const other = conv.participants.find(p => p._id !== myId);
-      return other?.role;
+    if (conv.isGroup) return `${conv.participants.length} membres`;
+    if (!user) return '';
+    const myId = user.id || (user as any)._id;
+    const other = conv.participants.find(p => p._id !== myId);
+    return other?.role;
   }
 
   const isAdminUser = user?.role === 'admin';
@@ -271,7 +271,7 @@ export default function MessageriePage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-[#f3f4f6] flex font-sans">
         <Navbar />
-        
+
         <div className="flex-1 ml-64 flex flex-col h-screen">
           {/* Header */}
           <header className="bg-white h-20 border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
@@ -281,13 +281,15 @@ export default function MessageriePage() {
               <NotificationBell />
               <div className="h-8 w-px bg-gray-200 mx-2"></div>
               <div className="text-right">
-                <p className="text-sm font-bold text-gray-900">{user?.name || 'Utilisateur'}</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {user ? `${user.firstName} ${user.lastName || user.name}` : 'Utilisateur'}
+                </p>
                 <p className="text-xs text-gray-500">
-                    {isAdminUser ? 'Administrateur' : user?.role || 'Étudiant'}
+                  {isAdminUser ? 'Administrateur' : user?.role || 'Étudiant'}
                 </p>
               </div>
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm">
-                {user?.name ? user.name[0] : 'U'}
+                {user?.firstName ? user.firstName[0] : (user?.name ? user.name[0] : 'U')}
               </div>
             </div>
           </header>
@@ -295,35 +297,35 @@ export default function MessageriePage() {
           {/* Main Content */}
           <main className="flex-1 p-6 overflow-hidden flex flex-col">
             <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-xl border border-slate-200 flex">
-              
+
               {/* Sidebar - Conversations List */}
               <div className="w-80 border-r border-slate-200 bg-slate-50 flex flex-col">
                 <div className="p-4 border-b border-slate-200 bg-white shadow-sm z-10 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-bold text-slate-800">Discussions</h2>
                     <div className="flex gap-1">
-                        <button 
-                            onClick={() => { setShowNewChat(!showNewChat); setShowCreateGroup(false); }}
-                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                            title="Nouveau message"
-                        >
-                            <MessageSquare size={18} />
-                        </button>
-                        <button 
-                            onClick={() => { setShowCreateGroup(!showCreateGroup); setShowNewChat(false); }}
-                            className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
-                            title="Créer un groupe"
-                        >
-                            <Users size={18} />
-                        </button>
+                      <button
+                        onClick={() => { setShowNewChat(!showNewChat); setShowCreateGroup(false); }}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                        title="Nouveau message"
+                      >
+                        <MessageSquare size={18} />
+                      </button>
+                      <button
+                        onClick={() => { setShowCreateGroup(!showCreateGroup); setShowNewChat(false); }}
+                        className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                        title="Créer un groupe"
+                      >
+                        <Users size={18} />
+                      </button>
                     </div>
                   </div>
-                  
+
                   {showNewChat && (
                     <div className="animate-in fade-in slide-in-from-top-2 border p-2 rounded-lg bg-slate-50">
-                        <p className="text-xs text-slate-500 mb-2 font-medium">Nouvelle discussion privée</p>
-                       <UserSearch 
-                        onSelect={handleStartConversation} 
+                      <p className="text-xs text-slate-500 mb-2 font-medium">Nouvelle discussion privée</p>
+                      <UserSearch
+                        onSelect={handleStartConversation}
                         buttonText="Discuter"
                         placeholder="Chercher une personne..."
                         excludeIds={[user?.id || '']}
@@ -332,21 +334,21 @@ export default function MessageriePage() {
                   )}
 
                   {showCreateGroup && (
-                      <div className="animate-in fade-in slide-in-from-top-2 border p-2 rounded-lg bg-slate-50">
-                          <p className="text-xs text-slate-500 mb-2 font-medium">Nouveau Groupe</p>
-                          <form onSubmit={handleCreateGroup} className="flex gap-2">
-                              <input 
-                                type="text" 
-                                value={groupName}
-                                onChange={e => setGroupName(e.target.value)}
-                                placeholder="Nom du groupe"
-                                className="flex-1 px-3 py-2 text-sm border rounded-md"
-                              />
-                              <button type="submit" className="p-2 bg-indigo-600 text-white rounded-md">
-                                  <Plus size={16} />
-                              </button>
-                          </form>
-                      </div>
+                    <div className="animate-in fade-in slide-in-from-top-2 border p-2 rounded-lg bg-slate-50">
+                      <p className="text-xs text-slate-500 mb-2 font-medium">Nouveau Groupe</p>
+                      <form onSubmit={handleCreateGroup} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={groupName}
+                          onChange={e => setGroupName(e.target.value)}
+                          placeholder="Nom du groupe"
+                          className="flex-1 px-3 py-2 text-sm border rounded-md"
+                        />
+                        <button type="submit" className="p-2 bg-indigo-600 text-white rounded-md">
+                          <Plus size={16} />
+                        </button>
+                      </form>
+                    </div>
                   )}
                 </div>
 
@@ -371,9 +373,9 @@ export default function MessageriePage() {
                         >
                           <div className="flex items-center gap-3">
                             <div className="relative">
-                               {displayImage ? (
-                                 <img src={displayImage} alt={displayName} className="w-12 h-12 rounded-full object-cover shadow-sm" />
-                               ) : (
+                              {displayImage ? (
+                                <img src={displayImage} alt={displayName} className="w-12 h-12 rounded-full object-cover shadow-sm" />
+                              ) : (
                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${conv.isGroup ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
                                   {conv.isGroup ? <Users size={20} /> : displayName[0]}
                                 </div>
@@ -392,9 +394,9 @@ export default function MessageriePage() {
                                 {conv.lastMessage ? (
                                   <span className="flex items-center gap-1">
                                     {isMeSender ? (
-                                        <span className="font-medium text-slate-500">Vous:</span>
+                                      <span className="font-medium text-slate-500">Vous:</span>
                                     ) : (
-                                        <span className="font-medium text-slate-500">{conv.lastMessage.sender.name}:</span>
+                                      <span className="font-medium text-slate-500">{conv.lastMessage.sender.name}:</span>
                                     )}
                                     <span className="truncate">{conv.lastMessage.content}</span>
                                   </span>
@@ -417,89 +419,89 @@ export default function MessageriePage() {
                   <>
                     {/* Chat Header */}
                     <div className="p-4 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-20">
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => { if(activeConversation.isGroup) setShowMembersModal(true) }}>
-                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${activeConversation.isGroup ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
-                            {activeConversation.isGroup ? <Users size={20} /> : getConversationName(activeConversation)[0]}
-                          </div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => { if (activeConversation.isGroup) setShowMembersModal(true) }}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${activeConversation.isGroup ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {activeConversation.isGroup ? <Users size={20} /> : getConversationName(activeConversation)[0]}
+                        </div>
                         <div>
                           <h3 className="font-bold text-slate-800">{getConversationName(activeConversation)}</h3>
                           <p className="text-xs text-slate-500 capitalize">{getConversationRole(activeConversation)}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2 text-slate-400 relative">
-                          {/* Invite (Group Only) */}
-                          {activeConversation.isGroup && isGroupAdmin && (
-                              <button 
-                                onClick={() => setShowInviteModal(!showInviteModal)}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-blue-600"
-                                title="Inviter des membres"
-                              >
-                                  <UserPlus size={20} />
-                              </button>
-                          )}
-                          
+                        {/* Invite (Group Only) */}
+                        {activeConversation.isGroup && isGroupAdmin && (
+                          <button
+                            onClick={() => setShowInviteModal(!showInviteModal)}
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-blue-600"
+                            title="Inviter des membres"
+                          >
+                            <UserPlus size={20} />
+                          </button>
+                        )}
+
                         <div className="relative" ref={menuRef}>
-                            <button 
-                                onClick={() => setShowMenu(!showMenu)}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                            >
-                                <MoreVertical size={20} />
-                            </button>
+                          <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                          >
+                            <MoreVertical size={20} />
+                          </button>
 
-                            {/* Dropdown Menu */}
-                            {showMenu && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in zoom-in-95">
-                                    {(activeConversation.isGroup ? isGroupAdmin : true) && (
-                                        <button 
-                                            onClick={handleDeleteConversation}
-                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                        >
-                                            <Trash2 size={16} /> Supprimer
-                                        </button>
-                                    )}
+                          {/* Dropdown Menu */}
+                          {showMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in zoom-in-95">
+                              {(activeConversation.isGroup ? isGroupAdmin : true) && (
+                                <button
+                                  onClick={handleDeleteConversation}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                >
+                                  <Trash2 size={16} /> Supprimer
+                                </button>
+                              )}
 
-                                    {activeConversation.isGroup && (
-                                        <>
-                                            <button 
-                                                onClick={() => setShowMembersModal(true)}
-                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                            >
-                                                <Info size={16} /> Voir les membres
-                                            </button>
-                                            
-                                            {!isGroupAdmin && (
-                                                <button 
-                                                    onClick={handleLeaveGroup}
-                                                    className="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
-                                                >
-                                                    <LogOut size={16} /> Quitter le groupe
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
+                              {activeConversation.isGroup && (
+                                <>
+                                  <button
+                                    onClick={() => setShowMembersModal(true)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    <Info size={16} /> Voir les membres
+                                  </button>
+
+                                  {!isGroupAdmin && (
+                                    <button
+                                      onClick={handleLeaveGroup}
+                                      className="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                                    >
+                                      <LogOut size={16} /> Quitter le groupe
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      
+
                       {/* Invite Modal */}
                       {showInviteModal && activeConversation.isGroup && (
-                          <div className="absolute top-16 right-4 w-72 bg-white shadow-xl border rounded-lg p-4 z-50 animate-in fade-in zoom-in-95">
-                              <h4 className="font-bold text-sm mb-2">Inviter un membre</h4>
-                              <UserSearch 
-                                onSelect={handleInviteToGroup} 
-                                buttonText="Inviter"
-                                placeholder="Rechercher..."
-                                excludeIds={activeConversation.participants.map(p => p._id)}
-                              />
-                              <button 
-                                onClick={() => setShowInviteModal(false)}
-                                className="mt-2 text-xs text-red-500 hover:underline w-full text-center"
-                              >
-                                  Fermer
-                              </button>
-                          </div>
+                        <div className="absolute top-16 right-4 w-72 bg-white shadow-xl border rounded-lg p-4 z-50 animate-in fade-in zoom-in-95">
+                          <h4 className="font-bold text-sm mb-2">Inviter un membre</h4>
+                          <UserSearch
+                            onSelect={handleInviteToGroup}
+                            buttonText="Inviter"
+                            placeholder="Rechercher..."
+                            excludeIds={activeConversation.participants.map(p => p._id)}
+                          />
+                          <button
+                            onClick={() => setShowInviteModal(false)}
+                            className="mt-2 text-xs text-red-500 hover:underline w-full text-center"
+                          >
+                            Fermer
+                          </button>
+                        </div>
                       )}
 
                     </div>
@@ -516,16 +518,16 @@ export default function MessageriePage() {
                               {!isSameSenderAsPrevious && !isMe && (
                                 <span className="text-xs text-slate-400 ml-1 mb-1">{msg.sender.name}</span>
                               )}
-                              
+
                               <div className={`
                                 px-4 py-2 text-sm shadow-sm
-                                ${isMe 
-                                  ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none' 
+                                ${isMe
+                                  ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none'
                                   : 'bg-white text-slate-700 rounded-2xl rounded-tl-none border border-slate-200'}
                               `}>
                                 {msg.content}
                               </div>
-                              
+
                               <span className={`text-[10px] mt-1 px-1 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}>
                                 {format(new Date(msg.createdAt), 'HH:mm')}
                               </span>
@@ -546,7 +548,7 @@ export default function MessageriePage() {
                           placeholder="Écrivez votre message..."
                           className="flex-1 p-3 bg-slate-100 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
                         />
-                        <button 
+                        <button
                           type="submit"
                           disabled={!newMessage.trim()}
                           className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-500/20"
@@ -569,66 +571,66 @@ export default function MessageriePage() {
                 )}
               </div>
             </div>
-            
+
             {/* Modal Membres */}
             {showMembersModal && activeConversation && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-                        <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-                            <h3 className="font-bold text-lg">Membres du groupe</h3>
-                            <button onClick={() => setShowMembersModal(false)} className="text-slate-400 hover:text-slate-600">
-                                <span className="text-2xl">&times;</span>
-                            </button>
-                        </div>
-                        
-                        {/* Liste des membres */}
-                        <div className="p-4 overflow-y-auto flex-1">
-                            {activeConversation.participants.map(p => (
-                                <div key={p._id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg group">
-                                    {p.profilePicture ? (
-                                        <img src={p.profilePicture} className="w-10 h-10 rounded-full object-cover" />
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">
-                                            {p.name[0]}
-                                        </div>
-                                    )}
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm">{p.name}</p>
-                                        <p className="text-xs text-slate-500">{p.role}</p>
-                                    </div>
-                                    
-                                    {/* Badges/Actions */}
-                                    {activeConversation.admin === p._id ? (
-                                        <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">Admin</span>
-                                    ) : (
-                                        isGroupAdmin && (
-                                            <button 
-                                                onClick={() => handleKickMember(p._id)}
-                                                className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                                title="Retirer du groupe"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        )
-                                    )}
-                                </div>
-                            ))}
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+                  <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                    <h3 className="font-bold text-lg">Membres du groupe</h3>
+                    <button onClick={() => setShowMembersModal(false)} className="text-slate-400 hover:text-slate-600">
+                      <span className="text-2xl">&times;</span>
+                    </button>
+                  </div>
+
+                  {/* Liste des membres */}
+                  <div className="p-4 overflow-y-auto flex-1">
+                    {activeConversation.participants.map(p => (
+                      <div key={p._id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg group">
+                        {p.profilePicture ? (
+                          <img src={p.profilePicture} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">
+                            {p.name[0]}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{p.name}</p>
+                          <p className="text-xs text-slate-500">{p.role}</p>
                         </div>
 
-                        {/* Zone d'ajout (Admin seulement) */}
-                        {isGroupAdmin && (
-                            <div className="p-4 bg-slate-50 border-t">
-                                <p className="text-xs font-bold text-slate-500 mb-2 uppercase">Ajouter un membre</p>
-                                <UserSearch 
-                                    onSelect={handleInviteToGroup} 
-                                    buttonText="Inviter"
-                                    placeholder="Chercher quelqu'un..."
-                                    excludeIds={activeConversation.participants.map(p => p._id)}
-                                />
-                            </div>
+                        {/* Badges/Actions */}
+                        {activeConversation.admin === p._id ? (
+                          <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">Admin</span>
+                        ) : (
+                          isGroupAdmin && (
+                            <button
+                              onClick={() => handleKickMember(p._id)}
+                              className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                              title="Retirer du groupe"
+                            >
+                              <X size={16} />
+                            </button>
+                          )
                         )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Zone d'ajout (Admin seulement) */}
+                  {isGroupAdmin && (
+                    <div className="p-4 bg-slate-50 border-t">
+                      <p className="text-xs font-bold text-slate-500 mb-2 uppercase">Ajouter un membre</p>
+                      <UserSearch
+                        onSelect={handleInviteToGroup}
+                        buttonText="Inviter"
+                        placeholder="Chercher quelqu'un..."
+                        excludeIds={activeConversation.participants.map(p => p._id)}
+                      />
                     </div>
+                  )}
                 </div>
+              </div>
             )}
 
           </main>

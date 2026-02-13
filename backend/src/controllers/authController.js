@@ -22,7 +22,7 @@ class AuthController {
       }
 
       const user = new User({
-        firstName: firstName || 'inconnu',
+        firstName,
         lastName,
         email,
         password,
@@ -58,8 +58,12 @@ class AuthController {
       }
 
       const user = await User.findOne({ email });
-      if (!user || !(await user.comparePassword(password))) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+      const isMatch = user ? await user.comparePassword(password) : false;
+
+      console.log(`[AUTH] Login attempt: ${email} - Found: ${!!user} - Match: ${isMatch}`);
+
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Identifiants invalides' });
       }
 
       const token = generateToken(user._id, user.email, user.role);

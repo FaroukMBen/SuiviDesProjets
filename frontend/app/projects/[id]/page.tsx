@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import {
   FileText,
   Download,
@@ -23,7 +22,6 @@ import {
   CheckCircle
 } from 'lucide-react';
 import api from '@/lib/auth';
-import Link from 'next/link';
 import { UserSearch } from '@/components/UserSearch';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { ProjectMilestones } from '@/components/ProjectMilestones';

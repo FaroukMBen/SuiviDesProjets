@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import api from '@/lib/auth';
-import { Trash2, Search, Folder, Users, Eye, Edit2 } from 'lucide-react';
+import { Trash2, Search, Folder, Users, Eye, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EditAdminProjectModal } from '@/components/admin/EditAdminProjectModal';
 
 export default function AdminProjectsPage() {
@@ -13,14 +13,21 @@ export default function AdminProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
 
   const fetchProjects = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/api/projects'); // Backend renvoie tout grâce au contrôleur admin
+      const res = await api.get(`/api/projects?page=${page}&limit=${limit}`);
       setProjects(res.data.projects);
+      setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (err) {
       console.error(err);
     } finally {
@@ -28,7 +35,9 @@ export default function AdminProjectsPage() {
     }
   };
 
-  useEffect(() => { fetchProjects(); }, []);
+  useEffect(() => {
+    fetchProjects();
+  }, [page, limit]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Voulez-vous vraiment supprimer ce projet définitivement ?')) {
@@ -128,6 +137,49 @@ export default function AdminProjectsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="mt-8 flex flex-col md:flex-row justify-center items-center gap-6 border-t border-gray-100 pt-8 pb-12">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>Afficher</span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+              </select>
+              <span>par page</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+              >
+                <ChevronLeft size={20} />
+              </button>
+
+              <span className="text-sm font-medium text-gray-600 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+                Page {page} sur {totalPages}
+              </span>
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Modal de Modification */}

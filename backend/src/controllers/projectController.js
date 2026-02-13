@@ -32,17 +32,32 @@ class ProjectController {
       // Ils passent ici. Le filtre reste vide (ou juste filtré par campagne).
       // Donc ils voient TOUS les projets correspondants.
 
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 8;
+      const skip = (page - 1) * limit;
+
       // Exécution
+      const totalProjects = await Project.countDocuments(filter);
+
       const projects = await Project.find(filter)
         .populate('owner', 'name')
         .populate('members', 'name profilePicture')
         .populate('campaignId', 'title')
-        .sort({ updatedAt: -1 });
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
       res.status(200).json({
         success: true,
         count: projects.length,
-        projects
+        projects,
+        pagination: {
+          total: totalProjects,
+          page,
+          totalPages: Math.ceil(totalProjects / limit),
+          limit
+        }
       });
 
     } catch (err) {

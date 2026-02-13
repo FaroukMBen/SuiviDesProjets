@@ -1,4 +1,3 @@
-'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -66,9 +65,9 @@ export function Navbar() {
   // --- MENU ENSEIGNANT ---
   const instructorItems = [
     { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Mes Campagnes', href: '/campaigns', icon: LayoutTemplate }, // Gestion des promos
-    { name: 'Validations', href: '/validations', icon: ClipboardCheck }, // Corriger les livrables
-    { name: 'Messagerie', href: '/messagerie', icon: MessageSquare }, // Discussion
+    { name: 'Mes Campagnes', href: '/campaigns', icon: LayoutTemplate },
+    { name: 'Validations', href: '/validations', icon: ClipboardCheck },
+    { name: 'Étudiants', href: '/students', icon: Users },
     { name: 'Notifications', href: '/notifications', icon: Bell },
   ];
 
@@ -79,7 +78,7 @@ export function Navbar() {
     { name: 'Projets', href: '/admin/projects', icon: CheckSquare }
   ]
 
-  // On choisit quelle liste afficher
+
   let navItems;
   if (isInstructor) {
     navItems = instructorItems
@@ -95,7 +94,7 @@ export function Navbar() {
       <div className="p-6 border-b border-slate-700">
         <h1 className="text-xl font-bold tracking-wider">NEXUS <span className="text-blue-400 font-light">Portal</span></h1>
         <p className="text-xs text-slate-400 mt-1">
-          {isInstructor ? 'Espace Enseignant' : 'Espace Étudiant'}
+          {isInstructor ? 'Espace Enseignant' : isAdmin ? 'Espace Administrateur' : 'Espace Étudiant'}
         </p>
       </div>
 

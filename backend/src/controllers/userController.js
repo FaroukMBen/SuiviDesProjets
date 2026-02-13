@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs'); // <--- 1. IMPORT MANQUANT AJOUTÉ
 
 class UserController {
-  
+
   // 1. CRÉER UN UTILISATEUR
   static async createUser(req, res) {
     try {
@@ -75,13 +75,13 @@ class UserController {
   // 5. RECHERCHER (Pour l'admin ou général)
   static async searchUsers(req, res) {
     try {
-      const { q } = req.query; 
+      const { q } = req.query;
       if (!q) return res.json({ success: true, users: [] });
 
       const users = await User.find({
         name: { $regex: q, $options: 'i' }
       }).select('-password');
-      
+
       res.json({ success: true, users });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -92,7 +92,7 @@ class UserController {
   static async getStudents(req, res) {
     try {
       const { year, group, search } = req.query;
-      
+
       let query = { role: 'student' };
 
       if (year) query.academicYear = year;
@@ -103,6 +103,116 @@ class UserController {
       res.json({ success: true, count: students.length, students });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // 7. IMPORT CSV
+  static async importStudents(req, res) {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Aucun fichier fourni" });
+    }
+
+    const results = {
+      total: 0,
+      created: 0,
+      updated: 0,
+      errors: 0,
+      errorDetails: []
+    };
+
+    try {
+      // Parsing manuel du buffer CSV
+      // On suppose un encodage UTF-8 (ou latin1, mais souvent UTF-8 en web)
+      const fileContent = req.file.buffer.toString('utf-8');
+
+      // Découpage en lignes
+      const lines = fileContent.split(/\r?\n/).filter(line => line.trim() !== '');
+
+      if (lines.length < 2) {
+        return res.status(400).json({ success: false, message: "Le fichier CSV semble vide ou ne contient pas d'en-tête." });
+      }
+
+      // Extraction de l'en-tête pour identifier les colonnes
+      // On attend : name, email, academicYear, group
+      const headers = lines[0].split(/[;,]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+
+      // Mapping des index
+      const idxName = headers.indexOf('name');
+      const idxEmail = headers.indexOf('email');
+      const idxYear = headers.indexOf('academicyear');
+      const idxGroup = headers.indexOf('group');
+
+      if (idxName === -1 || idxEmail === -1) {
+        return res.status(400).json({ success: false, message: "Le fichier doit contenir au moins les colonnes 'name' et 'email'." });
+      }
+
+      // Traitement des lignes de données (à partir de l'index 1)
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const cols = line.split(/[;,]/).map(c => c.trim().replace(/^"|"$/g, '')); // Gestion basique des guillemets
+
+        if (cols.length < headers.length) {
+          // Ligne incomplète ou vide
+          continue;
+        }
+
+        results.total++;
+
+        const name = cols[idxName];
+        const email = cols[idxEmail];
+        // Si colonnes absentes, on met undefined ou val par défaut
+        const academicYear = idxYear !== -1 ? cols[idxYear] : 'BUT1';
+        const group = idxGroup !== -1 ? cols[idxGroup] : '';
+
+        if (!name || !email) {
+          results.errors++;
+          results.errorDetails.push(`Ligne ${i + 1}: Nom ou email manquant.`);
+          continue;
+        }
+
+        try {
+          // On cherche si l'utilisateur existe
+          let user = await User.findOne({ email });
+
+          if (user) {
+            // UPDATE
+            user.name = name;
+            user.role = 'student'; // On force le rôle étudiant
+            if (idxYear !== -1) user.academicYear = academicYear;
+            if (idxGroup !== -1) user.group = group;
+
+            await user.save();
+            results.updated++;
+          } else {
+            // CREATE
+            // Génération mot de passe par défaut (ex: 'changeme' + année)
+            // Idéalement on envoie un mail, mais ici on reste simple
+            const defaultPassword = await bcrypt.hash('changeme123', 10);
+
+            user = new User({
+              name,
+              email,
+              password: defaultPassword,
+              role: 'student',
+              academicYear,
+              group
+            });
+
+            await user.save();
+            results.created++;
+          }
+
+        } catch (rowError) {
+          results.errors++;
+          results.errorDetails.push(`Ligne ${i + 1} (${email}): ${rowError.message}`);
+        }
+      }
+
+      res.json({ success: true, results });
+
+    } catch (error) {
+      console.error("Erreur import CSV:", error);
+      res.status(500).json({ success: false, message: "Erreur lors du traitement du fichier CSV." });
     }
   }
 }

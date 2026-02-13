@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/auth';
-import { X, Save, AlertTriangle, FileText } from 'lucide-react';
+import { X, Save, AlertTriangle, FileText, UploadCloud, File, Trash2 } from 'lucide-react';
 import { EvaluationGridEditor } from './EvaluationGridEditor';
 import { useToast } from '@/components/ui/Toast';
 
@@ -34,7 +34,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
   };
 
   const [formData, setFormData] = useState<any>(initialState);
-
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,8 +45,10 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
           startDate: campaignToEdit.startDate ? campaignToEdit.startDate.split('T')[0] : '',
           targetGroups: campaignToEdit.targetGroups || [] // Sécurité
         });
+        setSelectedFiles([]); // Reset files on edit open
       } else {
         setFormData(initialState);
+        setSelectedFiles([]);
       }
     }
   }, [isOpen, campaignToEdit]);
@@ -61,6 +63,16 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
         : [...prev.targetGroups, group];
       return { ...prev, targetGroups: groups };
     });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,13 +105,44 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
 
     try {
       let res;
+      let campaignId;
+
       if (isEditing) {
         res = await api.put(`/api/campaigns/${campaignToEdit._id}`, dataToSend);
+        campaignId = campaignToEdit._id;
       } else {
         res = await api.post('/api/campaigns', dataToSend);
+        campaignId = res.data.campaign._id;
       }
 
-      onSuccess(res.data.campaign);
+      // Upload Files if any
+      if (selectedFiles.length > 0 && campaignId) {
+        try {
+          await Promise.all(selectedFiles.map(file => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', file.name);
+            return api.post(`/api/campaigns/${campaignId}/resources`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+          }));
+          showToast(`Campagne ${isEditing ? 'modifiée' : 'créée'} avec ${selectedFiles.length} fichier(s)`, "success");
+        } catch (uploadErr) {
+          console.error("Upload error", uploadErr);
+          showToast("Campagne créée mais erreur lors de l'upload des fichiers", "warning");
+        }
+      } else {
+        showToast(`Campagne ${isEditing ? 'modifiée' : 'créée'} avec succès`, "success");
+      }
+
+      // On refusech le tout pour être sûr
+      if (res.data && res.data.campaign) {
+        onSuccess(res.data.campaign);
+      } else {
+        // Fallback si l'API retourne pas l'objet complet immédiatement (rare)
+        onSuccess(dataToSend);
+      }
+
       onClose();
     } catch (err: any) {
       console.error(err);
@@ -257,6 +300,49 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 criteria={formData.evaluationTemplate}
                 onChange={(newCriteria) => setFormData({ ...formData, evaluationTemplate: newCriteria })}
               />
+            </div>
+
+            {/* 4. Ressources de référence (Optionnel) */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <FileText size={16} className="text-blue-500" />
+                Ressources de référence
+              </h3>
+
+              <p className="text-xs text-gray-500 mb-4">
+                Vous pouvez ajouter des sujets, consignes ou tout document utile pour les étudiants dès la création de la campagne.
+              </p>
+
+              <div className="space-y-3">
+                {/* Upload button */}
+                <label className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-100 hover:border-blue-400 cursor-pointer transition bg-white/50">
+                  <UploadCloud className="text-gray-400" />
+                  <span className="text-sm font-medium text-gray-600">Ajouter des fichiers</span>
+                  <input type="file" multiple onChange={handleFileChange} className="hidden" />
+                </label>
+
+                {/* File List */}
+                {selectedFiles.length > 0 && (
+                  <ul className="space-y-2">
+                    {selectedFiles.map((file, idx) => (
+                      <li key={idx} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <File size={16} className="text-blue-500 flex-shrink-0" />
+                          <span className="text-sm text-gray-700 truncate font-medium">{file.name}</span>
+                          <span className="text-xs text-gray-400">({(file.size / 1024).toFixed(1)} KB)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFile(idx)}
+                          className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50 transition"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
           </form>

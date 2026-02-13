@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card'; // Ta carte existante
 import { FileText, Download, Trash2, Calendar, Users, BarChart3, UploadCloud } from 'lucide-react';
 import api from '@/lib/auth';
+import Link from 'next/link';
 import { UserSearch } from '@/components/UserSearch';
 
 import { useProjectFiles } from '@/hooks/useProjectFiles';
@@ -287,6 +288,26 @@ export default function ProjectOverviewPage() {
               </div>
             </div>
           </Card>
+
+          {/* Lien vers les ressources de la campagne (Visible par tous les membres du projet) */}
+          {project.campaignId && (
+            <Link
+              href={`/campaigns/${typeof project.campaignId === 'object' ? project.campaignId._id : project.campaignId}/resources`}
+              className="block hover:translate-y-[-2px] transition-transform duration-200"
+            >
+              <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 flex items-center gap-4 group cursor-pointer shadow-sm hover:shadow-md">
+                <div className="p-3 bg-white text-blue-600 rounded-xl shadow-sm border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-700 transition-colors">Ressources Campagne</h3>
+                  <p className="text-xs text-gray-500 font-medium mt-1 group-hover:text-blue-600">
+                    Accéder aux sujets, consignes et documents de référence
+                  </p>
+                </div>
+              </Card>
+            </Link>
+          )}
         </div>
       </div>
       {/* 3. Grille d'évaluation (Visible par tous) */}

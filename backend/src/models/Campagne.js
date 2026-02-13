@@ -42,6 +42,14 @@ const campaignSchema = new mongoose.Schema({
   },
   evaluationTemplate: [templateCriterionSchema],
 
+  resources: [{
+    name: { type: String, required: true },
+    path: { type: String, required: true },
+    type: { type: String }, // 'pdf', 'doc', etc.
+    size: { type: Number },
+    uploadedAt: { type: Date, default: Date.now }
+  }],
+
   // Liste des participants explicites (invités)
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 

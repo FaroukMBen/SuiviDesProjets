@@ -157,41 +157,44 @@ export default function DashboardPage() {
                   <div className="flex flex-col gap-6">
                     <QuickActions />
 
-                    <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
-                          <Bell size={16} className="text-blue-600" />
-                          Dernières notifications
-                        </h3>
+                    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/20">
+                      <div className="flex justify-between items-end mb-6 px-1">
+                        <div>
+                          <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
+                            <Bell size={20} className="text-blue-600" />
+                            Notifications
+                          </h3>
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter mt-1">Dernières alertes</p>
+                        </div>
                         {notifications.length > 0 && (
-                          <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 group">
+                          <Link href="/notifications" className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase tracking-widest transition-all group">
                             Voir plus
-                            <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                           </Link>
                         )}
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {notifLoading ? (
                           <div className="space-y-3">
-                            {[1, 2].map(i => (
-                              <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse"></div>
+                            {[1, 2, 3].map(i => (
+                              <div key={i} className="h-16 bg-gray-50 rounded-2xl animate-pulse"></div>
                             ))}
                           </div>
                         ) : notifications.length > 0 ? (
                           <>
-                            {notifications.map((notif: any) => (
-                              <div key={notif._id} className="p-3 bg-gray-50/50 border border-gray-100 rounded-2xl transition-hover hover:border-blue-100 hover:bg-blue-50/30 group">
-                                <div className="flex gap-2">
-                                  <div className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${notif.type === 'INVITATION' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                                    {notif.type === 'INVITATION' ? <UserPlus size={14} /> : <Info size={14} />}
+                            {notifications.slice(0, 3).map((notif: any) => (
+                              <div key={notif._id} className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl transition-all hover:border-blue-100 hover:bg-blue-50/30 group">
+                                <div className="flex gap-4">
+                                  <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${notif.type === 'INVITATION' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                                    {notif.type === 'INVITATION' ? <UserPlus size={18} /> : <Info size={18} />}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-bold text-gray-900 line-clamp-2 leading-tight">
+                                    <p className="text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-blue-600 transition-colors">
                                       {notif.message}
                                     </p>
-                                    <p className="text-[9px] text-gray-400 mt-0.5 font-medium uppercase tracking-tighter">
-                                      {new Date(notif.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    <p className="text-[10px] text-gray-400 mt-0.5 font-bold uppercase tracking-tight">
+                                      {new Date(notif.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} à {new Date(notif.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                   </div>
                                 </div>
@@ -199,11 +202,11 @@ export default function DashboardPage() {
                             ))}
                           </>
                         ) : (
-                          <div className="py-6 text-center">
-                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-50 text-gray-300 mb-3">
-                              <Bell size={24} />
+                          <div className="py-10 text-center">
+                            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 text-gray-300 mb-3 border border-gray-100">
+                              <Bell size={28} />
                             </div>
-                            <p className="text-xs text-gray-400 font-medium">Aucune notification récente</p>
+                            <p className="text-sm text-gray-400 font-bold uppercase tracking-tighter">Tout est à jour</p>
                           </div>
                         )}
                       </div>

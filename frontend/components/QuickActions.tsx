@@ -20,57 +20,57 @@ export function QuickActions() {
   const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
 
   return (
-    <div className="bg-white p-5 rounded-[1.5rem] border border-gray-100 shadow-sm transition-hover">
-      <h3 className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-tight">
-        <Zap size={16} className="text-amber-500 fill-amber-500" />
+    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/20 transition-hover">
+      <h3 className="text-base font-black text-gray-900 mb-5 flex items-center gap-2 uppercase tracking-tight">
+        <Zap size={20} className="text-amber-500 fill-amber-500" />
         Actions rapides
       </h3>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
 
         {/* --- ACTION PRINCIPALE --- */}
         {isInstructor ? (
           // CAS PROFESSEUR : Lien vers les campagnes
           <Link
             href="/campaigns"
-            className="flex items-center justify-center gap-2 w-full py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black hover:bg-purple-700 transition shadow-lg shadow-purple-200"
+            className="flex items-center justify-center gap-3 w-full py-4 bg-purple-600 text-white rounded-2xl text-sm font-black hover:bg-purple-700 transition shadow-xl shadow-purple-200"
           >
-            <LayoutTemplate size={16} />
+            <LayoutTemplate size={20} />
             Gérer les Campagnes
           </Link>
         ) : (
           // CAS ÉTUDIANT : Créer un projet
           <Link
             href="/projects/new"
-            className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+            className="flex items-center justify-center gap-3 w-full py-4 bg-blue-600 text-white rounded-2xl text-sm font-black hover:bg-blue-700 transition shadow-xl shadow-blue-200"
           >
-            <Plus size={16} />
+            <Plus size={20} />
             Nouveau Projet
           </Link>
         )}
 
         {/* --- ACTION SECONDAIRE --- */}
         {isInstructor ? (
-          <button className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-black hover:bg-emerald-600 transition shadow-lg shadow-emerald-200">
-            <CheckCircle size={16} />
+          <button className="flex items-center justify-center gap-3 w-full py-4 bg-emerald-500 text-white rounded-2xl text-sm font-black hover:bg-emerald-600 transition shadow-xl shadow-emerald-200">
+            <CheckCircle size={20} />
             Valider Livrables
           </button>
         ) : (
-          <Link href="/tasks" className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-black hover:bg-emerald-600 transition shadow-lg shadow-emerald-200">
-            <ListTodo size={16} />
+          <Link href="/tasks" className="flex items-center justify-center gap-3 w-full py-4 bg-emerald-500 text-white rounded-2xl text-sm font-black hover:bg-emerald-600 transition shadow-xl shadow-emerald-200">
+            <ListTodo size={20} />
             Mes Tâches
           </Link>
         )}
 
         {/* --- ACTION TERTIAIRE --- */}
         {isInstructor ? (
-          <button className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-700 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition shadow-lg shadow-slate-200">
-            <Search size={16} />
+          <button className="flex items-center justify-center gap-3 w-full py-4 bg-slate-700 text-white rounded-2xl text-sm font-black hover:bg-slate-800 transition shadow-xl shadow-slate-200">
+            <Search size={20} />
             Rechercher Étudiant
           </button>
         ) : (
-          <Link href="/messagerie" className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-700 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition shadow-lg shadow-slate-200">
-            <MessageSquare size={16} />
+          <Link href="/messagerie" className="flex items-center justify-center gap-3 w-full py-4 bg-slate-700 text-white rounded-2xl text-sm font-black hover:bg-slate-800 transition shadow-xl shadow-slate-200">
+            <MessageSquare size={20} />
             Messagerie
           </Link>
         )}

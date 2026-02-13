@@ -36,7 +36,6 @@ interface Evaluation {
 }
 
 export function EvaluationGrid({ projectId, userRole, displayMode = 'full' }: { projectId: string; userRole?: string; displayMode?: 'full' | 'summary' | 'template' }) {
-  const { theme } = useThemeStore();
   const { showToast } = useToast();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);

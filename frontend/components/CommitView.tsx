@@ -51,7 +51,6 @@ type TimeFilter = 'week' | 'month' | 'all';
 
 export function CommitView({ projectId }: { projectId: string }) {
   const { user } = useAuthStore();
-  const { theme } = useThemeStore();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const [commits, setCommits] = useState<Commit[]>([]);

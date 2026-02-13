@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge'; // Le composant qu'on a créé au début
 
 import { useAuthStore, useThemeStore } from '@/lib/store';
+import api from '@/lib/auth';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Sparkles, Layout } from 'lucide-react';
 
@@ -19,8 +20,8 @@ interface ProjectHeaderProps {
 
 export function ProjectHeader({ project }: ProjectHeaderProps) {
   const pathname = usePathname();
-  const { user } = useAuthStore();
-  const { theme, toggleTheme } = useThemeStore();
+  const { user, setUser } = useAuthStore();
+  const { setTheme } = useThemeStore(); // Keep for store sync if needed elsewhere
   const baseUrl = `/projects/${project._id}`;
 
   const tabs = [
@@ -33,7 +34,23 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     { name: 'Configuration', href: `${baseUrl}/settings` },
   ];
 
-  const isModern = theme === 'modern';
+  const isModern = user?.theme === 'modern';
+
+  const handleToggleTheme = async () => {
+    const newTheme = isModern ? 'classic' : 'modern';
+    try {
+      // Optimistic update
+      if (user) {
+        setUser({ ...user, theme: newTheme });
+      }
+      setTheme(newTheme); // Sync store just in case
+
+      await api.put('/api/auth/profile', { theme: newTheme });
+    } catch (err) {
+      console.error('Error updating theme', err);
+      // Revert if error? (Optional, but keeping simple for now)
+    }
+  };
 
   return (
     <div className={`bg-white border-b border-gray-100 px-8 pt-6 pb-0 sticky top-0 z-40 transition-all duration-300 ${isModern ? 'shadow-sm' : 'shadow-none'}`}>
@@ -50,7 +67,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           <div className="flex items-center gap-4">
 
             <button
-              onClick={toggleTheme}
+              onClick={handleToggleTheme}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isModern
                 ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}

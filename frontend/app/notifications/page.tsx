@@ -128,31 +128,31 @@ export default function NotificationsPage() {
                                     ))}
                                 </div>
                             ) : notifications.length > 0 ? (
-                                <div className="space-y-6">
+                                <div className="space-y-4">
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification._id}
-                                            className={`group relative bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 md:p-10 border transition-all duration-500 transform hover:scale-[1.02] hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)]
+                                            className={`group relative bg-white/80 backdrop-blur-md rounded-[2rem] p-5 md:p-6 border transition-all duration-500 transform hover:scale-[1.01] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.06)]
                                         ${notification.status === 'unread'
-                                                    ? 'border-blue-100 shadow-xl shadow-blue-500/5'
+                                                    ? 'border-blue-100 shadow-lg shadow-blue-500/5'
                                                     : 'border-white/50 shadow-sm opacity-90'
                                                 }
                                     `}
                                         >
-                                            <div className="flex flex-col md:flex-row gap-8">
-                                                <div className={`shrink-0 w-20 h-20 rounded-[1.5rem] flex items-center justify-center shadow-inner transition-all duration-500 group-hover:rotate-12 group-hover:scale-110
+                                            <div className="flex flex-col md:flex-row gap-5">
+                                                <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-all duration-500 group-hover:rotate-12 group-hover:scale-110
                                             ${notification.type === 'INVITATION'
                                                         ? 'bg-gradient-to-br from-purple-50 to-indigo-50 text-purple-600'
                                                         : 'bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-600'
                                                     }
                                         `}>
-                                                    {notification.type === 'INVITATION' ? <UserPlus size={32} strokeWidth={2.5} /> : <Info size={32} strokeWidth={2.5} />}
+                                                    {notification.type === 'INVITATION' ? <UserPlus size={24} strokeWidth={2.5} /> : <Info size={24} strokeWidth={2.5} />}
                                                 </div>
 
                                                 <div className="flex-1">
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex flex-col">
-                                                            <h4 className="text-gray-900 font-black text-2xl tracking-tight leading-tight">
+                                                            <h4 className="text-gray-900 font-black text-lg tracking-tight leading-tight">
                                                                 {notification.type === 'INVITATION' ? 'Invitation Projet' : 'Nouvelle Information'}
                                                             </h4>
                                                             <span className="text-xs font-black uppercase tracking-widest text-gray-400 mt-2 flex items-center gap-2">
@@ -162,22 +162,22 @@ export default function NotificationsPage() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="text-gray-600 text-[16px] leading-[1.6] mt-6 bg-gray-50/30 p-6 rounded-3xl border border-gray-100/50 backdrop-blur-sm">
+                                                    <div className="text-gray-600 text-sm leading-relaxed mt-4 bg-gray-50/30 p-4 rounded-2xl border border-gray-100/50 backdrop-blur-sm">
                                                         {notification.message}
                                                     </div>
 
-                                                    <div className="mt-8 flex flex-wrap gap-4 items-center">
+                                                    <div className="mt-6 flex flex-wrap gap-3 items-center">
                                                         {notification.type === 'INVITATION' && (!notification.actionStatus || notification.actionStatus === 'pending') && (
                                                             <>
                                                                 <button
                                                                     onClick={() => handleInvitation(notification._id, 'accept')}
-                                                                    className="group/btn flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/25 transform hover:-translate-y-1 active:translate-y-0"
+                                                                    className="group/btn flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-black hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/20 transform hover:-translate-y-1 active:translate-y-0"
                                                                 >
-                                                                    <CheckCircle2 size={20} /> Accepter maintenant
+                                                                    <CheckCircle2 size={18} /> Accepter
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleInvitation(notification._id, 'decline')}
-                                                                    className="px-10 py-4 bg-white border border-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-50 hover:text-red-600 hover:border-red-100 transition-all shadow-sm"
+                                                                    className="px-6 py-2.5 bg-white border border-gray-100 text-gray-400 rounded-xl text-sm font-bold hover:bg-gray-50 hover:text-red-500 transition-all"
                                                                 >
                                                                     Plus tard
                                                                 </button>
@@ -209,7 +209,7 @@ export default function NotificationsPage() {
                                             </div>
 
                                             {notification.status === 'unread' && (
-                                                <div className="absolute top-10 right-10 w-4 h-4 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50">
+                                                <div className="absolute top-6 right-6 w-3 h-3 bg-blue-500 rounded-full shadow-lg shadow-blue-500/30">
                                                     <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
                                                 </div>
                                             )}

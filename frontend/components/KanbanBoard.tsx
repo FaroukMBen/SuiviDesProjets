@@ -203,7 +203,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
             return (
               <div
                 key={col.id}
-                className="flex flex-col min-h-[600px] rounded-[2rem] bg-gray-50/50 border border-gray-100/50 p-5 transition-all"
+                className="flex flex-col min-h-[600px] rounded-[2rem] bg-gray-50/80 border border-gray-200/50 p-5 transition-all shadow-sm shadow-inner"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, col.id)}
               >
@@ -245,7 +245,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                           <select
                             value={newTaskAssignee}
                             onChange={e => setNewTaskAssignee(e.target.value)}
-                            className="bg-transparent text-sm font-bold text-gray-700 w-full outline-none"
+                            className="bg-transparent text-sm font-bold text-gray-700 w-full outline-none appearance-none cursor-pointer"
                           >
                             <option value="">Assigner à...</option>
                             {members.map(m => (
@@ -273,75 +273,122 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                   )}
 
                   {colTasks.map((task) => (
-                    <div
-                      key={task._id}
-                      draggable
-                      onDragStart={() => setDraggedTaskId(task._id)}
-                      className="group bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_20px_40px_-15_rgba(0,0,0,0.06)] hover:border-blue-200 transition-all duration-300 cursor-grab active:cursor-grabbing relative overflow-hidden"
-                    >
-                      <div className="absolute left-0 top-4 bottom-4 w-1.5 bg-transparent group-hover:bg-blue-600 rounded-r-full transition-all duration-300"></div>
+                    editingTask?._id === task._id ? (
+                      <div key={task._id} className="bg-white p-6 rounded-3xl border-2 border-blue-500 shadow-2xl shadow-blue-500/10 animate-in fade-in zoom-in-95 duration-200 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                        <input
+                          autoFocus
+                          className="w-full text-sm font-black text-gray-900 outline-none mb-4 bg-transparent"
+                          value={editingTask.title}
+                          onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
+                        />
 
-                      <div className="flex justify-between items-start mb-4 gap-3">
-                        <h4 className="text-sm font-black text-gray-900 leading-snug group-hover:text-blue-700 transition-colors">
-                          {task.title}
-                        </h4>
+                        <div className="grid grid-cols-1 gap-3 mb-5">
+                          <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all">
+                            <UserIcon size={16} className="text-gray-400" />
+                            <select
+                              value={(editingTask.assignee as any)?._id || (typeof editingTask.assignee === 'string' ? editingTask.assignee : '') || ''}
+                              onChange={e => {
+                                const memberId = e.target.value;
+                                const member = members.find(m => m._id === memberId);
+                                setEditingTask({ ...editingTask, assignee: member });
+                              }}
+                              className="bg-transparent text-sm font-bold text-gray-700 w-full outline-none appearance-none cursor-pointer"
+                            >
+                              <option value="">Assigner à...</option>
+                              {members.map(m => (
+                                <option key={m._id} value={m._id}>{m.name}</option>
+                              ))}
+                            </select>
+                          </div>
 
-                        <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.nativeEvent.stopImmediatePropagation();
-                              setMenuOpenId(menuOpenId === task._id ? null : task._id);
-                            }}
-                            className="p-1.5 hover:bg-blue-50 rounded-xl text-gray-300 hover:text-blue-600 transition-all"
-                          >
-                            <MoreHorizontal size={18} />
-                          </button>
+                          <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all">
+                            <Calendar size={16} className="text-gray-400" />
+                            <input
+                              type="date"
+                              value={editingTask.dueDate ? new Date(editingTask.dueDate).toISOString().split('T')[0] : ''}
+                              onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })}
+                              className="bg-transparent text-sm font-bold text-gray-700 w-full outline-none"
+                            />
+                          </div>
+                        </div>
 
-                          {menuOpenId === task._id && (
-                            <div className="absolute right-0 top-8 w-44 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
-                              <button
-                                onClick={() => {
-                                  setEditingTask(task);
-                                  setMenuOpenId(null);
-                                }}
-                                className="w-full text-left px-4 py-2.5 text-xs font-black text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-3"
-                              >
-                                <Pencil size={14} strokeWidth={2.5} /> Modifier
-                              </button>
-                              <div className="mx-3 my-1 border-t border-gray-50"></div>
-                              <button
-                                onClick={() => handleDeleteTask(task._id)}
-                                className="w-full text-left px-4 py-2.5 text-xs font-black text-red-600 hover:bg-red-50 flex items-center gap-3"
-                              >
-                                <Trash2 size={14} strokeWidth={2.5} /> Supprimer
-                              </button>
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => setEditingTask(null)} className="px-4 py-2 text-xs font-black text-gray-400 hover:text-gray-600">Annuler</button>
+                          <button onClick={() => handleUpdateTask(editingTask)} className="px-5 py-2 text-xs font-black bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20">Enregistrer</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        key={task._id}
+                        draggable
+                        onDragStart={() => setDraggedTaskId(task._id)}
+                        className="group bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.06)] hover:border-blue-200 transition-all duration-300 cursor-grab active:cursor-grabbing relative"
+                      >
+                        <div className="absolute left-0 top-4 bottom-4 w-1.5 bg-transparent group-hover:bg-blue-600 rounded-r-full transition-all duration-300"></div>
+
+                        <div className="flex justify-between items-start mb-4 gap-3">
+                          <h4 className="text-sm font-black text-gray-900 leading-snug group-hover:text-blue-700 transition-colors">
+                            {task.title}
+                          </h4>
+
+                          <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.nativeEvent.stopImmediatePropagation();
+                                setMenuOpenId(menuOpenId === task._id ? null : task._id);
+                              }}
+                              className="p-1.5 hover:bg-blue-50 rounded-xl text-gray-300 hover:text-blue-600 transition-all"
+                            >
+                              <MoreHorizontal size={18} />
+                            </button>
+
+                            {menuOpenId === task._id && (
+                              <div className="absolute right-0 top-10 w-48 bg-white rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] border border-gray-100 z-[70] py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                <button
+                                  onClick={() => {
+                                    setEditingTask(task);
+                                    setMenuOpenId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-xs font-black text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-3"
+                                >
+                                  <Pencil size={14} strokeWidth={2.5} /> Modifier
+                                </button>
+                                <div className="mx-3 my-1 border-t border-gray-50"></div>
+                                <button
+                                  onClick={() => handleDeleteTask(task._id)}
+                                  className="w-full text-left px-4 py-2.5 text-xs font-black text-red-600 hover:bg-red-50 flex items-center gap-3"
+                                >
+                                  <Trash2 size={14} strokeWidth={2.5} /> Supprimer
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-md">
+                              {task.assignee?.name ? task.assignee.name[0].toUpperCase() : '?'}
+                            </div>
+                            <span className="text-[11px] font-black text-gray-500 truncate max-w-[80px]">
+                              {task.assignee?.name || 'Inconnu'}
+                            </span>
+                          </div>
+
+                          {task.dueDate && (
+                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black border ${new Date(task.dueDate) < new Date() && task.status !== 'done'
+                              ? 'bg-red-50 text-red-600 border-red-100'
+                              : 'bg-gray-50 text-gray-400 border-gray-100 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors'
+                              }`}>
+                              <Calendar size={12} strokeWidth={2.5} />
+                              {new Date(task.dueDate).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}
                             </div>
                           )}
                         </div>
                       </div>
-
-                      <div className="flex justify-between items-center pt-4 border-t border-gray-50">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-md">
-                            {task.assignee?.name ? task.assignee.name[0].toUpperCase() : '?'}
-                          </div>
-                          <span className="text-[11px] font-black text-gray-500 truncate max-w-[80px]">
-                            {task.assignee?.name || 'Inconnu'}
-                          </span>
-                        </div>
-
-                        {task.dueDate && (
-                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black border ${new Date(task.dueDate) < new Date() && task.status !== 'done'
-                            ? 'bg-red-50 text-red-600 border-red-100'
-                            : 'bg-gray-50 text-gray-400 border-gray-100 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors'
-                            }`}>
-                            <Calendar size={12} strokeWidth={2.5} />
-                            {new Date(task.dueDate).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    )
                   ))}
 
                   {colTasks.length === 0 && !isAdding && (
@@ -354,6 +401,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
             );
           })}
         </div>
+
       </div>
     );
   }
@@ -545,7 +593,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                     const member = members.find(m => m._id === memberId);
                     setEditingTask({ ...editingTask, assignee: member });
                   }}
-                  className="w-full p-2.5 rounded-xl border border-gray-200 bg-white font-bold text-gray-700 outline-none focus:border-blue-500 transition-all font-bold"
+                  className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50/50 font-bold text-gray-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
                 >
                   <option value="">-- Non assigné --</option>
                   {members.map(m => (

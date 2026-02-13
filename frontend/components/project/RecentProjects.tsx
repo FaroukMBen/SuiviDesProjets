@@ -14,6 +14,7 @@ interface Project {
   updatedAt: string; // La date de modif pour le tri
   owner: { name: string };
   tags?: string[];
+  repositoryUrl?: string;
 }
 
 export function RecentProjects() {
@@ -27,7 +28,7 @@ export function RecentProjects() {
       try {
         const response = await api.get('/api/projects');
         // On prend juste les 3 premiers si le back ne limite pas déjà
-        setProjects(response.data.projects.slice(0, 6)); 
+        setProjects(response.data.projects.slice(0, 6));
         console.log(response)
       } catch (err) {
         console.error("Erreur chargement projets", err);
@@ -68,50 +69,50 @@ export function RecentProjects() {
         </Link>
       </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {projects.map((project) => (
-        <Link key={project._id} href={`/projects/${project._id}`} className="block group">
-        <Card className="h-full hover:shadow-md hover:border-blue-200 transition-all cursor-pointer relative flex flex-col">
-            {/* Indicateur visuel d'activité récente */}
-            <div className="absolute top-4 right-4 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {projects.map((project) => (
+          <Link key={project._id} href={`/projects/${project._id}`} className="block group">
+            <Card className="h-full hover:shadow-md hover:border-blue-200 transition-all cursor-pointer relative flex flex-col">
+              {/* Indicateur visuel d'activité récente */}
+              <div className="absolute top-4 right-4 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
 
-            <div className="mb-4">
-            <div className="flex gap-2 mb-3">
-                <Badge variant="blue">{project.tags?.[0] || 'Projet'}</Badge>
-            </div>
-            
-            <h3 className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition-colors line-clamp-1">
-                {project.title}
-            </h3>
-            
-            <p className="text-xs text-gray-500 mt-1">
-                Par {project.owner?.name}
-            </p>
-            </div>
+              <div className="mb-4">
+                <div className="flex gap-2 mb-3">
+                  <Badge variant="blue">{project.tags?.[0] || 'Projet'}</Badge>
+                </div>
 
-            {/* Footer avec Date à gauche et Git à droite */}
-            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-                <Clock size={12} />
-                <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
-            </div>
+                <h3 className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition-colors line-clamp-1">
+                  {project.title}
+                </h3>
 
-            {project.repositoryUrl && (
-                <a 
-                href={project.repositoryUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()} // Empêche d'ouvrir le projet quand on clique sur Git
-                className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 z-10 relative"
-                >
-                Lien Git <span>→</span>
-                </a>
-            )}
-            </div>
-        </Card>
-        </Link>
-    ))}
-    </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Par {project.owner?.name}
+                </p>
+              </div>
+
+              {/* Footer avec Date à gauche et Git à droite */}
+              <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Clock size={12} />
+                  <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
+                </div>
+
+                {project.repositoryUrl && (
+                  <a
+                    href={project.repositoryUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()} // Empêche d'ouvrir le projet quand on clique sur Git
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 z-10 relative"
+                  >
+                    Lien Git <span>→</span>
+                  </a>
+                )}
+              </div>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

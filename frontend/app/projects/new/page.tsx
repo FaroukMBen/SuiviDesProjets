@@ -66,6 +66,13 @@ export default function NewProjectPage() {
     }
   };
 
+  const getMemberName = (member: any) => {
+    if (member.firstName || member.lastName) {
+      return `${member.firstName || ''} ${member.lastName || ''}`.trim();
+    }
+    return member.name || 'U';
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -286,11 +293,11 @@ export default function NewProjectPage() {
                       {selectedMembers.map((member) => (
                         <div key={member._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                              {member.name.charAt(0).toUpperCase()}
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold uppercase">
+                              {getMemberName(member).charAt(0)}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                              <p className="text-sm font-medium text-gray-900">{getMemberName(member)}</p>
                               <p className="text-xs text-gray-500">{member.email}</p>
                             </div>
                           </div>

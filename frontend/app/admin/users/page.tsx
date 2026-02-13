@@ -7,11 +7,24 @@ import api from '@/lib/auth';
 import { Plus, Edit2, Trash2, Search, Shield, GraduationCap, Briefcase, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UserModal } from '@/components/admin/UserModal';
 import { CsvImportModal } from '@/components/admin/CsvImportModal';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { useAuthStore } from '@/lib/store';
+import { MultiSelectDropdown } from '@/components/ui/MultiSelectDropdown';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const { user } = useAuthStore();
+  const isModern = user?.theme === 'modern';
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
+
+  // Filtres & Pagination
+  const [filterRoles, setFilterRoles] = useState<string[]>([]);
+  const [filterYears, setFilterYears] = useState<string[]>([]);
+  const [filterGroups, setFilterGroups] = useState<string[]>([]);
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -26,7 +39,13 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/api/users?page=${page}&limit=${limit}`);
+      let url = `/api/users?page=${page}&limit=${limit}`;
+      if (searchTerm) url += `&search=${searchTerm}`;
+      if (filterRoles.length > 0) url += `&role=${filterRoles.join(',')}`;
+      if (filterYears.length > 0) url += `&academicYear=${filterYears.join(',')}`;
+      if (filterGroups.length > 0) url += `&group=${filterGroups.join(',')}`;
+
+      const res = await api.get(url);
       setUsers(res.data.users);
       setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (err) {
@@ -38,16 +57,17 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [page, limit]);
+  }, [page, limit, searchTerm, filterRoles, filterYears, filterGroups]);
+
 
   const handleDelete = async (id: string) => {
-    if (confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) {
-      try {
-        await api.delete(`/api/users/${id}`);
-        fetchUsers();
-      } catch (err) {
-        alert("Erreur suppression");
-      }
+    if (!await confirm({ title: "Suppression", message: "Voulez-vous vraiment supprimer cet utilisateur ?", type: "danger" })) return;
+    try {
+      await api.delete(`/api/users/${id}`);
+      fetchUsers();
+      showToast("Utilisateur supprimé", "success");
+    } catch (err) {
+      showToast("Erreur suppression", "error");
     }
   };
 
@@ -61,14 +81,14 @@ export default function AdminUsersPage() {
     setIsModalOpen(true);
   };
 
-  // Filtrage simple côté client
-  const filteredUsers = users.filter(u => {
-    const fullName = u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur';
-    const email = u.email || '';
+  // Filtrage simple côté client - This is no longer needed as filtering is done on the server
+  // const filteredUsers = users.filter(u => {
+  //   const fullName = u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur';
+  //   const email = u.email || '';
 
-    return fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      email.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  //   return fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     email.toLowerCase().includes(searchTerm.toLowerCase());
+  // });
 
   return (
     <ProtectedRoute requireAdmin={true}>
@@ -94,88 +114,139 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          {/* Barre de recherche */}
-          <div className="bg-white p-4 rounded-t-xl border-b border-gray-100 flex gap-4 items-center">
-            <Search className="text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Rechercher par nom ou email..."
-              className="flex-1 outline-none text-gray-700"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {/* Search & Filters */}
+          <div className={`${isModern ? 'bg-white/80 backdrop-blur-md rounded-3xl' : 'bg-white rounded-xl'} shadow-sm border border-gray-100 mb-8`}>
+            <div className={`p-4 ${isModern ? 'bg-gray-50/50' : 'bg-gray-50'} border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center relative z-20`}>
+              <div className="relative flex-1 group w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                <input
+                  type="text"
+                  placeholder="Rechercher un utilisateur (Nom, Email...)"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-gray-700"
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                />
+              </div>
 
-          {/* Tableau */}
-          <div className="bg-white rounded-b-xl shadow-sm border border-gray-100 overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
-                <tr>
-                  <th className="px-6 py-4">Utilisateur</th>
-                  <th className="px-6 py-4">Rôle</th>
-                  <th className="px-6 py-4">Info Promo</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loading ? (
-                  <tr><td colSpan={4} className="p-8 text-center text-gray-500">Chargement...</td></tr>
-                ) : filteredUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-gray-900">
-                        {user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Sans nom'}
-                      </div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {/* Badge Rôle */}
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border
-                                        ${user.role === 'admin' ? 'bg-red-50 text-red-700 border-red-100' :
-                          user.role === 'instructor' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                            'bg-blue-50 text-blue-700 border-blue-100'}`}>
-                        {user.role === 'admin' && <Shield size={12} />}
-                        {user.role === 'instructor' && <Briefcase size={12} />}
-                        {user.role === 'student' && <GraduationCap size={12} />}
+              <div className="flex flex-wrap gap-2 w-full md:w-auto pb-2 md:pb-0">
+                <MultiSelectDropdown
+                  label="Rôles"
+                  options={[
+                    { value: 'student', label: 'Étudiants' },
+                    { value: 'instructor', label: 'Enseignants' },
+                    { value: 'admin', label: 'Administrateurs' }
+                  ]}
+                  selectedValues={filterRoles}
+                  onChange={(vals) => { setFilterRoles(vals); setPage(1); }}
+                  placeholder="Tous les rôles"
+                  isModern={isModern}
+                />
 
-                        {user.role === 'admin' ? 'Administrateur' :
-                          user.role === 'instructor' ? 'Enseignant' : 'Étudiant'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {user.role === 'student' ? (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-900">{user.academicYear}</span>
-                          {user.group && <span className="text-gray-500 ml-2">(Gr. {user.group})</span>}
-                        </div>
-                      ) : (
-                        <span className="text-gray-300 text-sm">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user._id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
+                <MultiSelectDropdown
+                  label="Promos"
+                  options={[
+                    { value: 'BUT1', label: 'BUT1' },
+                    { value: 'BUT2', label: 'BUT2' },
+                    { value: 'BUT3', label: 'BUT3' }
+                  ]}
+                  selectedValues={filterYears}
+                  onChange={(vals) => { setFilterYears(vals); setPage(1); }}
+                  placeholder="Toutes promos"
+                  isModern={isModern}
+                />
+
+                <MultiSelectDropdown
+                  label="Groupes"
+                  options={[
+                    { value: 'G1', label: 'G1' }, { value: 'G2', label: 'G2' },
+                    { value: 'G3', label: 'G3' }, { value: 'G4', label: 'G4' },
+                    { value: 'RA1', label: 'RA1' }, { value: 'RA2', label: 'RA2' },
+                    { value: 'DACS', label: 'DACS' }
+                  ]}
+                  selectedValues={filterGroups}
+                  onChange={(vals) => { setFilterGroups(vals); setPage(1); }}
+                  placeholder="Tous groupes"
+                  isModern={isModern}
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className={`${isModern ? 'bg-gray-50/50' : 'bg-gray-50'} text-gray-400 text-xs uppercase font-black tracking-widest`}>
+                  <tr>
+                    <th className="px-8 py-5">Utilisateur</th>
+                    <th className="px-8 py-5">Rôle</th>
+                    <th className="px-8 py-5">Promo / Groupe</th>
+                    <th className="px-8 py-5">Dernière Connexion</th>
+                    <th className="px-8 py-5 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr><td colSpan={5} className="p-8 text-center text-gray-500">Chargement...</td></tr>
+                  ) : users.map((u) => (
+                    <tr key={u._id} className="hover:bg-blue-50/30 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg transition-transform group-hover:scale-110 group-hover:rotate-3 shadow-sm
+                            ${u.role === 'student' ? 'bg-blue-100 text-blue-600' :
+                              u.role === 'instructor' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
+                            {u.firstName[0]}{u.lastName[0]}
+                          </div>
+                          <div>
+                            <div className="font-black text-gray-900 leading-none mb-1">{u.firstName} {u.lastName}</div>
+                            <div className="text-sm text-gray-400 font-medium">{u.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 text-sm">
+                        <span className={`px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-wider shadow-sm
+                          ${u.role === 'student' ? 'bg-blue-50 text-blue-600' :
+                            u.role === 'admin' ? 'bg-orange-50 text-orange-600' : 'bg-purple-50 text-purple-600'}`}>
+                          {u.role === 'student' ? 'Étudiant' : u.role === 'admin' ? 'Admin' : 'Enseignant'}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="text-sm font-bold text-gray-700">{u.academicYear || '-'}</div>
+                        <div className="text-xs text-blue-500 font-medium">{u.group || '-'}</div>
+                      </td>
+                      <td className="px-8 py-5 text-sm font-medium text-gray-400 italic">
+                        {u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'Jamais'}
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => { setSelectedUser(u); setIsModalOpen(true); }}
+                            className="p-3 text-blue-600 hover:bg-blue-100 rounded-2xl transition-all hover:scale-110 active:scale-95"
+                            title="Modifier"
+                          >
+                            <Edit2 size={20} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(u._id)}
+                            className="p-3 text-red-600 hover:bg-red-100 rounded-2xl transition-all hover:scale-110 active:scale-95"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {users.length === 0 && !loading && (
+                    <tr>
+                      <td colSpan={5} className="px-8 py-10 text-center text-gray-400 font-bold">
+                        Aucun utilisateur ne correspond à votre recherche.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-
           {/* Pagination */}
-          <div className="mt-6 flex flex-col md:flex-row justify-center items-center gap-6 pb-8">
+          <div className={`mt-8 flex flex-col md:flex-row justify-center items-center gap-6 border-t border-gray-100 pt-8`}>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span>Afficher</span>
               <select
@@ -184,7 +255,7 @@ export default function AdminUsersPage() {
                   setLimit(Number(e.target.value));
                   setPage(1);
                 }}
-                className="bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+                className={`${isModern ? 'bg-gray-50 rounded-xl px-4 py-1.5 focus:ring-4 focus:ring-blue-500/10' : 'bg-white rounded-lg px-3 py-1.5 min-w-[70px]'} border border-gray-200 outline-none focus:border-blue-500 font-bold text-gray-700 transition-all cursor-pointer`}
               >
                 <option value={7}>7</option>
                 <option value={10}>10</option>
@@ -195,25 +266,25 @@ export default function AdminUsersPage() {
               <span>par page</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                className={`flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 ${isModern ? 'rounded-xl' : 'rounded-lg'} text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm`}
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={16} />
+                Précédent
               </button>
-
-              <span className="text-sm font-medium text-gray-600 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
-                Page {page} sur {totalPages}
+              <span className="text-sm font-bold text-gray-600">
+                Page <span className="text-blue-600">{page}</span> sur {totalPages}
               </span>
-
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                className={`flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 ${isModern ? 'rounded-xl' : 'rounded-lg'} text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm`}
               >
-                <ChevronRight size={20} />
+                Suivant
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>

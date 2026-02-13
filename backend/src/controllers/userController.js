@@ -63,15 +63,44 @@ class UserController {
     }
   }
 
-  // 4. LISTER TOUS LES UTILISATEURS (Avec pagination)
+  // 4. LISTER TOUS LES UTILISATEURS (Avec pagination et filtres)
   static async getAllUsers(req, res) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
 
-      const totalUsers = await User.countDocuments();
-      const users = await User.find()
+      let filter = {};
+      if (req.query.role && req.query.role !== 'all') {
+        const roles = req.query.role.split(',').filter(r => r.trim() !== '');
+        if (roles.length > 0) {
+          filter.role = roles.length > 1 ? { $in: roles } : roles[0];
+        }
+      }
+      if (req.query.academicYear && req.query.academicYear !== 'all') {
+        const years = req.query.academicYear.split(',').filter(y => y.trim() !== '');
+        if (years.length > 0) {
+          filter.academicYear = years.length > 1 ? { $in: years } : years[0];
+        }
+      }
+      if (req.query.group && req.query.group !== 'all') {
+        const groups = req.query.group.split(',').filter(g => g.trim() !== '');
+        if (groups.length > 0) {
+          filter.group = groups.length > 1 ? { $in: groups } : groups[0];
+        }
+      }
+      if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.$or = [
+          { firstName: searchRegex },
+          { lastName: searchRegex },
+          { name: searchRegex },
+          { email: searchRegex }
+        ];
+      }
+
+      const totalUsers = await User.countDocuments(filter);
+      const users = await User.find(filter)
         .select('-password')
         .sort({ createdAt: -1 })
         .skip(skip)

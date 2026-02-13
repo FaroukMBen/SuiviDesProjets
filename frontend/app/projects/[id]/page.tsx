@@ -11,7 +11,9 @@ import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { ProjectMilestones } from '@/components/ProjectMilestones';
 import { EvaluationGrid } from '@/components/EvaluationGrid';
 
+import { useToast } from '@/components/ui/Toast';
 export default function ProjectOverviewPage() {
+  const { showToast } = useToast();
   const params = useParams();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -95,19 +97,23 @@ export default function ProjectOverviewPage() {
             </button>
           </div>
           <div className="space-y-2">
-            {project.members?.map((member: any) => (
-              <div key={member._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {member.firstName ? member.firstName[0].toUpperCase() : (member.name ? member.name.charAt(0).toUpperCase() : 'U')}
+            {project.members?.map((member: any) => {
+              const displayName = member.firstName || member.lastName
+                ? `${member.firstName || ''} ${member.lastName || ''}`.trim()
+                : (member.name || 'Utilisateur inconnu');
+
+              return (
+                <div key={member._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold uppercase">
+                    {displayName.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                    <p className="text-xs text-gray-500">{member.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : member.name}
-                  </p>
-                  <p className="text-xs text-gray-500">{member.email}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -175,7 +181,7 @@ export default function ProjectOverviewPage() {
                     setShowInviteModal(false);
                   }, 1500);
                 } catch (err: any) {
-                  alert(err.response?.data?.message || "Erreur lors de l'envoi de l'invitation");
+                  showToast(err.response?.data?.message || "Erreur lors de l'envoi de l'invitation", "error");
                 }
               }}
               excludeIds={project?.members?.map((m: any) => m._id) || []}

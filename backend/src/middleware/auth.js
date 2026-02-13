@@ -1,12 +1,16 @@
 const jwt = require('jsonwebtoken');
 
 const authenticate = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  // Support token from header OR query param (for SSE)
+  let token = req.headers.authorization?.split(' ')[1];
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (!token) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'No authorization token provided' 
+    return res.status(401).json({
+      success: false,
+      message: 'No authorization token provided'
     });
   }
 
@@ -23,14 +27,14 @@ const authenticate = (req, res, next) => {
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Token has expired' 
+      return res.status(401).json({
+        success: false,
+        message: 'Token has expired'
       });
     }
-    res.status(401).json({ 
-      success: false, 
-      message: 'Invalid token' 
+    res.status(401).json({
+      success: false,
+      message: 'Invalid token'
     });
   }
 };
@@ -38,16 +42,16 @@ const authenticate = (req, res, next) => {
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required' 
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
       });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Insufficient permissions' 
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions'
       });
     }
 
@@ -61,9 +65,9 @@ const checkProjectAccess = async (req, res, next) => {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
       });
     }
 
@@ -72,9 +76,9 @@ const checkProjectAccess = async (req, res, next) => {
     const isAdmin = req.user.role === 'admin';
 
     if (!isOwner && !isMember && !isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Access denied' 
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
       });
     }
 

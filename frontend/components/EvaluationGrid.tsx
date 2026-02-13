@@ -14,6 +14,7 @@ import {
   FileText,
   User
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface Criterion {
   name: string;
@@ -34,6 +35,7 @@ interface Evaluation {
 }
 
 export function EvaluationGrid({ projectId, userRole, displayMode = 'full' }: { projectId: string; userRole?: string; displayMode?: 'full' | 'summary' | 'template' }) {
+  const { showToast } = useToast();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -153,7 +155,7 @@ export function EvaluationGrid({ projectId, userRole, displayMode = 'full' }: { 
       // Reset form
       setFormData({ criteria: [{ name: '', weight: 1, maxScore: 20, score: 0 }], feedback: '' });
     } catch (err) {
-      alert("Erreur lors de l'enregistrement de l'évaluation");
+      showToast("Erreur lors de l'enregistrement de l'évaluation", "error");
     }
   };
 

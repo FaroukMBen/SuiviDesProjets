@@ -13,6 +13,8 @@ export interface User {
   academicYear?: string;
   group?: string;
   theme?: 'classic' | 'modern';
+  githubToken?: string;
+  githubUsername?: string;
 }
 
 export interface AuthResponse {

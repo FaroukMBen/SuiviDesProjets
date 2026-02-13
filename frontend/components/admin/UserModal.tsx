@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/auth';
 import { X, Save, User, Mail, Lock, GraduationCap } from 'lucide-react';
 import { SCHOOL_STRUCTURE } from '@/lib/constants';
+import { useToast } from '@/components/ui/Toast';
 
 interface Props {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface Props {
 export function UserModal({ isOpen, onClose, onSuccess, userToEdit }: Props) {
   const isEditing = !!userToEdit;
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   // State initial
   const initialState = {
@@ -65,7 +67,7 @@ export function UserModal({ isOpen, onClose, onSuccess, userToEdit }: Props) {
       onSuccess();
       onClose();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Une erreur est survenue");
+      showToast(err.response?.data?.message || "Une erreur est survenue", "error");
     } finally {
       setLoading(false);
     }

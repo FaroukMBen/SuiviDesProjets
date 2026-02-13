@@ -15,10 +15,14 @@ import {
     Copy
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 interface User {
     _id: string;
-    name: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
     email: string;
     profilePicture?: string;
     academicYear: string;
@@ -43,6 +47,8 @@ interface Campaign {
 export default function CampaignMembersPage() {
     const params = useParams();
     const campaignId = params.id as string;
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
 
     const [campaign, setCampaign] = useState<Campaign | null>(null);
     const [students, setStudents] = useState<User[]>([]);
@@ -88,9 +94,17 @@ export default function CampaignMembersPage() {
         return { status: 'pending' };
     };
 
+    const getStudentName = (student: User) => {
+        if (student.firstName || student.lastName) {
+            return `${student.firstName || ''} ${student.lastName || ''}`.trim();
+        }
+        return student.name || 'Étudiant';
+    };
+
     const filteredStudents = students.filter(student => {
-        const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const studentName = getStudentName(student);
+        const matchesSearch = studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (student.email || '').toLowerCase().includes(searchTerm.toLowerCase());
 
 
         const { status } = getStudentStatus(student._id);
@@ -108,19 +122,20 @@ export default function CampaignMembersPage() {
 
     const handleCopyEmail = (email: string) => {
         navigator.clipboard.writeText(email);
-        alert('Email copié : ' + email);
+        showToast('Email copié : ' + email, "success");
     };
 
     const handleSendInvite = async (student: User) => {
         if (!campaign) return;
         if (campaign.status === 'draft') {
-            alert("La campagne est en brouillon. Veuillez l'activer dans les paramètres avant d'envoyer des invitations.");
+            showToast("La campagne est en brouillon. Veuillez l'activer dans les paramètres avant d'envoyer des invitations.", "error");
             return;
         }
-        if (!confirm(`Envoyer une notification à ${student.name} ?`)) return;
+        const studentName = getStudentName(student);
+        if (!await confirm({ title: "Envoyer l'invitation", message: `Envoyer une notification à ${studentName} ?`, type: "info" })) return;
 
         try {
-            const message = `Bonjour ${student.name}, tu as été invité(e) à la campagne "${campaign.title}". Tu as désormais accès pour créer ton projet.`;
+            const message = `Bonjour ${studentName}, tu as été invité(e) à la campagne "${campaign.title}". Tu as désormais accès pour créer ton projet.`;
 
             await api.post('/api/notifications/campaign-notify', {
                 recipientId: student._id,
@@ -128,7 +143,7 @@ export default function CampaignMembersPage() {
                 message
             });
 
-            alert("Notification envoyée");
+            showToast("Notification envoyée", "success");
 
             setCampaign(prev => prev ? {
                 ...prev,
@@ -137,24 +152,24 @@ export default function CampaignMembersPage() {
 
         } catch (err: any) {
             console.error("Erreur envoi notif:", err);
-            alert(err.response?.data?.message || "Erreur lors de l'envoi de la notification.");
+            showToast(err.response?.data?.message || "Erreur lors de l'envoi de la notification.", "error");
         }
     };
 
     const handleRemindAll = async () => {
         if (!campaign) return;
         if (campaign.status === 'draft') {
-            alert("La campagne est en brouillon. Veuillez l'activer dans les paramètres avant d'envoyer des invitations.");
+            showToast("La campagne est en brouillon. Veuillez l'activer dans les paramètres avant d'envoyer des invitations.", "error");
             return;
         }
         const pendingStudents = filteredStudents.filter(s => getStudentStatus(s._id).status === 'pending');
 
         if (pendingStudents.length === 0) {
-            alert("Aucun étudiant en attente à relancer pour cette sélection.");
+            showToast("Aucun étudiant en attente à relancer pour cette sélection.", "info");
             return;
         }
 
-        if (!confirm(`Voulez-vous envoyer une notification de rappel à ${pendingStudents.length} étudiant(s) en attente ?`)) return;
+        if (!await confirm({ title: "Envoyer rappel général", message: `Voulez-vous envoyer une notification de rappel à ${pendingStudents.length} étudiant(s) en attente ?`, type: "warning" })) return;
 
         setSendingReminders(true);
         let successCount = 0;
@@ -175,10 +190,10 @@ export default function CampaignMembersPage() {
                     console.error(`Erreur envoi à ${student.email}`, e);
                 }
             }
-            alert(`${successCount} rappel(s) envoyé(s) avec succès.`);
+            showToast(`${successCount} rappel(s) envoyé(s) avec succès.`, "success");
         } catch (err) {
             console.error(err);
-            alert("Erreur générale lors de l'envoi des rappels.");
+            showToast("Erreur générale lors de l'envoi des rappels.", "error");
         } finally {
             setSendingReminders(false);
         }
@@ -304,12 +319,12 @@ export default function CampaignMembersPage() {
                                                 {student.profilePicture ? (
                                                     <img src={student.profilePicture} alt="" className="w-9 h-9 rounded-full object-cover" />
                                                 ) : (
-                                                    <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-xs">
-                                                        {student.name.charAt(0)}
+                                                    <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-xs uppercase">
+                                                        {getStudentName(student).charAt(0)}
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <p className="font-semibold text-gray-900">{student.name}</p>
+                                                    <p className="font-semibold text-gray-900">{getStudentName(student)}</p>
                                                     <p className="text-xs text-gray-500">{student.email}</p>
                                                 </div>
                                             </div>
@@ -351,8 +366,8 @@ export default function CampaignMembersPage() {
                                                         onClick={() => handleSendInvite(student)}
                                                         disabled={campaign?.status === 'draft'}
                                                         className={`p-2 rounded-lg transition ${campaign?.status === 'draft'
-                                                                ? 'text-gray-300 cursor-not-allowed'
-                                                                : 'text-blue-600 hover:bg-blue-50'
+                                                            ? 'text-gray-300 cursor-not-allowed'
+                                                            : 'text-blue-600 hover:bg-blue-50'
                                                             }`}
                                                         title={campaign?.status === 'draft' ? "Campagne en brouillon - Invitation désactivée" : "Inviter à rejoindre"}
                                                     >

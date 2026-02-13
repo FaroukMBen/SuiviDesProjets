@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/auth';
 import { Send, MessageSquare, User, CornerDownRight, Clock } from 'lucide-react'; // Icônes modernes
 import { Card } from '@/components/ui/Card'; // Ta carte standard
+import { useToast } from '@/components/ui/Toast';
 
 interface Reply {
   _id: string; // Ajouté si présent en base, sinon optionnel
@@ -22,10 +23,11 @@ interface Feedback {
 }
 
 export function FeedbackThread({ projectId }: { projectId: string }) {
+  const { showToast } = useToast();
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [newFeedback, setNewFeedback] = useState('');
-  
+
   // Gestion des réponses (input par feedback)
   const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export function FeedbackThread({ projectId }: { projectId: string }) {
       setFeedbacks([response.data.feedback, ...feedbacks]);
       setNewFeedback('');
     } catch (err) {
-      alert("Erreur lors de l'envoi du feedback");
+      showToast("Erreur lors de l'envoi du feedback", "error");
     }
   };
 
@@ -70,15 +72,15 @@ export function FeedbackThread({ projectId }: { projectId: string }) {
 
     try {
       const response = await api.post(`/api/feedback/${feedbackId}/reply`, { content });
-      
+
       // Mise à jour locale optimiste ou via réponse serveur
       setFeedbacks(feedbacks.map(f => f._id === feedbackId ? response.data.feedback : f));
-      
+
       // Reset input
       setReplyContent({ ...replyContent, [feedbackId]: '' });
       setActiveReplyId(null);
     } catch (err) {
-      alert("Erreur lors de la réponse");
+      showToast("Erreur lors de la réponse", "error");
     }
   };
 
@@ -98,7 +100,7 @@ export function FeedbackThread({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-8 pb-12">
-      
+
       {/* 1. Zone de Nouveau Feedback (En haut) */}
       <Card className="border-blue-100 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
@@ -143,20 +145,20 @@ export function FeedbackThread({ projectId }: { projectId: string }) {
           feedbacks.map((feedback) => (
             <div key={feedback._id} className="group">
               <Card className="p-6 border-gray-200 hover:border-blue-200 transition-colors">
-                
+
                 {/* Header Message Principal */}
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
-                    {feedback.author?.name ? feedback.author.name[0] : <User size={16}/>}
+                    {feedback.author?.name ? feedback.author.name[0] : <User size={16} />}
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="font-bold text-gray-900 mr-2">{feedback.author?.name}</span>
                         <span className="text-xs text-gray-400 flex items-center gap-1 inline-flex">
-                           <Clock size={12} /> {formatDate(feedback.createdAt)}
+                          <Clock size={12} /> {formatDate(feedback.createdAt)}
                         </span>
                       </div>
                       <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-wide">
@@ -171,7 +173,7 @@ export function FeedbackThread({ projectId }: { projectId: string }) {
 
                     {/* Actions (Répondre) */}
                     <div className="mt-4 flex items-center gap-4">
-                      <button 
+                      <button
                         onClick={() => setActiveReplyId(activeReplyId === feedback._id ? null : feedback._id)}
                         className="text-sm font-medium text-gray-500 hover:text-blue-600 transition flex items-center gap-1"
                       >
@@ -193,8 +195,8 @@ export function FeedbackThread({ projectId }: { projectId: string }) {
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg rounded-tl-none border border-gray-100 flex-1">
                       <div className="flex items-baseline justify-between mb-1">
-                         <span className="text-sm font-bold text-gray-900">{reply.author?.name}</span>
-                         <span className="text-[10px] text-gray-400">{formatDate(reply.createdAt)}</span>
+                        <span className="text-sm font-bold text-gray-900">{reply.author?.name}</span>
+                        <span className="text-[10px] text-gray-400">{formatDate(reply.createdAt)}</span>
                       </div>
                       <p className="text-sm text-gray-700">{reply.content}</p>
                     </div>
@@ -206,22 +208,22 @@ export function FeedbackThread({ projectId }: { projectId: string }) {
                   <div className="flex gap-3 items-start animate-in slide-in-from-top-2 duration-200">
                     <CornerDownRight className="text-gray-300 mt-2 ml-[-20px]" size={20} />
                     <div className="flex-1">
-                        <textarea
-                            autoFocus
-                            value={replyContent[feedback._id] || ''}
-                            onChange={(e) => setReplyContent({ ...replyContent, [feedback._id]: e.target.value })}
-                            className="w-full p-3 bg-white border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm"
-                            placeholder="Écrivez votre réponse..."
-                            rows={2}
-                        />
-                        <div className="flex justify-end mt-2">
-                             <button
-                                onClick={() => addReply(feedback._id)}
-                                className="px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded hover:bg-black transition"
-                             >
-                                Répondre
-                             </button>
-                        </div>
+                      <textarea
+                        autoFocus
+                        value={replyContent[feedback._id] || ''}
+                        onChange={(e) => setReplyContent({ ...replyContent, [feedback._id]: e.target.value })}
+                        className="w-full p-3 bg-white border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm"
+                        placeholder="Écrivez votre réponse..."
+                        rows={2}
+                      />
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => addReply(feedback._id)}
+                          className="px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded hover:bg-black transition"
+                        >
+                          Répondre
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

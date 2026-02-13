@@ -82,7 +82,8 @@ class AuthController {
           email: user.email,
           role: user.role,
           profilePicture: user.profilePicture,
-          theme: user.theme
+          theme: user.theme,
+          githubToken: user.githubToken ? '••••••••' : null
         }
       });
     } catch (err) {
@@ -113,7 +114,9 @@ class AuthController {
           profilePicture: user.profilePicture,
           academicYear: user.academicYear,
           group: user.group,
-          theme: user.theme
+          theme: user.theme,
+          githubToken: user.githubToken ? '••••••••' : null,
+          githubUsername: user.githubUsername || null
         }
       });
     } catch (err) {
@@ -158,6 +161,7 @@ class AuthController {
       if (req.body.academicYear) user.academicYear = req.body.academicYear;
       if (req.body.group) user.group = req.body.group;
       if (req.body.theme) user.theme = req.body.theme;
+      if (req.body.githubToken !== undefined) user.githubToken = req.body.githubToken;
 
       await user.save();
 
@@ -174,7 +178,9 @@ class AuthController {
           profilePicture: updatedUser.profilePicture,
           academicYear: updatedUser.academicYear,
           group: updatedUser.group,
-          theme: updatedUser.theme
+          theme: updatedUser.theme,
+          githubToken: updatedUser.githubToken ? '••••••••' : null,
+          githubUsername: updatedUser.githubUsername || null
         },
         message: 'Profile updated successfully'
       });

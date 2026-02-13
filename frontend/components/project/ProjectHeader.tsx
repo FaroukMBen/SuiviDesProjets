@@ -28,6 +28,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     { name: 'Git', href: `${baseUrl}/commits` },
     { name: 'Feedback', href: `${baseUrl}/feedback` },
     { name: 'Évaluation', href: `${baseUrl}/evaluations` },
+    { name: 'Paramètres', href: `${baseUrl}/settings` },
   ];
 
   return (

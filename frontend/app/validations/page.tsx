@@ -175,8 +175,8 @@ export default function ValidationsPage() {
 
                                         <div className="flex -space-x-2 overflow-hidden mb-2 pl-1">
                                             {project.members?.slice(0, 4).map((m, idx) => (
-                                                <div key={idx} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600 uppercase shadow-sm" title={m.name}>
-                                                    {m.name.charAt(0)}
+                                                <div key={idx} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600 uppercase shadow-sm" title={m.name || "Membre"}>
+                                                    {m.name ? m.name.charAt(0) : '?'}
                                                 </div>
                                             ))}
                                             {project.members?.length > 4 && (
@@ -251,7 +251,7 @@ export default function ValidationsPage() {
                                                 {previewProject.members?.map(m => (
                                                     <div key={m._id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:border-blue-200 transition">
                                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-sm font-bold uppercase shadow-md shadow-blue-200">
-                                                            {m.name.charAt(0)}
+                                                            {m.name ? m.name.charAt(0) : '?'}
                                                         </div>
                                                         <div className="min-w-0">
                                                             <p className="font-bold text-gray-900 text-sm truncate">{m.name}</p>

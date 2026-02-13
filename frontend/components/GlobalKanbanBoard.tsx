@@ -138,24 +138,129 @@ export function GlobalKanbanBoard() {
 
     if (loading) return <div className="p-8 text-center text-gray-500">Chargement des tâches...</div>;
 
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Toutes mes Tâches & Non Assignées</h1>
+    const isModern = user?.theme === 'modern';
 
-                <button
-                    onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${showMyTasksOnly
-                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                        }`}
-                >
-                    <User size={16} />
-                    {showMyTasksOnly ? 'Mes tâches' : 'Toutes les tâches'}
-                </button>
+    if (!isModern) {
+        return (
+            <div className="space-y-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-800">Toutes mes tâches (Mode Basique)</h2>
+                    <button
+                        onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${showMyTasksOnly ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                    >
+                        {showMyTasksOnly ? 'Mes tâches uniquement' : 'Toutes les tâches'}
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {COLUMNS.map((col) => {
+                        const colTasks = tasks.filter(t => {
+                            const matchesStatus = t.status === col.id;
+                            const matchesUser = showMyTasksOnly
+                                ? (t.assignee && user && t.assignee._id === user.id)
+                                : true;
+                            return matchesStatus && matchesUser;
+                        });
+
+                        return (
+                            <div
+                                key={col.id}
+                                className="flex flex-col h-auto min-h-[500px] rounded-xl bg-gray-50/10 border border-gray-200 shadow-sm"
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => handleDrop(e, col.id)}
+                            >
+                                {/* Column Header */}
+                                <div className="p-4 flex items-center justify-between border-b border-gray-100 bg-white rounded-t-xl">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-gray-700 text-sm">{col.label}</h3>
+                                        <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                            {colTasks.length}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="p-3 space-y-3">
+                                    {colTasks.map((task) => (
+                                        <div
+                                            key={task._id}
+                                            draggable
+                                            onDragStart={() => setDraggedTaskId(task._id)}
+                                            className="group bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
+                                        >
+                                            <div className="absolute left-0 top-3 bottom-3 w-1 bg-transparent group-hover:bg-blue-500 rounded-r-full transition-all"></div>
+
+                                            <div className="flex justify-between items-start mb-2 gap-2">
+                                                <h4 className="text-sm font-bold text-gray-800 leading-tight flex-1">
+                                                    {task.title}
+                                                </h4>
+                                                <div className="relative" onClick={e => e.stopPropagation()}>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            e.nativeEvent.stopImmediatePropagation();
+                                                            setMenuOpenId(menuOpenId === task._id ? null : task._id);
+                                                        }}
+                                                        className="p-1 hover:bg-gray-100 rounded text-gray-400"
+                                                    >
+                                                        <MoreHorizontal size={14} />
+                                                    </button>
+                                                    {menuOpenId === task._id && (
+                                                        <div className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-10 py-1 text-xs">
+                                                            <button onClick={() => { setEditingTask(task); setMenuOpenId(null); }} className="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2"><Pencil size={12} /> Modifier</button>
+                                                            <button onClick={() => handleDeleteTask(task._id)} className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 size={12} /> Supprimer</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
+                                                <span className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[120px]">{task.projectId?.title}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">
+                                                        {task.assignee?.name ? task.assignee.name[0] : '?'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {colTasks.length === 0 && <div className="text-center py-8 text-gray-300 text-[10px] font-bold uppercase tracking-widest">Aucune tâche</div>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                        Tableau de <span className="text-blue-600">Bord</span>
+                    </h1>
+                    <p className="text-gray-500 mt-1">Gérez vos tâches et suivez votre progression en temps réel.</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
+                        className={`group flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border shadow-sm
+                            ${showMyTasksOnly
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/20'
+                                : 'bg-white text-gray-600 border-gray-100 hover:border-blue-200 hover:text-blue-600'
+                            }`}
+                    >
+                        <User size={18} className={showMyTasksOnly ? 'text-white' : 'text-blue-500 group-hover:text-blue-600'} />
+                        {showMyTasksOnly ? 'Mes tâches uniquement' : 'Toutes les tâches'}
+                    </button>
+
+                    <div className="h-10 w-px bg-gray-100 hidden md:block"></div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {COLUMNS.map((col) => {
                     const colTasks = tasks.filter(t => {
                         const matchesStatus = t.status === col.id;
@@ -165,100 +270,128 @@ export function GlobalKanbanBoard() {
                         return matchesStatus && matchesUser;
                     });
 
+                    // Dynamic colors for column headers
+                    const colColors: Record<string, string> = {
+                        'todo': 'bg-gray-100 text-gray-600',
+                        'in-progress': 'bg-blue-100 text-blue-600',
+                        'review': 'bg-purple-100 text-purple-600',
+                        'done': 'bg-emerald-100 text-emerald-600'
+                    };
+
                     return (
                         <div
                             key={col.id}
-                            className="flex flex-col h-auto min-h-[500px] rounded-xl bg-white border border-gray-200 shadow-sm"
+                            className="flex flex-col min-h-[650px] rounded-3xl bg-gray-50/50 border border-gray-100/50 p-4 transition-all"
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => handleDrop(e, col.id)}
                         >
-                            <div className="p-4 flex items-center justify-between border-b border-gray-50">
+                            <div className="flex items-center justify-between mb-5 px-2">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-gray-700 text-sm">{col.label}</h3>
-                                    <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                    <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wider">{col.label}</h3>
+                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${colColors[col.id] || 'bg-gray-100 text-gray-600'}`}>
                                         {colTasks.length}
                                     </span>
                                 </div>
+                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
                             </div>
 
-                            <div className="p-3 space-y-3">
+                            <div className="flex-1 space-y-4">
                                 {colTasks.map((task) => (
                                     <div
                                         key={task._id}
                                         draggable
                                         onDragStart={() => setDraggedTaskId(task._id)}
-                                        style={{ zIndex: menuOpenId === task._id ? 20 : 0 }}
-                                        className="group bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing relative"
+                                        className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all duration-300 cursor-grab active:cursor-grabbing relative overflow-hidden"
                                     >
-                                        {/* Badge Projet */}
+                                        <div className="absolute left-0 top-3 bottom-3 w-1.5 bg-transparent group-hover:bg-blue-500 rounded-r-full transition-all duration-300"></div>
+
+                                        {/* Project Badge */}
                                         {task.projectId && (
-                                            <div className="mb-2">
-                                                <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100 font-medium">
+                                            <div className="flex items-center gap-1.5 mb-3">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight truncate max-w-[150px]">
                                                     {task.projectId.title}
                                                 </span>
                                             </div>
                                         )}
 
-                                        <div className="flex justify-between items-start mb-2 gap-2">
-                                            <h4 className="text-sm font-bold text-gray-800 leading-tight flex-1 pt-1">
+                                        <div className="flex justify-between items-start gap-3 mb-4">
+                                            <h4 className="text-sm font-bold text-gray-900 leading-snug group-hover:text-blue-700 transition-colors">
                                                 {task.title}
                                             </h4>
 
-                                            <div className="relative flex-shrink-0" onClick={e => e.stopPropagation()}>
+                                            <div className="relative" onClick={e => e.stopPropagation()}>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         e.nativeEvent.stopImmediatePropagation();
                                                         setMenuOpenId(menuOpenId === task._id ? null : task._id);
                                                     }}
-                                                    className="p-1 -mr-2 -mt-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 transition-colors"
+                                                    className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400 hover:text-gray-900 transition-all"
                                                 >
                                                     <MoreHorizontal size={16} />
                                                 </button>
 
                                                 {menuOpenId === task._id && (
-                                                    <div className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-10 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 text-left">
+                                                    <div className="absolute right-0 top-8 w-40 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 py-1.5 animate-in fade-in zoom-in-95 duration-150">
                                                         <button
                                                             onClick={() => {
                                                                 setEditingTask(task);
                                                                 if (task.projectId) fetchProjectMembers(task.projectId._id);
                                                                 setMenuOpenId(null);
                                                             }}
-                                                            className="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+                                                            className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5"
                                                         >
-                                                            <Pencil size={12} /> Modifier
+                                                            <Pencil size={14} /> Modifier Tâche
                                                         </button>
+                                                        <div className="mx-2 my-1 border-t border-gray-50"></div>
                                                         <button
                                                             onClick={() => handleDeleteTask(task._id)}
-                                                            className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                            className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5"
                                                         >
-                                                            <Trash2 size={12} /> Supprimer
+                                                            <Trash2 size={14} strokeWidth={2.5} /> Supprimer
                                                         </button>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
 
-                                        <div className="flex justify-between items-center border-t border-gray-50 pt-3 mt-2">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold border border-white shadow-sm" title={task.assignee?.name}>
-                                                    {task.assignee?.name ? task.assignee.name[0] : '?'}
-                                                </div>
-                                                <span className="text-xs text-gray-400 truncate max-w-[80px]">
-                                                    {task.assignee?.name || 'Non assigné'}
-                                                </span>
-                                            </div>
-
-                                            {task.dueDate && (
-                                                <span className={`text-[10px] font-medium flex items-center gap-1 ${new Date(task.dueDate) < new Date() ? 'text-red-500' : 'text-gray-400'
-                                                    }`}>
-                                                    <Calendar size={10} />
-                                                    {new Date(task.dueDate).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' })}
-                                                </span>
+                                        <div className="flex flex-col gap-3">
+                                            {task.description && (
+                                                <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+                                                    {task.description}
+                                                </p>
                                             )}
+
+                                            <div className="flex justify-between items-center pt-3 border-t border-gray-50 mt-1">
+                                                <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 group-hover:bg-white group-hover:border-blue-100 transition-colors">
+                                                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm" title={task.assignee?.name}>
+                                                        {task.assignee?.name ? task.assignee.name[0].toUpperCase() : '?'}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-gray-600 truncate max-w-[80px]">
+                                                        {task.assignee?.name || 'Inconnu'}
+                                                    </span>
+                                                </div>
+
+                                                {task.dueDate && (
+                                                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black tracking-tight ${new Date(task.dueDate) < new Date() && task.status !== 'done'
+                                                        ? 'bg-red-50 text-red-600 border border-red-100'
+                                                        : 'bg-gray-50 text-gray-500 border border-gray-100'
+                                                        }`}>
+                                                        <Calendar size={12} strokeWidth={2.5} />
+                                                        {new Date(task.dueDate).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
+
+                                {colTasks.length === 0 && (
+                                    <div className="border-2 border-dashed border-gray-200/50 rounded-2xl h-32 flex items-center justify-center">
+                                        <p className="text-xs font-medium text-gray-300">Aucune tâche</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/auth';
-import { Folder, Plus, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Folder, Plus, ChevronRight, ChevronLeft, Calendar, CheckCircle2 } from 'lucide-react';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useAuthStore } from '@/lib/store';
 
@@ -21,6 +21,7 @@ interface Project {
 
 export default function ProjectsPage() {
     const { user } = useAuthStore();
+    const isModern = user?.theme === 'modern';
     const [projects, setProjects] = useState<Project[]>([]);
     const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,12 +51,8 @@ export default function ProjectsPage() {
 
     useEffect(() => {
         fetchProjects();
-    }, [page, limit]); // Re-fetch on page or limit change
+    }, [page, limit]);
 
-    // Client-side filtering for search (within current page results is tricky, 
-    // ideally search should be server-side or we accept filtering current page only)
-    // For simplicity with server pagination, we should probably move search to server-side too
-    // BUT for now, let's keep client filtering on the fetched page.
     useEffect(() => {
         const results = projects.filter(project =>
             project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,9 +71,9 @@ export default function ProjectsPage() {
                         <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                                    <h1 className={`${isModern ? 'text-4xl font-black tracking-tight' : 'text-2xl font-bold'} text-gray-900 flex items-center gap-3`}>
                                         Mes Projets
-                                        <span className="bg-gray-100 text-gray-600 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                                        <span className={`bg-gray-100 text-gray-600 ${isModern ? 'text-xs font-black uppercase tracking-wider' : 'text-sm font-medium'} px-2.5 py-0.5 rounded-full`}>
                                             {totalProjects} {totalProjects > 1 ? 'projets' : 'projet'}
                                         </span>
                                     </h1>
@@ -86,7 +83,7 @@ export default function ProjectsPage() {
                                     <NotificationBell />
                                     <Link
                                         href="/projects/new"
-                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        className={`flex items-center gap-2 px-4 py-2 ${isModern ? 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25 rounded-xl font-black' : 'bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700'} text-white transition-all`}
                                     >
                                         <Plus size={20} />
                                         <span>Nouveau Projet</span>
@@ -96,14 +93,13 @@ export default function ProjectsPage() {
 
 
                             {/* Search Bar */}
-                            {/* Note: Searching only filters current page results in this implementation */}
                             <div className="relative">
                                 <input
                                     type="text"
                                     placeholder="Rechercher sur cette page..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pl-11"
+                                    className={`w-full px-4 py-3 bg-white border border-gray-200 focus:outline-none transition-all pl-11 ${isModern ? 'rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 shadow-sm' : 'rounded-lg focus:border-blue-600'}`}
                                 />
                                 <svg
                                     className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -118,7 +114,7 @@ export default function ProjectsPage() {
 
                         {loading ? (
                             <div className="text-center py-12">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${isModern ? 'border-blue-600' : 'border-gray-400'} mx-auto`}></div>
                                 <p className="mt-4 text-gray-500">Chargement des projets...</p>
                             </div>
                         ) : error ? (
@@ -126,7 +122,7 @@ export default function ProjectsPage() {
                                 {error}
                             </div>
                         ) : filteredProjects.length === 0 ? (
-                            <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
+                            <div className={`text-center py-12 bg-white ${isModern ? 'rounded-2xl border-gray-100 shadow-xl shadow-blue-500/5' : 'rounded-lg border-gray-200 shadow-sm'} border`}>
                                 <Folder size={48} className="mx-auto text-gray-300 mb-4" />
                                 <h3 className="text-lg font-medium text-gray-900">Aucun projet trouvé</h3>
                                 <p className="text-gray-500 mt-2 mb-6">
@@ -135,7 +131,7 @@ export default function ProjectsPage() {
                                 {!searchTerm && (
                                     <Link
                                         href="/projects/new"
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        className={`inline-flex items-center gap-2 px-4 py-2 ${isModern ? 'bg-blue-600 rounded-xl font-bold font-sans' : 'bg-blue-600 rounded-lg'} text-white hover:bg-blue-700 transition-colors`}
                                     >
                                         <Plus size={20} />
                                         <span>Créer mon premier projet</span>
@@ -144,71 +140,88 @@ export default function ProjectsPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="grid gap-4">
+                                <div className="grid gap-6">
                                     {filteredProjects.map((project) => (
                                         <Link
                                             key={project._id}
                                             href={`/projects/${project._id}`}
-                                            className="block bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all group"
+                                            className={isModern
+                                                ? "group relative bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.06)] hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1 block overflow-hidden"
+                                                : "group bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all block"
+                                            }
                                         >
-                                            <div className="flex flex-col gap-4">
+                                            {isModern && <div className="absolute top-0 left-0 w-2 h-full bg-transparent group-hover:bg-blue-600 transition-all duration-300"></div>}
+
+                                            <div className="flex flex-col gap-4 md:gap-6">
                                                 <div className="flex items-start justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
-                                                            <Folder size={24} />
+                                                    <div className="flex items-center gap-4 md:gap-5 min-w-0">
+                                                        <div className={isModern
+                                                            ? "p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-inner group-hover:shadow-blue-500/25 group-hover:rotate-6"
+                                                            : "p-3 bg-gray-50 text-gray-400 rounded-lg group-hover:text-blue-500 transition-colors"
+                                                        }>
+                                                            <Folder size={isModern ? 28 : 24} strokeWidth={isModern ? 2.5 : 2} />
                                                         </div>
-                                                        <div>
-                                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                        <div className="min-w-0">
+                                                            <h3 className={isModern
+                                                                ? "text-xl font-black text-gray-900 group-hover:text-blue-700 transition-colors tracking-tight truncate"
+                                                                : "text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors truncate"
+                                                            }>
                                                                 {project.title}
                                                             </h3>
-                                                            <p className="text-sm text-gray-500 line-clamp-1 mb-1">
-                                                                {project.description || 'Aucune description'}
+                                                            <p className="text-gray-500 text-sm line-clamp-2 mt-1 leading-relaxed max-w-xl font-medium">
+                                                                {project.description || "Un espace collaboratif pour relever de nouveaux défis techniques."}
                                                             </p>
-                                                            {/* Tags */}
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {project.tags && project.tags.map(tag => (
-                                                                    <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                                                                        {tag}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <ChevronRight className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                                                    <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 ${isModern ? 'bg-gray-50 rounded-xl border-gray-100 group-hover:bg-blue-50 group-hover:border-blue-100' : 'bg-white rounded-lg border-gray-200 group-hover:border-blue-200'} border transition-colors`}>
+                                                        <ChevronRight className={`text-gray-400 ${isModern ? 'group-hover:text-blue-600' : ''}`} size={16} strokeWidth={3} />
+                                                    </div>
                                                 </div>
 
-                                                <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-50">
-                                                    <div className="flex items-center gap-4">
-                                                        <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full
-                                                            ${project.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                                project.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                                                                    'bg-gray-100 text-gray-700'
+                                                <div className={`flex flex-wrap items-center justify-between gap-4 pt-4 md:pt-6 border-t border-gray-50 mt-1`}>
+                                                    <div className="flex items-center gap-4 md:gap-6 text-xs font-bold">
+                                                        <span className={`px-2.5 py-1 ${isModern ? 'text-[10px] font-black uppercase tracking-wider rounded-lg' : 'text-[10px] uppercase rounded-md'} border
+                                                            ${project.status === 'completed'
+                                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                : project.status === 'in_progress'
+                                                                    ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                                                    : 'bg-amber-50 text-amber-600 border-amber-100'
                                                             }
                                                         `}>
-                                                            {project.status === 'completed' ? 'Terminé' :
-                                                                project.status === 'in_progress' ? 'En cours' : 'En attente'}
+                                                            {project.status === 'completed' ? 'Terminé' : project.status === 'in_progress' ? 'En cours' : 'En attente'}
                                                         </span>
-                                                        <span>
-                                                            {project.deadline ? `Pour le ${new Date(project.deadline).toLocaleDateString()}` : 'Pas de date limite'}
-                                                        </span>
-                                                    </div>
 
-                                                    {/* Members Avatars */}
-                                                    <div className="flex -space-x-2">
-                                                        {project.members && project.members.slice(0, 3).map((member, i) => (
-                                                            <div
-                                                                key={member._id || i}
-                                                                className="w-8 h-8 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-xs font-bold text-indigo-700"
-                                                                title={member.name}
-                                                            >
-                                                                {member.name ? member.name.charAt(0).toUpperCase() : '?'}
-                                                            </div>
-                                                        ))}
-                                                        {project.members && project.members.length > 3 && (
-                                                            <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
-                                                                +{project.members.length - 3}
+                                                        <div className="flex items-center gap-1.5 text-gray-400">
+                                                            <Calendar size={14} className={isModern ? "text-blue-500" : "text-gray-400"} />
+                                                            {project.deadline ? new Date(project.deadline).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Indéfinie'}
+                                                        </div>
+
+                                                        {project.tags && project.tags.length > 0 && (
+                                                            <div className="hidden md:flex gap-2">
+                                                                {project.tags.slice(0, 2).map(tag => (
+                                                                    <span key={tag} className="text-[10px] text-gray-400 uppercase tracking-widest">#{tag}</span>
+                                                                ))}
                                                             </div>
                                                         )}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex -space-x-2.5">
+                                                            {project.members && project.members.slice(0, 3).map((member, i) => (
+                                                                <div
+                                                                    key={member._id || i}
+                                                                    className={`w-8 h-8 rounded-full ${isModern ? 'bg-gradient-to-br from-indigo-500 to-blue-600 font-black text-white' : 'bg-gray-200 text-gray-600 font-bold'} border-2 border-white flex items-center justify-center text-[10px] shadow-sm`}
+                                                                    title={member.name}
+                                                                >
+                                                                    {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+                                                                </div>
+                                                            ))}
+                                                            {project.members && project.members.length > 3 && (
+                                                                <div className={`w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-400`}>
+                                                                    +{project.members.length - 3}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -217,7 +230,7 @@ export default function ProjectsPage() {
                                 </div>
 
                                 {/* Pagination Controls */}
-                                <div className="mt-8 flex flex-col md:flex-row justify-center items-center gap-6 border-t border-gray-100 pt-8">
+                                <div className={`mt-8 flex flex-col md:flex-row justify-center items-center gap-6 border-t border-gray-100 pt-8`}>
                                     <div className="flex items-center gap-2 text-sm text-gray-500">
                                         <span>Afficher</span>
                                         <select
@@ -226,7 +239,7 @@ export default function ProjectsPage() {
                                                 setLimit(Number(e.target.value));
                                                 setPage(1);
                                             }}
-                                            className="bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+                                            className={`${isModern ? 'bg-gray-50 rounded-xl px-4 py-1.5 focus:ring-4 focus:ring-blue-500/10' : 'bg-white rounded-lg px-3 py-1.5 min-w-[70px]'} border border-gray-200 outline-none focus:border-blue-500 font-bold text-gray-700 transition-all cursor-pointer`}
                                         >
                                             <option value={5}>5</option>
                                             <option value={10}>10</option>
@@ -241,18 +254,18 @@ export default function ProjectsPage() {
                                         <button
                                             onClick={() => setPage(p => Math.max(1, p - 1))}
                                             disabled={page === 1}
-                                            className="flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className={`flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 ${isModern ? 'rounded-xl' : 'rounded-lg'} text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm`}
                                         >
                                             <ChevronLeft size={16} />
                                             Précédent
                                         </button>
-                                        <span className="text-sm text-gray-600">
-                                            Page <span className="font-medium text-gray-900">{page}</span> sur <span className="font-medium text-gray-900">{totalPages}</span>
+                                        <span className="text-sm font-bold text-gray-600">
+                                            Page <span className="text-blue-600">{page}</span> sur {totalPages}
                                         </span>
                                         <button
                                             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                             disabled={page === totalPages}
-                                            className="flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className={`flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 ${isModern ? 'rounded-xl' : 'rounded-lg'} text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm`}
                                         >
                                             Suivant
                                             <ChevronRight size={16} />

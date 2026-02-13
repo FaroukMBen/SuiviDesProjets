@@ -37,7 +37,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const isLoginEndpoint = error.config?.url?.includes('/login');
+    const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+
+    if (error.response?.status === 401 && !isLoginEndpoint && !isLoginPage) {
       localStorage.removeItem('token');
 
       if (typeof window !== 'undefined') {

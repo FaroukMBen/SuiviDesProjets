@@ -6,7 +6,7 @@ class UserController {
   // 1. CRÉER UN UTILISATEUR
   static async createUser(req, res) {
     try {
-      const { name, email, password, role, academicYear, group } = req.body;
+      const { firstName, lastName, name, email, password, role, academicYear, group } = req.body;
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
@@ -16,7 +16,8 @@ class UserController {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = new User({
-        name,
+        firstName: firstName || 'inconnu',
+        lastName: lastName || name || 'inconnu',
         email,
         password: hashedPassword,
         role,
@@ -62,11 +63,30 @@ class UserController {
     }
   }
 
-  // 4. LISTER TOUS LES UTILISATEURS
+  // 4. LISTER TOUS LES UTILISATEURS (Avec pagination)
   static async getAllUsers(req, res) {
     try {
-      const users = await User.find().select('-password').sort({ createdAt: -1 });
-      res.json({ success: true, users });
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      const totalUsers = await User.countDocuments();
+      const users = await User.find()
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      res.json({
+        success: true,
+        users,
+        pagination: {
+          total: totalUsers,
+          page,
+          totalPages: Math.ceil(totalUsers / limit),
+          limit
+        }
+      });
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
@@ -80,7 +100,13 @@ class UserController {
 
       let filter = {};
       if (q) {
-        filter.name = { $regex: q, $options: 'i' };
+        const searchRegex = { $regex: q, $options: 'i' };
+        filter.$or = [
+          { firstName: searchRegex },
+          { lastName: searchRegex },
+          { name: searchRegex },
+          { email: searchRegex }
+        ];
       }
       if (role) {
         filter.role = role;
@@ -94,19 +120,51 @@ class UserController {
     }
   }
 
-  // 6. RÉCUPÉRER LES ÉTUDIANTS (Filtres)
+  // 6. RÉCUPÉRER LES ÉTUDIANTS (Filtres + Pagination)
   static async getStudents(req, res) {
     try {
-      const { year, group, search } = req.query;
+      const { year, group, search, page = 1, limit = 12 } = req.query;
 
       let query = { role: 'student' };
 
       if (year) query.academicYear = year;
       if (group) query.group = group;
-      if (search) query.name = { $regex: search, $options: 'i' };
 
-      const students = await User.find(query).select('-password');
-      res.json({ success: true, count: students.length, students });
+      if (search) {
+        const searchRegex = { $regex: search, $options: 'i' };
+        query.$or = [
+          { firstName: searchRegex },
+          { lastName: searchRegex },
+          { name: searchRegex }, // Fallback
+          { email: searchRegex }
+        ];
+      }
+
+      // Pagination
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+      const skip = (pageNum - 1) * limitNum;
+
+      const totalStudents = await User.countDocuments(query);
+
+      const students = await User.find(query)
+        .select('-password')
+        .sort({ lastName: 1, firstName: 1, name: 1 })
+        .skip(skip)
+        .limit(limitNum);
+
+      const totalPages = Math.ceil(totalStudents / limitNum);
+
+      res.json({
+        success: true,
+        students,
+        pagination: {
+          total: totalStudents,
+          pages: totalPages,
+          page: pageNum,
+          limit: limitNum
+        }
+      });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -143,13 +201,15 @@ class UserController {
       const headers = lines[0].split(/[;,]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
 
       // Mapping des index
+      const idxFirstName = headers.indexOf('firstname');
+      const idxLastName = headers.indexOf('lastname');
       const idxName = headers.indexOf('name');
       const idxEmail = headers.indexOf('email');
       const idxYear = headers.indexOf('academicyear');
       const idxGroup = headers.indexOf('group');
 
-      if (idxName === -1 || idxEmail === -1) {
-        return res.status(400).json({ success: false, message: "Le fichier doit contenir au moins les colonnes 'name' et 'email'." });
+      if (idxEmail === -1 || (idxName === -1 && (idxFirstName === -1 || idxLastName === -1))) {
+        return res.status(400).json({ success: false, message: "Le fichier doit contenir au moins les colonnes 'email' et ('firstname'/'lastname' ou 'name')." });
       }
 
       // Traitement des lignes de données (à partir de l'index 1)
@@ -164,26 +224,40 @@ class UserController {
 
         results.total++;
 
-        const name = cols[idxName];
+        const firstNameRaw = idxFirstName !== -1 ? cols[idxFirstName] : '';
+        const lastNameRaw = idxLastName !== -1 ? cols[idxLastName] : '';
+        const nameFallback = idxName !== -1 ? cols[idxName] : '';
         const email = cols[idxEmail];
-        // Si colonnes absentes, on met undefined ou val par défaut
         const academicYear = idxYear !== -1 ? cols[idxYear] : 'BUT1';
         const group = idxGroup !== -1 ? cols[idxGroup] : '';
 
-        if (!name || !email) {
+        if (!email || (!nameFallback && !lastNameRaw)) {
           results.errors++;
-          results.errorDetails.push(`Ligne ${i + 1}: Nom ou email manquant.`);
+          results.errorDetails.push(`Ligne ${i + 1}: Email ou nom manquant.`);
           continue;
         }
 
         try {
-          // On cherche si l'utilisateur existe
           let user = await User.findOne({ email });
+
+          let firstName = firstNameRaw;
+          let lastName = lastNameRaw;
+
+          if (!lastName && nameFallback) {
+            const parts = nameFallback.split(' ');
+            if (parts.length > 1) {
+              firstName = parts[0];
+              lastName = parts.slice(1).join(' ');
+            } else {
+              lastName = nameFallback;
+            }
+          }
 
           if (user) {
             // UPDATE
-            user.name = name;
-            user.role = 'student'; // On force le rôle étudiant
+            if (firstName) user.firstName = firstName;
+            if (lastName) user.lastName = lastName;
+            user.role = 'student';
             if (idxYear !== -1) user.academicYear = academicYear;
             if (idxGroup !== -1) user.group = group;
 
@@ -191,12 +265,16 @@ class UserController {
             results.updated++;
           } else {
             // CREATE
-            // Génération mot de passe par défaut (ex: 'changeme' + année)
-            // Idéalement on envoie un mail, mais ici on reste simple
             const defaultPassword = await bcrypt.hash('changeme123', 10);
 
+            if (!firstName && !lastName) {
+              firstName = 'inconnu';
+              lastName = 'inconnu';
+            }
+
             user = new User({
-              name,
+              firstName: firstName || 'inconnu',
+              lastName: lastName || 'inconnu',
               email,
               password: defaultPassword,
               role: 'student',

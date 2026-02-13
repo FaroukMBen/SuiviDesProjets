@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import api from '@/lib/auth';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 export function useProjectFiles(projectId: string, onUpdate?: () => void) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
 
     const uploadFile = async (file: File, milestoneId?: string) => {
         setUploading(true);
@@ -19,10 +23,13 @@ export function useProjectFiles(projectId: string, onUpdate?: () => void) {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             if (onUpdate) onUpdate();
+            showToast("Fichier uploadé avec succès", "success");
             return true;
         } catch (err: any) {
             console.error(err);
-            setError(err.response?.data?.message || "Erreur lors de l'upload");
+            const msg = err.response?.data?.message || "Erreur lors de l'upload";
+            setError(msg);
+            showToast(msg, "error");
             return false;
         } finally {
             setUploading(false);
@@ -30,15 +37,17 @@ export function useProjectFiles(projectId: string, onUpdate?: () => void) {
     };
 
     const deleteFile = async (fileId: string) => {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) return false;
+        if (!await confirm({ title: "Suppression", message: 'Êtes-vous sûr de vouloir supprimer ce fichier ?', type: 'danger' })) return false;
 
         try {
             await api.delete(`/api/projects/${projectId}/files/${fileId}`);
             if (onUpdate) onUpdate();
+            showToast("Fichier supprimé", "success");
             return true;
         } catch (err: any) {
             console.error(err);
-            alert(err.response?.data?.message || "Erreur lors de la suppression");
+            const msg = err.response?.data?.message || "Erreur lors de la suppression";
+            showToast(msg, "error");
             return false;
         }
     };
@@ -62,7 +71,7 @@ export function useProjectFiles(projectId: string, onUpdate?: () => void) {
             window.URL.revokeObjectURL(url);
         } catch (err) {
             console.error("Download error", err);
-            alert("Erreur lors du téléchargement");
+            showToast("Erreur lors du téléchargement", "error");
         }
     };
 

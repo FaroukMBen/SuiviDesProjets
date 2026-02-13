@@ -1,25 +1,61 @@
 const axios = require('axios');
 
 class GitHubService {
-  constructor(token) {
+  constructor(token = null) {
     this.token = token;
+    const headers = {
+      Accept: 'application/vnd.github.v3+json'
+    };
+    if (token) {
+      headers.Authorization = `token ${token}`;
+    }
     this.client = axios.create({
       baseURL: 'https://api.github.com',
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
+      headers
     });
   }
 
-  async getRepositoryCommits(owner, repo, page = 1) {
+  static parseRepositoryUrl(url) {
+    if (!url) return null;
+    const regex = /github\.com\/([^/]+)\/([^/.]+)/;
+    const match = url.match(regex);
+    if (match) {
+      return { owner: match[1], repo: match[2] };
+    }
+    return null;
+  }
+
+  // Récupérer les commits d'une branche (paginé)
+  async getRepositoryCommits(owner, repo, branch = null, page = 1, perPage = 100) {
     try {
-      const response = await this.client.get(`/repos/${owner}/${repo}/commits`, {
-        params: { per_page: 30, page }
-      });
+      const params = { per_page: perPage, page };
+      if (branch) params.sha = branch;
+      const response = await this.client.get(`/repos/${owner}/${repo}/commits`, { params });
       return response.data;
     } catch (err) {
       throw new Error(`Failed to fetch commits: ${err.message}`);
+    }
+  }
+
+  // Récupérer le détail d'un commit (avec stats additions/deletions et fichiers)
+  async getCommitDetail(owner, repo, sha) {
+    try {
+      const response = await this.client.get(`/repos/${owner}/${repo}/commits/${sha}`);
+      return response.data;
+    } catch (err) {
+      throw new Error(`Failed to fetch commit detail: ${err.message}`);
+    }
+  }
+
+  // Récupérer les branches du repo
+  async getRepositoryBranches(owner, repo) {
+    try {
+      const response = await this.client.get(`/repos/${owner}/${repo}/branches`, {
+        params: { per_page: 100 }
+      });
+      return response.data;
+    } catch (err) {
+      throw new Error(`Failed to fetch branches: ${err.message}`);
     }
   }
 
@@ -35,7 +71,8 @@ class GitHubService {
         forks: response.data.forks_count,
         watchers: response.data.watchers_count,
         language: response.data.language,
-        topics: response.data.topics
+        topics: response.data.topics,
+        defaultBranch: response.data.default_branch
       };
     } catch (err) {
       throw new Error(`Failed to fetch repo stats: ${err.message}`);

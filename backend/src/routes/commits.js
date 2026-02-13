@@ -6,6 +6,8 @@ const router = express.Router();
 
 router.get('/project/:projectId', authenticate, CommitController.getCommits);
 router.get('/project/:projectId/stats', authenticate, CommitController.getCommitStats);
+router.get('/project/:projectId/branches', authenticate, CommitController.getBranches);
+router.get('/sync-progress/:projectId', authenticate, CommitController.syncCommitsWithProgress);
 router.post('/sync/:projectId', authenticate, CommitController.syncCommitsFromGitHub);
 router.post('/github-stats', authenticate, CommitController.getGitHubStats);
 router.post('/', authenticate, CommitController.createCommit);

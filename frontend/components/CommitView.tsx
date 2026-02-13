@@ -16,7 +16,12 @@ import {
   ExternalLink,
   Filter,
   AlertTriangle,
-  Info
+  Info,
+  ShieldCheck,
+  ShieldX,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
@@ -33,14 +38,17 @@ interface Commit {
   _id: string;
   githubCommitId: string;
   message: string;
+  description: string;
   githubAuthor: {
     login: string;
     avatarUrl: string | null;
     name: string;
   };
   url: string;
+  verified: boolean;
   timestamp: string;
   branch: string;
+  branches: string[];
   filesChanged: number;
   insertions: number;
   deletions: number;
@@ -64,7 +72,13 @@ export function CommitView({ projectId }: { projectId: string }) {
   const [branches, setBranches] = useState<string[]>([]);
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStatus, setSyncStatus] = useState('');
-
+  const [historyPage, setHistoryPage] = useState(1);
+  const [selectedBranches, setSelectedBranches] = useState<Set<string>>(new Set(['main']));
+  const [allBranchesMode, setAllBranchesMode] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [selectedAuthors, setSelectedAuthors] = useState<Set<string>>(new Set());
+  const [allAuthorsMode, setAllAuthorsMode] = useState(true);
+  const COMMITS_PER_PAGE = 20;
   useEffect(() => {
     fetchProjectAndCommits();
   }, [projectId]);
@@ -74,13 +88,21 @@ export function CommitView({ projectId }: { projectId: string }) {
       setLoading(true);
       const [projRes, commitRes] = await Promise.all([
         api.get(`/api/projects/${projectId}`),
-        api.get(`/api/commits/project/${projectId}`)
+        api.get(`/api/commits/project/${projectId}?limit=all`)
       ]);
       setRepoUrl(projRes.data.project?.repositoryUrl || null);
       setCommits(commitRes.data.commits || []);
 
-      // Extraire les branches uniques des commits
-      const uniqueBranches = Array.from(new Set((commitRes.data.commits || []).map((c: Commit) => c.branch).filter(Boolean)));
+      // Extraire les branches uniques des commits (depuis branches[] et branch)
+      const allBranches = new Set<string>();
+      (commitRes.data.commits || []).forEach((c: Commit) => {
+        if (c.branches && c.branches.length > 0) {
+          c.branches.forEach((b: string) => allBranches.add(b));
+        } else if (c.branch) {
+          allBranches.add(c.branch);
+        }
+      });
+      const uniqueBranches = Array.from(allBranches);
       setBranches(uniqueBranches as string[]);
     } catch (err) {
       console.error("Erreur fetch data", err);
@@ -185,27 +207,117 @@ export function CommitView({ projectId }: { projectId: string }) {
     }
   };
 
-  // --- Filtrage par période ---
-  const getFilteredCommits = () => {
-    if (timeFilter === 'all') return commits;
-    const now = new Date();
-    const limit = new Date();
-    if (timeFilter === 'week') limit.setDate(now.getDate() - 7);
-    if (timeFilter === 'month') limit.setMonth(now.getMonth() - 1);
-    return commits.filter(c => new Date(c.timestamp) >= limit);
+  // Extraire les auteurs uniques
+  const uniqueAuthors = Array.from(
+    new Map(commits.map(c => [c.githubAuthor?.login, c.githubAuthor])).values()
+  ).filter(Boolean);
+
+  // Toggle branche
+  const toggleBranch = (b: string) => {
+    setAllBranchesMode(false);
+    setSelectedBranches(prev => {
+      const next = new Set(prev);
+      if (next.has(b)) {
+        next.delete(b);
+        if (next.size === 0) {
+          setAllBranchesMode(true);
+          return new Set();
+        }
+      } else {
+        next.add(b);
+      }
+      return next;
+    });
   };
 
+  // Toggle auteur
+  const toggleAuthor = (login: string) => {
+    setAllAuthorsMode(false);
+    setSelectedAuthors(prev => {
+      const next = new Set(prev);
+      if (next.has(login)) {
+        next.delete(login);
+        if (next.size === 0) setAllAuthorsMode(true);
+      } else {
+        next.add(login);
+      }
+      return next;
+    });
+  };
+
+  // Sélectionner toutes les branches
+  const selectAllBranches = () => {
+    setAllBranchesMode(true);
+    setSelectedBranches(new Set());
+  };
+
+  // Sélectionner tous les auteurs
+  const selectAllAuthors = () => {
+    setAllAuthorsMode(true);
+    setSelectedAuthors(new Set());
+  };
+
+  // --- Filtrage par période, branche et auteur ---
+  const getFilteredCommits = () => {
+    let filtered = commits;
+
+    // Filtre temporel
+    if (timeFilter !== 'all') {
+      const now = new Date();
+      const limit = new Date();
+      if (timeFilter === 'week') limit.setDate(now.getDate() - 7);
+      if (timeFilter === 'month') limit.setMonth(now.getMonth() - 1);
+      filtered = filtered.filter(c => new Date(c.timestamp) >= limit);
+    }
+
+    // Filtre par branches (multi-select)
+    if (!allBranchesMode && selectedBranches.size > 0) {
+      filtered = filtered.filter(c => {
+        const commitBranches = c.branches && c.branches.length > 0 ? c.branches : [c.branch].filter(Boolean);
+        return commitBranches.some(b => selectedBranches.has(b));
+      });
+    }
+
+    // Filtre par auteur
+    if (!allAuthorsMode && selectedAuthors.size > 0) {
+      filtered = filtered.filter(c => selectedAuthors.has(c.githubAuthor?.login || ''));
+    }
+
+    // Tri
+    filtered = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.timestamp).getTime();
+      const dateB = new Date(b.timestamp).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
+    return filtered;
+  };
+
+  // Reset page quand un filtre change
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [timeFilter, allBranchesMode, selectedBranches, sortOrder, allAuthorsMode, selectedAuthors]);
+
   const filteredCommits = getFilteredCommits();
+
+  // Pagination historique (client-side)
+  const totalHistoryPages = Math.ceil(filteredCommits.length / COMMITS_PER_PAGE);
+  const paginatedCommits = filteredCommits.slice(
+    (historyPage - 1) * COMMITS_PER_PAGE,
+    historyPage * COMMITS_PER_PAGE
+  );
 
   // --- Calculs Stats ---
   const totalCommits = filteredCommits.length;
   const totalInsertions = filteredCommits.reduce((acc, c) => acc + (c.insertions || 0), 0);
   const totalDeletions = filteredCommits.reduce((acc, c) => acc + (c.deletions || 0), 0);
 
-  // Commits par branche
+  // Commits par branche (utiliser branches[] pour compter un commit dans toutes ses branches)
   const commitsByBranch = filteredCommits.reduce((acc: Record<string, number>, c) => {
-    const b = c.branch || 'main';
-    acc[b] = (acc[b] || 0) + 1;
+    const branchList = c.branches && c.branches.length > 0 ? c.branches : [c.branch || 'main'];
+    for (const b of branchList) {
+      acc[b] = (acc[b] || 0) + 1;
+    }
     return acc;
   }, {});
 
@@ -539,10 +651,98 @@ export function CommitView({ projectId }: { projectId: string }) {
       ) : (
         /* ============ VUE HISTORIQUE ============ */
         <div className="space-y-3">
+          {/* Barre de filtres */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            {/* Ligne 1 : Branches */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Branches</span>
+              <button
+                onClick={selectAllBranches}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${allBranchesMode
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+              >
+                Toutes
+              </button>
+              {branches.map(b => {
+                const count = commits.filter(c =>
+                  (c.branches && c.branches.length > 0) ? c.branches.includes(b) : c.branch === b
+                ).length;
+                const isActive = !allBranchesMode && selectedBranches.has(b);
+                return (
+                  <button
+                    key={b}
+                    onClick={() => toggleBranch(b)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isActive
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                      }`}
+                  >
+                    <GitBranch size={12} /> {b} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Ligne 2 : Auteurs */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Auteurs</span>
+              <button
+                onClick={selectAllAuthors}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${allAuthorsMode
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+              >
+                Tous
+              </button>
+              {uniqueAuthors.map(author => {
+                if (!author) return null;
+                const isActive = !allAuthorsMode && selectedAuthors.has(author.login);
+                const count = commits.filter(c => c.githubAuthor?.login === author.login).length;
+                return (
+                  <button
+                    key={author.login}
+                    onClick={() => toggleAuthor(author.login)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isActive
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      }`}
+                  >
+                    {author.avatarUrl ? (
+                      <img src={author.avatarUrl} alt="" className="w-4 h-4 rounded-full" />
+                    ) : (
+                      <Users size={12} />
+                    )}
+                    @{author.login} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Ligne 3 : Tri + infos */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all"
+              >
+                <ArrowUpDown size={12} />
+                {sortOrder === 'desc' ? 'Plus récents d\'abord' : 'Plus anciens d\'abord'}
+              </button>
+              <div className="flex items-center gap-3 text-sm text-gray-400">
+                <span>{filteredCommits.length} commit(s)</span>
+                {totalHistoryPages > 1 && (
+                  <span>Page {historyPage} / {totalHistoryPages}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {filteredCommits.length === 0 && (
             <p className="text-center text-gray-400 py-12">Aucun commit sur cette période.</p>
           )}
-          {filteredCommits.map((commit) => (
+          {paginatedCommits.map((commit) => (
             <div
               key={commit._id}
               onClick={() => setSelectedCommit(commit)}
@@ -559,17 +759,30 @@ export function CommitView({ projectId }: { projectId: string }) {
                   )}
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition truncate">
-                      {commit.message.split('\n')[0]}
+                      {commit.message}
                     </p>
+                    {commit.description && (
+                      <p className="text-xs text-gray-400 mt-0.5 truncate max-w-md">
+                        {commit.description.split('\n')[0]}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
                       <span className="font-medium text-gray-700">@{commit.githubAuthor?.login}</span>
                       <span>•</span>
                       <span>{new Date(commit.timestamp).toLocaleDateString('fr-FR')} à {new Date(commit.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                      {commit.branch && (
+                      {(commit.branches && commit.branches.length > 0 ? commit.branches : [commit.branch].filter(Boolean)).map(b => (
+                        <span key={b} className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[10px] font-medium">
+                          <GitBranch size={10} /> {b}
+                        </span>
+                      ))}
+                      {(commit.branches && commit.branches.length > 0 ? commit.branches : [commit.branch].filter(Boolean)).length > 0 && (
+                        <span>•</span>
+                      )}
+                      {commit.verified && (
                         <>
                           <span>•</span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[10px] font-medium">
-                            <GitBranch size={10} /> {commit.branch}
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-medium">
+                            <ShieldCheck size={10} /> Vérifié
                           </span>
                         </>
                       )}
@@ -583,6 +796,51 @@ export function CommitView({ projectId }: { projectId: string }) {
               </div>
             </div>
           ))}
+
+          {/* Pagination controls */}
+          {totalHistoryPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <button
+                onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                disabled={historyPage === 1}
+                className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-all bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} /> Précédent
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalHistoryPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalHistoryPages || Math.abs(p - historyPage) <= 2)
+                  .reduce((acc: (number | string)[], p, idx, arr) => {
+                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, idx) =>
+                    typeof p === 'string' ? (
+                      <span key={`dots-${idx}`} className="px-2 text-gray-400">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setHistoryPage(p)}
+                        className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${historyPage === p
+                          ? 'bg-gray-900 text-white shadow-sm'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+              </div>
+              <button
+                onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
+                disabled={historyPage === totalHistoryPages}
+                className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-all bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Suivant <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -594,10 +852,21 @@ export function CommitView({ projectId }: { projectId: string }) {
             {/* Header modal */}
             <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-lg font-bold text-gray-900 leading-snug">{selectedCommit.message.split('\n')[0]}</p>
-                {selectedCommit.message.split('\n').length > 1 && (
-                  <p className="text-sm text-gray-500 mt-1 whitespace-pre-line">
-                    {selectedCommit.message.split('\n').slice(1).join('\n').trim()}
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-bold text-gray-900 leading-snug">{selectedCommit.message}</p>
+                  {selectedCommit.verified ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium flex-shrink-0">
+                      <ShieldCheck size={14} /> Vérifié
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-400 rounded-lg text-xs font-medium flex-shrink-0">
+                      <ShieldX size={14} /> Non vérifié
+                    </span>
+                  )}
+                </div>
+                {selectedCommit.description && (
+                  <p className="text-sm text-gray-500 mt-2 whitespace-pre-line bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    {selectedCommit.description}
                   </p>
                 )}
               </div>
@@ -643,12 +912,15 @@ export function CommitView({ projectId }: { projectId: string }) {
               </div>
 
               {/* Branche + SHA */}
-              <div className="flex items-center gap-3 text-sm">
-                {selectedCommit.branch && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg font-medium">
-                    <GitBranch size={14} /> {selectedCommit.branch}
+              <div className="flex items-center gap-3 text-sm flex-wrap">
+                {(selectedCommit.branches && selectedCommit.branches.length > 0
+                  ? selectedCommit.branches
+                  : [selectedCommit.branch].filter(Boolean)
+                ).map(b => (
+                  <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg font-medium">
+                    <GitBranch size={14} /> {b}
                   </span>
-                )}
+                ))}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg font-mono text-xs">
                   {selectedCommit.githubCommitId?.substring(0, 7)}
                 </span>

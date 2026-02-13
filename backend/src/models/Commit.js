@@ -11,9 +11,12 @@ const commitSchema = new mongoose.Schema({
     name: String
   },
   message: String,
+  description: { type: String, default: '' },
   url: String,
+  verified: { type: Boolean, default: false },
   timestamp: Date,
   branch: { type: String, default: 'main' },
+  branches: [{ type: String }],
   filesChanged: { type: Number, default: 0 },
   insertions: { type: Number, default: 0 },
   deletions: { type: Number, default: 0 },

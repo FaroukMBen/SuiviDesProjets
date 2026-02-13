@@ -5,11 +5,42 @@ const GitHubService = require('../services/githubService');
 class CommitController {
   static async getCommits(req, res) {
     try {
-      const commits = await Commit.find({ projectId: req.params.projectId })
-        .sort({ timestamp: -1 })
-        .limit(200);
+      const { projectId } = req.params;
+      const { page = 1, limit = 10, branch } = req.query;
 
-      res.json({ success: true, commits });
+      const query = { projectId };
+      if (branch && branch !== 'all') {
+        query.branch = branch;
+      }
+
+      const total = await Commit.countDocuments(query);
+
+      // Si limit=all, retourner tous les commits sans pagination
+      if (limit === 'all' || limit === '0') {
+        const commits = await Commit.find(query).sort({ timestamp: -1 });
+        return res.json({
+          success: true,
+          commits,
+          pagination: { page: 1, limit: total, total, pages: 1 }
+        });
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const commits = await Commit.find(query)
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      res.json({
+        success: true,
+        commits,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }
@@ -40,24 +71,18 @@ class CommitController {
     let totalSynced = 0;
     let totalUpdated = 0;
     let totalProcessed = 0;
-    let totalCommits = 0;
+    let rateLimitHit = false;
 
-    // 4. Compter le nombre total de commits (approximatif)
-    for (const branch of branches) {
-      try {
-        const commits = await githubService.getRepositoryCommits(owner, repo, branch.name, 1, 100);
-        totalCommits += commits.length;
-      } catch (e) {
-        console.warn(`Could not count commits for branch ${branch.name}`);
-      }
-    }
-
-    // 5. Synchronisation
+    // 4. Synchronisation
     for (const branch of branches) {
       let commits = [];
       try {
         commits = await githubService.getRepositoryCommits(owner, repo, branch.name);
       } catch (e) {
+        if (e.response && e.response.status === 403) {
+          rateLimitHit = true;
+          break;
+        }
         console.warn(`Skipping branch ${branch.name}: ${e.message}`);
         continue;
       }
@@ -71,11 +96,21 @@ class CommitController {
           name: commitData.commit?.author?.name || 'Unknown'
         };
 
+        // Séparer le titre (première ligne) et la description (reste du message)
+        const fullMessage = commitData.commit.message || '';
+        const messageParts = fullMessage.split('\n');
+        const messageTitle = messageParts[0] || '';
+        const messageDescription = messageParts.slice(1).join('\n').trim();
+        const verified = commitData.commit?.verification?.verified || false;
+
         const existing = await Commit.findOne({ githubCommitId: commitData.sha, projectId });
 
         if (existing) {
-          // Mise à jour si nécessaire
-          if (existing.insertions === 0 && existing.deletions === 0) {
+          // Mettre à jour les commits existants qui ont 0 en stats, pas de description, ou pas d'auteur GitHub
+          const needsUpdate = (existing.insertions === 0 && existing.deletions === 0)
+            || !existing.description
+            || existing.verified === undefined;
+          if (needsUpdate) {
             try {
               const detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
               existing.insertions = detail?.stats?.additions || 0;
@@ -89,49 +124,69 @@ class CommitController {
               }));
               existing.githubAuthor = githubAuthor;
               existing.branch = branch.name;
+              existing.message = messageTitle;
+              existing.description = messageDescription;
+              existing.verified = verified;
               await existing.save();
               totalUpdated++;
             } catch (e) {
+              if (e.response && e.response.status === 403) {
+                rateLimitHit = true;
+                break;
+              }
               console.warn(`Could not update detail for ${commitData.sha}: ${e.message}`);
             }
           }
           continue;
         }
 
-        // Création nouveau commit
-        let detail = null;
-        try {
-          detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
-        } catch (e) {
-          console.warn(`Could not fetch detail for ${commitData.sha}: ${e.message}`);
-        }
-
+        // Nouveau commit : enregistrer d'abord sans détails pour éviter rate limiting
         const newCommit = new Commit({
           projectId,
           githubCommitId: commitData.sha,
-          message: commitData.commit.message,
+          message: messageTitle,
+          description: messageDescription,
           url: commitData.html_url,
           timestamp: new Date(commitData.commit.author.date),
           branch: branch.name,
           githubAuthor,
-          filesChanged: detail?.files?.length || 0,
-          insertions: detail?.stats?.additions || 0,
-          deletions: detail?.stats?.deletions || 0,
-          files: (detail?.files || []).map(f => ({
-            filename: f.filename,
-            status: f.status,
-            additions: f.additions,
-            deletions: f.deletions
-          }))
+          verified,
+          filesChanged: 0,
+          insertions: 0,
+          deletions: 0,
+          files: []
         });
 
         try {
           await newCommit.save();
           totalSynced++;
+
+          // Essayer de récupérer les détails, mais ne pas bloquer si ça échoue
+          try {
+            const detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
+            if (detail) {
+              newCommit.filesChanged = detail?.files?.length || 0;
+              newCommit.insertions = detail?.stats?.additions || 0;
+              newCommit.deletions = detail?.stats?.deletions || 0;
+              newCommit.files = (detail?.files || []).map(f => ({
+                filename: f.filename,
+                status: f.status,
+                additions: f.additions,
+                deletions: f.deletions
+              }));
+              await newCommit.save();
+            }
+          } catch (detailError) {
+            if (detailError.response && detailError.response.status === 403) {
+              rateLimitHit = true;
+            }
+          }
         } catch (e) {
           if (e.code !== 11000) console.error(`Save error: ${e.message}`);
         }
       }
+
+      if (rateLimitHit) break;
     }
 
     return {
@@ -144,7 +199,6 @@ class CommitController {
 
   static async syncCommitsFromGitHub(req, res) {
     try {
-      let { owner, repo } = req.body; // legacy params, unused if using repositoryUrl from project
       const { projectId } = req.params;
 
       const Project = require('../models/Project');
@@ -174,6 +228,7 @@ class CommitController {
   static async syncCommitsWithProgress(req, res) {
     try {
       const { projectId } = req.params;
+      console.log(`\n========== SYNC START for project ${projectId} ==========`);
 
       // Headers SSE
       res.setHeader('Content-Type', 'text/event-stream');
@@ -188,18 +243,22 @@ class CommitController {
       const Project = require('../models/Project');
       const project = await Project.findById(projectId);
       if (!project || !project.repositoryUrl) {
+        console.log('[SYNC] No repository URL found');
         sendProgress({ error: 'Aucune URL de dépôt trouvée pour ce projet.' });
         return res.end();
       }
       const parsed = GitHubService.parseRepositoryUrl(project.repositoryUrl);
       if (!parsed) {
+        console.log('[SYNC] Invalid GitHub URL:', project.repositoryUrl);
         sendProgress({ error: 'URL GitHub invalide.' });
         return res.end();
       }
       const owner = parsed.owner;
       const repo = parsed.repo;
+      console.log(`[SYNC] Repository: ${owner}/${repo}`);
 
       const user = await User.findById(req.user.id);
+      console.log(`[SYNC] User: ${user.email}, GitHub token: ${user.githubToken ? 'YES' : 'NO'}`);
       const githubService = new GitHubService(user.githubToken || null);
 
       sendProgress({ status: 'Récupération des branches...', progress: 0 });
@@ -207,8 +266,9 @@ class CommitController {
       let branches = [];
       try {
         branches = await githubService.getRepositoryBranches(owner, repo);
+        console.log(`[SYNC] Branches found: ${branches.map(b => b.name).join(', ')}`);
       } catch (e) {
-        // Si erreur 404 et pas de token GitHub => probablement un repo privé
+        console.error(`[SYNC] Error fetching branches:`, e.message);
         if (e.response && (e.response.status === 404 || e.response.status === 403) && !user.githubToken) {
           sendProgress({
             error: 'Ce dépôt semble être privé. Connectez votre compte GitHub dans les Paramètres pour synchroniser des dépôts privés.',
@@ -217,6 +277,7 @@ class CommitController {
           return res.end();
         }
         branches = [{ name: 'main' }];
+        console.log('[SYNC] Fallback to main branch only');
       }
 
       sendProgress({ status: `${branches.length} branche(s) trouvée(s)`, progress: 5 });
@@ -224,39 +285,56 @@ class CommitController {
       let totalSynced = 0;
       let totalUpdated = 0;
       let totalProcessed = 0;
-      let totalCommits = 0;
+      let totalSkipped = 0;
+      let rateLimitHit = false;
 
-      // Compter le total
-      for (const branch of branches) {
-        try {
-          const commits = await githubService.getRepositoryCommits(owner, repo, branch.name, 1, 100);
-          totalCommits += commits.length;
-        } catch (e) {
-          console.warn(`Could not count commits for branch ${branch.name}`);
-        }
-      }
+      // Traitement branche par branche (fetch unique par branche)
+      for (let branchIdx = 0; branchIdx < branches.length; branchIdx++) {
+        const branch = branches[branchIdx];
+        const branchProgress = Math.round(5 + (branchIdx / branches.length) * 90);
 
-      sendProgress({ status: `${totalCommits} commit(s) à traiter`, progress: 10, total: totalCommits });
+        console.log(`\n--- Processing branch: ${branch.name} (${branchIdx + 1}/${branches.length}) ---`);
+        sendProgress({ status: `Récupération des commits de ${branch.name}...`, progress: branchProgress });
 
-      for (const branch of branches) {
         let commits = [];
         try {
           commits = await githubService.getRepositoryCommits(owner, repo, branch.name);
+          console.log(`[SYNC] Branch ${branch.name}: ${commits.length} commits found`);
         } catch (e) {
-          console.warn(`Skipping branch ${branch.name}: ${e.message}`);
+          console.error(`[SYNC] Error fetching commits for ${branch.name}:`, e.message);
+          if (e.response && e.response.status === 403) {
+            rateLimitHit = true;
+            break;
+          }
           continue;
         }
+
+        sendProgress({
+          status: `${commits.length} commit(s) sur ${branch.name}`,
+          progress: branchProgress,
+          processed: totalProcessed,
+          total: commits.length
+        });
 
         for (let i = 0; i < commits.length; i++) {
           const commitData = commits[i];
           totalProcessed++;
 
-          const progress = 10 + Math.round((totalProcessed / totalCommits) * 85);
+          // Séparer le titre et la description
+          const fullMessage = commitData.commit.message || '';
+          const messageParts = fullMessage.split('\n');
+          const messageTitle = messageParts[0] || '';
+          const messageDescription = messageParts.slice(1).join('\n').trim();
+          const verified = commitData.commit?.verification?.verified || false;
+
+          // Calcul de la progression
+          const withinBranchProgress = Math.round((i / commits.length) * (90 / branches.length));
+          const progress = Math.min(95, branchProgress + withinBranchProgress);
           sendProgress({
-            status: `Traitement: ${commitData.commit.message.substring(0, 50)}...`,
+            status: `[${branch.name}] ${messageTitle.substring(0, 50)}...`,
             progress,
             processed: totalProcessed,
-            total: totalCommits
+            total: 0
           });
 
           const githubAuthor = {
@@ -268,7 +346,14 @@ class CommitController {
           const existing = await Commit.findOne({ githubCommitId: commitData.sha, projectId });
 
           if (existing) {
-            if (existing.insertions === 0 && existing.deletions === 0) {
+            // Toujours ajouter la branche courante à la liste des branches
+            if (!existing.branches.includes(branch.name)) {
+              existing.branches.push(branch.name);
+            }
+            const needsUpdate = (existing.insertions === 0 && existing.deletions === 0)
+              || !existing.description
+              || existing.verified === undefined;
+            if (needsUpdate) {
               try {
                 const detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
                 existing.insertions = detail?.stats?.additions || 0;
@@ -281,12 +366,18 @@ class CommitController {
                   deletions: f.deletions
                 }));
                 existing.githubAuthor = githubAuthor;
-                existing.branch = branch.name;
+                existing.message = messageTitle;
+                existing.description = messageDescription;
+                existing.verified = verified;
                 await existing.save();
                 totalUpdated++;
               } catch (e) {
-                console.warn(`Could not update detail for ${commitData.sha}: ${e.message}`);
+                console.warn(`[SYNC] Could not update detail for ${commitData.sha}: ${e.message}`);
+                try { await existing.save(); } catch (_) { }
               }
+            } else {
+              try { await existing.save(); } catch (_) { }
+              totalSkipped++;
             }
             continue;
           }
@@ -295,17 +386,20 @@ class CommitController {
           try {
             detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
           } catch (e) {
-            console.warn(`Could not fetch detail for ${commitData.sha}: ${e.message}`);
+            console.warn(`[SYNC] Could not fetch detail for ${commitData.sha}: ${e.message}`);
           }
 
           const newCommit = new Commit({
             projectId,
             githubCommitId: commitData.sha,
-            message: commitData.commit.message,
+            message: messageTitle,
+            description: messageDescription,
             url: commitData.html_url,
             timestamp: new Date(commitData.commit.author.date),
             branch: branch.name,
+            branches: [branch.name],
             githubAuthor,
+            verified,
             filesChanged: detail?.files?.length || 0,
             insertions: detail?.stats?.additions || 0,
             deletions: detail?.stats?.deletions || 0,
@@ -320,14 +414,23 @@ class CommitController {
           try {
             await newCommit.save();
             totalSynced++;
+            console.log(`[SYNC] NEW commit saved: ${commitData.sha.substring(0, 7)} - ${messageTitle.substring(0, 40)}`);
           } catch (e) {
             if (e.code !== 11000) console.error(`Save error: ${e.message}`);
           }
         }
+
+        if (rateLimitHit) break;
       }
 
+      console.log(`\n========== SYNC COMPLETE for project ${projectId} ==========`);
+      console.log(`- New commits: ${totalSynced}`);
+      console.log(`- Updated details: ${totalUpdated}`);
+      console.log(`- Skipped (already exists): ${totalSkipped}`);
+      console.log(`- Total processed: ${totalProcessed}`);
+
       sendProgress({
-        status: 'Terminé !',
+        status: rateLimitHit ? 'Synchronisation partielle (Limite API)' : 'Synchronisation terminée !',
         progress: 100,
         complete: true,
         newCount: totalSynced,
@@ -337,7 +440,7 @@ class CommitController {
 
       res.end();
     } catch (err) {
-      console.error('Sync error:', err);
+      console.error('[SYNC] FATAL ERROR:', err);
       res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
       res.end();
     }

@@ -25,16 +25,38 @@ class GitHubService {
     return null;
   }
 
-  // Récupérer les commits d'une branche (paginé)
+  // Récupérer TOUS les commits d'une branche (auto-pagination robuste)
   async getRepositoryCommits(owner, repo, branch = null, page = 1, perPage = 100) {
-    try {
-      const params = { per_page: perPage, page };
-      if (branch) params.sha = branch;
-      const response = await this.client.get(`/repos/${owner}/${repo}/commits`, { params });
-      return response.data;
-    } catch (err) {
-      throw new Error(`Failed to fetch commits: ${err.message}`);
+    const allCommits = [];
+    let currentPage = page;
+    while (true) {
+      try {
+        const params = { per_page: perPage, page: currentPage };
+        if (branch) params.sha = branch;
+        console.log(`[GitHub] Fetching commits page ${currentPage} for ${owner}/${repo}${branch ? ` (branch: ${branch})` : ''}`);
+        const response = await this.client.get(`/repos/${owner}/${repo}/commits`, { params });
+        const data = response.data;
+        if (!data || data.length === 0) break;
+        allCommits.push(...data);
+        console.log(`[GitHub] Page ${currentPage}: ${data.length} commits (total so far: ${allCommits.length})`);
+        // Si on a reçu moins que perPage, c'est la dernière page
+        if (data.length < perPage) break;
+        currentPage++;
+      } catch (err) {
+        // Si rate limit (403), propager l'erreur avec l'objet response intact
+        if (err.response && err.response.status === 403) {
+          console.warn(`[GitHub] Rate limit hit on page ${currentPage}. Returning ${allCommits.length} commits collected so far.`);
+          if (allCommits.length > 0) return allCommits;
+          throw err; // Propager l'erreur originale (pas un new Error) pour garder .response
+        }
+        // Pour les autres erreurs, retourner ce qu'on a déjà si possible
+        console.warn(`[GitHub] Error on page ${currentPage}: ${err.message}. Returning ${allCommits.length} commits collected so far.`);
+        if (allCommits.length > 0) return allCommits;
+        throw err;
+      }
     }
+    console.log(`[GitHub] Total commits fetched for ${branch || 'default'}: ${allCommits.length}`);
+    return allCommits;
   }
 
   // Récupérer le détail d'un commit (avec stats additions/deletions et fichiers)

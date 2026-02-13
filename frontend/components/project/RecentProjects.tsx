@@ -61,18 +61,25 @@ export function RecentProjects() {
   }
 
   return (
-    <div className="space-y-6 m-5">
-      <div className="flex justify-between items-center px-1">
-        <h2 className="text-lg font-bold text-gray-900">Projets récents</h2>
-        <Link href="/projects" className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-          Voir tout <ArrowRight size={14} />
+    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/20 p-6 space-y-4">
+      <div className="flex justify-between items-end px-1 pb-2">
+        <div>
+          <h2 className="text-lg font-black text-gray-900">Projets récents</h2>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter mt-1">Vos derniers travaux</p>
+        </div>
+        <Link
+          href="/projects"
+          className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase tracking-widest transition-all group"
+        >
+          Voir tout
+          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {projects.map((project) => (
           <Link key={project._id} href={`/projects/${project._id}`} className="block group">
-            <Card className="h-full hover:shadow-md hover:border-blue-200 transition-all cursor-pointer relative flex flex-col">
+            <Card className="h-full hover:shadow-md hover:border-blue-200 transition-all cursor-pointer relative flex flex-col p-4">
               {/* Indicateur visuel d'activité récente */}
               <div className="absolute top-4 right-4 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
 

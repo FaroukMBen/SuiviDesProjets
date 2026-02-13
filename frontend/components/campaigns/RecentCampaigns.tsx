@@ -67,18 +67,25 @@ export function RecentCampaigns() {
   }
 
   return (
-    <div className="space-y-6 m-5">
-      <div className="flex justify-between items-center px-1">
-        <h2 className="text-lg font-bold text-gray-900">Mes Campagnes actives</h2>
-        <Link href="/campaigns" className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-          Gérer tout <ArrowRight size={14} />
+    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/20 p-6 space-y-4">
+      <div className="flex justify-between items-end px-1 pb-2">
+        <div>
+          <h2 className="text-lg font-black text-gray-900">Mes Campagnes actives</h2>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter mt-1">Suivi de vos modules</p>
+        </div>
+        <Link
+          href="/campaigns"
+          className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase tracking-widest transition-all group"
+        >
+          Gérer tout
+          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {campaigns.map((campaign) => (
           <Link key={campaign._id} href={`/campaigns/${campaign._id}`} className="block group">
-            <Card className="h-full hover:shadow-md hover:border-purple-200 transition-all cursor-pointer relative flex flex-col p-5">
+            <Card className="h-full hover:shadow-md hover:border-purple-200 transition-all cursor-pointer relative flex flex-col p-4">
 
               {/* Badge Statut */}
               <div className="absolute top-4 right-4">

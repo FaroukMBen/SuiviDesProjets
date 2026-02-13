@@ -29,7 +29,7 @@ export default function ProjectsPage() {
 
     // Pagination
     const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(10);
+    const [limit, setLimit] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [totalProjects, setTotalProjects] = useState(0);
 
@@ -228,6 +228,7 @@ export default function ProjectsPage() {
                                             }}
                                             className="bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
                                         >
+                                            <option value={5}>5</option>
                                             <option value={10}>10</option>
                                             <option value={15}>15</option>
                                             <option value={20}>20</option>

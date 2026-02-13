@@ -67,6 +67,7 @@ export function Navbar() {
     { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Mes Campagnes', href: '/campaigns', icon: LayoutTemplate },
     { name: 'Validations', href: '/validations', icon: ClipboardCheck },
+    { name: 'Messagerie', href: '/messagerie', icon: MessageSquare },
     { name: 'Étudiants', href: '/students', icon: Users },
     { name: 'Notifications', href: '/notifications', icon: Bell },
   ];

@@ -7,12 +7,13 @@ import { useRouter } from 'next/navigation';
 // On définit les props acceptées par le composant
 interface Props {
   children: React.ReactNode;
-  requireAdmin?: boolean; // ✨ Nouvelle option (fausse par défaut)
+  requireAdmin?: boolean;
+  allowedRoles?: string[];
 }
 
-export default function ProtectedRoute({ children, requireAdmin = false }: Props) {
+export default function ProtectedRoute({ children, requireAdmin = false, allowedRoles }: Props) {
   // On récupère le token ET l'utilisateur (pour voir son rôle)
-  const { token, user } = useAuthStore(); 
+  const { token, user } = useAuthStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -33,10 +34,15 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Props
   // 2. Vérification Admin : Si la page demande 'requireAdmin' et que l'user n'est pas admin
   if (requireAdmin && user?.role !== 'admin') {
     // On le redirige vers le dashboard standard (ou une page 403)
-    router.push('/dashboard'); 
+    router.push('/dashboard');
     return null;
   }
 
-  // Si tout est bon, on affiche la page
+  // 3. Vérification Rôles Spécifiques
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    router.push('/dashboard');
+    return null;
+  }
+
   return <>{children}</>;
 }

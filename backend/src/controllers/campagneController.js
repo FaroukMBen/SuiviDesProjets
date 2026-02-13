@@ -1,4 +1,7 @@
 const Campaign = require('../models/Campagne');
+const mongoose = require('mongoose');
+const path = require('path');
+const { Readable } = require('stream');
 
 class CampaignController {
 
@@ -185,6 +188,150 @@ class CampaignController {
       res.status(500).json({ message: error.message });
     }
   };
+
+
+  // --- GESTION DES RESSOURCES (COURS / SUJET) ---
+
+  static async uploadResource(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const campaign = await Campaign.findById(req.params.id);
+      if (!campaign) {
+        return res.status(404).json({ success: false, message: 'Campagne introuvable' });
+      }
+
+      // Check permissions (Manager/CoManager/Admin)
+      const isManager = campaign.manager.toString() === req.user.id;
+      const isCoManager = campaign.coManagers?.some(id => id.toString() === req.user.id);
+      const isAdmin = req.user.role === 'admin';
+
+      if (!isManager && !isCoManager && !isAdmin) {
+        return res.status(403).json({ success: false, message: 'Non autorisé' });
+      }
+
+      // Prepare GridFS Bucket
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads'
+      });
+
+      // Generate unique filename
+      const filename = `camp-${campaign._id}-${Date.now()}${path.extname(req.file.originalname)}`;
+
+      // Create upload stream
+      const uploadStream = bucket.openUploadStream(filename, {
+        contentType: req.file.mimetype,
+        metadata: {
+          originalName: req.file.originalname,
+          campaignId: campaign._id
+        }
+      });
+
+      // Convert buffer to stream and pipe to GridFS
+      const readableStream = new Readable();
+      readableStream.push(req.file.buffer);
+      readableStream.push(null);
+
+      readableStream.pipe(uploadStream)
+        .on('error', (error) => {
+          return res.status(500).json({ success: false, message: 'Erreur upload', error: error.message });
+        })
+        .on('finish', async () => {
+          try {
+            const newResource = {
+              name: req.body.name || req.file.originalname,
+              path: `/api/campaigns/resources/${filename}`, // API URL to access file
+              type: req.file.mimetype,
+              size: req.file.size,
+              uploadedAt: new Date()
+            };
+
+            campaign.resources.push(newResource);
+            await campaign.save();
+
+            // Populate return
+            await campaign.populate('manager coManagers', 'name email');
+
+            return res.json({ success: true, campaign });
+          } catch (err) {
+            return res.status(500).json({ success: false, message: err.message });
+          }
+        });
+
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  static async streamResource(req, res) {
+    try {
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads'
+      });
+
+      const filename = req.params.filename;
+      const downloadStream = bucket.openDownloadStreamByName(filename);
+
+      downloadStream.on('error', (error) => {
+        res.status(404).json({ success: false, message: 'Fichier introuvable' });
+      });
+
+      downloadStream.pipe(res);
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  static async deleteResource(req, res) {
+    try {
+      const { id, resourceId } = req.params;
+      const campaign = await Campaign.findById(id);
+
+      if (!campaign) {
+        return res.status(404).json({ success: false, message: 'Campagne introuvable' });
+      }
+
+      // Check permissions
+      const isManager = campaign.manager.toString() === req.user.id;
+      const isCoManager = campaign.coManagers?.some(mid => mid.toString() === req.user.id);
+      const isAdmin = req.user.role === 'admin';
+
+      if (!isManager && !isCoManager && !isAdmin) {
+        return res.status(403).json({ success: false, message: 'Non autorisé' });
+      }
+
+      // Find resource
+      const resource = campaign.resources.id(resourceId);
+      if (!resource) {
+        return res.status(404).json({ success: false, message: 'Ressource introuvable' });
+      }
+
+      // Delete from GridFS
+      const filename = resource.path.split('/').pop();
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads'
+      });
+
+      // Find file by filename to get ID? Or delete by name? GridFS bucket usually deletes by ID.
+      // We need to find the file ID first.
+      const files = await bucket.find({ filename }).toArray();
+      if (files.length > 0) {
+        await bucket.delete(files[0]._id);
+      }
+
+      // Remove from campaign array
+      campaign.resources.pull(resourceId);
+      await campaign.save();
+      await campaign.populate('manager coManagers', 'name email');
+
+      res.json({ success: true, campaign });
+
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
 
   static async getGroupsByYear(req, res) {
     try {

@@ -147,7 +147,7 @@ class ProjectController {
       const isOwner = project.owner._id.toString() === req.user.id;
       const isMember = project.members.some(m => m._id.toString() === req.user.id);
 
-      if (!isOwner && !isMember && req.user.role !== 'admin') {
+      if (!isOwner && !isMember && req.user.role !== 'admin' && req.user.role !== 'instructor') {
         return res.status(403).json({ success: false, message: 'Access denied' });
       }
 

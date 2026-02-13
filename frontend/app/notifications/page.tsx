@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import api from '@/lib/auth';
+import { useToast } from '@/components/ui/Toast';
 import {
     Bell,
     Check,
@@ -38,6 +39,8 @@ export default function NotificationsPage() {
     const isModern = user?.theme === 'modern';
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const { showToast } = useToast();
 
     const fetchNotifications = async () => {
         try {
@@ -75,8 +78,9 @@ export default function NotificationsPage() {
                     status: 'read'
                 } : n)
             );
+            showToast(action === 'accept' ? "Invitation acceptée" : "Invitation refusée", "success");
         } catch (error) {
-            alert("Une erreur est survenue lors de la réponse à l'invitation.");
+            showToast("Une erreur est survenue lors de la réponse à l'invitation.", "error");
         }
     };
 

@@ -10,6 +10,7 @@ router.get('/', authenticate, ProjectController.getAllProjects);
 router.post('/', authenticate, validateProjectCreate, ProjectController.createProject);
 router.get('/:id', authenticate, ProjectController.getProjectById);
 router.put('/:id', authenticate, ProjectController.updateProject);
+router.delete('/:id/github', authenticate, ProjectController.unlinkGitHubRepository);
 router.put('/:id/link-campaign', authenticate, ProjectController.linkCampaign);
 router.post('/:id/members', authenticate, ProjectController.addMember);
 router.delete('/:id/members', authenticate, ProjectController.removeMember);

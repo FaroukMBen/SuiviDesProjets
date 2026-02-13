@@ -10,6 +10,9 @@ import { UserSearch } from '@/components/UserSearch';
 import { Send, MessageSquare, MoreVertical, Phone, Video, Users, Plus, UserPlus, Trash2, LogOut, Info, X } from 'lucide-react';
 import { format } from 'date-fns';
 
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
+
 interface User {
   _id: string;
   firstName?: string;
@@ -55,6 +58,9 @@ export default function MessageriePage() {
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   // UI States
   const [showNewChat, setShowNewChat] = useState(false);
@@ -176,10 +182,10 @@ export default function MessageriePage() {
         recipientId: selectedUser._id
       });
 
-      alert('Invitation envoyée !');
+      showToast('Invitation envoyée !', 'success');
       setShowInviteModal(false);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Erreur lors de l\'invitation');
+      showToast(error.response?.data?.message || 'Erreur lors de l\'invitation', 'error');
     }
   };
 
@@ -191,11 +197,11 @@ export default function MessageriePage() {
     const isAdmin = activeConversation.admin === myUserId;
 
     if (isGroup && !isAdmin) {
-      alert("Seul le créateur du groupe peut le supprimer. Vous pouvez cependant quitter le groupe.");
+      showToast("Seul le créateur du groupe peut le supprimer. Vous pouvez cependant quitter le groupe.", "warning");
       return;
     }
 
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette conversation ? Cette action est irréversible.")) {
+    if (!await confirm({ title: "Supprimer la conversation", message: "Êtes-vous sûr de vouloir supprimer cette conversation ? Cette action est irréversible.", type: "danger" })) {
       return;
     }
 
@@ -203,10 +209,10 @@ export default function MessageriePage() {
       await api.delete(`/api/chat/${activeConversation._id}`);
       setConversations(conversations.filter(c => c._id !== activeConversation._id));
       setActiveConversation(null);
-      alert("Conversation supprimée.");
+      showToast("Conversation supprimée.", "success");
     } catch (error) {
       console.error("Delete error:", error);
-      alert("Erreur lors de la suppression.");
+      showToast("Erreur lors de la suppression.", "error");
     }
   };
 
@@ -214,21 +220,21 @@ export default function MessageriePage() {
     if (!activeConversation || !activeConversation.isGroup) return;
     setShowMenu(false);
 
-    if (!window.confirm("Voulez-vous vraiment quitter ce groupe ?")) return;
+    if (!await confirm({ title: "Quitter le groupe", message: "Voulez-vous vraiment quitter ce groupe ?", type: "warning" })) return;
 
     try {
       await api.post('/api/chat/leave-group', { conversationId: activeConversation._id });
       setConversations(conversations.filter(c => c._id !== activeConversation._id));
       setActiveConversation(null);
-      alert("Vous avez quitté le groupe.");
+      showToast("Vous avez quitté le groupe.", "success");
     } catch (error: any) {
-      alert('Erreur: ' + (error.response?.data?.message || 'Impossible de quitter le groupe'));
+      showToast('Erreur: ' + (error.response?.data?.message || 'Impossible de quitter le groupe'), "error");
     }
   };
 
   const handleKickMember = async (userIdToKick: string) => {
     if (!activeConversation || !activeConversation.isGroup) return;
-    if (!window.confirm("Voulez-vous retirer ce membre du groupe ?")) return;
+    if (!await confirm({ title: "Retirer le membre", message: "Voulez-vous retirer ce membre du groupe ?", type: "warning" })) return;
 
     try {
       const { data } = await api.post('/api/chat/remove-member', {
@@ -243,7 +249,7 @@ export default function MessageriePage() {
       setConversations(conversations.map(c => c._id === activeConversation._id ? updatedConversation : c));
 
     } catch (error: any) {
-      alert('Erreur: ' + (error.response?.data?.message || 'Impossible de retirer le membre'));
+      showToast('Erreur: ' + (error.response?.data?.message || 'Impossible de retirer le membre'), "error");
     }
   }
 

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Plus, MoreHorizontal, Calendar, GripVertical, Trash2, Pencil, X, User as UserIcon } from 'lucide-react'; // Installe lucide-react
 import api from '@/lib/auth';
 import { useAuthStore } from '@/lib/store';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 interface Member {
   _id: string;
@@ -36,6 +38,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<Member[]>([]); // Ajout état membres
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   // États pour l'ajout rapide
   const [isAdding, setIsAdding] = useState<string | null>(null);
@@ -107,19 +111,21 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       setNewTaskAssignee('');
       setNewTaskDueDate('');
       setIsAdding(null);
+      showToast("Tâche créée avec succès", "success");
     } catch (err) {
-      alert("Erreur création tâche");
+      showToast("Erreur création tâche", "error");
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm("Voulez-vous vraiment supprimer cette tâche ?")) return;
+    if (!await confirm({ title: "Supprimer la tâche", message: "Voulez-vous vraiment supprimer cette tâche ?", type: "danger", confirmText: "Supprimer" })) return;
     try {
       await api.delete(`/api/tasks/${taskId}`);
       setTasks(tasks.filter(t => t._id !== taskId));
+      showToast("Tâche supprimée", "success");
     } catch (err) {
       console.error("Erreur suppression tâche", err);
-      alert("Impossible de supprimer la tâche");
+      showToast("Impossible de supprimer la tâche", "error");
     }
   };
 
@@ -137,9 +143,10 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       // Mettre à jour l'état local avec la nouvelle tâche retournée (qui a le bon populate)
       setTasks(tasks.map(t => t._id === updatedTask._id ? response.data.task : t));
       setEditingTask(null);
+      showToast("Tâche modifiée", "success");
     } catch (err) {
       console.error("Erreur modification tâche", err);
-      alert("Impossible de modifier la tâche");
+      showToast("Impossible de modifier la tâche", "error");
     }
   };
 

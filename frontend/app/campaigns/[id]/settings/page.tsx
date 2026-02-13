@@ -13,6 +13,8 @@ import {
     User
 } from 'lucide-react';
 import { EvaluationGridEditor } from '@/components/campaigns/EvaluationGridEditor';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 const GROUPS_OPTIONS = ['G1', 'G2', 'G3', 'G4'];
 
@@ -20,6 +22,8 @@ export default function CampaignSettingsPage() {
     const params = useParams();
     const router = useRouter();
     const id = params.id as string;
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
 
     const [campaign, setCampaign] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -134,25 +138,25 @@ export default function CampaignSettingsPage() {
 
             await api.put(`/api/campaigns/${id}`, { ...formData, evaluationTemplate: cleanedTemplate });
 
-            alert("Modifications enregistrées avec succès !");
+            showToast("Modifications enregistrées avec succès !", "success");
             router.refresh();
         } catch (err) {
             console.error(err);
-            alert("Erreur lors de la sauvegarde.");
+            showToast("Erreur lors de la sauvegarde.", "error");
         } finally {
             setSaving(false);
         }
     };
 
     const handleDelete = async () => {
-        if (!confirm("Êtes-vous sûr de vouloir supprimer définitivement cette campagne et toutes ses données associées (jalons, projets, etc.) ? Cette action est irréversible.")) return;
+        if (!await confirm({ title: "Supprimer la campagne", message: "Êtes-vous sûr de vouloir supprimer définitivement cette campagne et toutes ses données associées (jalons, projets, etc.) ? Cette action est irréversible.", type: "danger" })) return;
 
         try {
             await api.delete(`/api/campaigns/${id}`);
             router.push('/campaigns');
         } catch (err) {
             console.error(err);
-            alert("Erreur lors de la suppression.");
+            showToast("Erreur lors de la suppression.", "error");
         }
     };
 

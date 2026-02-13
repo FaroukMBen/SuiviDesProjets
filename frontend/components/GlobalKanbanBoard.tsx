@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { MoreHorizontal, Calendar, Pencil, Trash2, X, User } from 'lucide-react';
 import api from '@/lib/auth';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 interface Member {
     _id: string;
@@ -42,6 +44,8 @@ export function GlobalKanbanBoard() {
     const { user } = useAuthStore();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -86,12 +90,13 @@ export function GlobalKanbanBoard() {
     }
 
     const handleDeleteTask = async (taskId: string) => {
-        if (!confirm("Voulez-vous vraiment supprimer cette tâche ?")) return;
+        if (!await confirm({ title: "Supprimer la tâche", message: "Voulez-vous vraiment supprimer cette tâche ?", type: "danger" })) return;
         try {
             await api.delete(`/api/tasks/${taskId}`);
             setTasks(tasks.filter(t => t._id !== taskId));
+            showToast("Tâche supprimée", "success");
         } catch (err) {
-            alert("Impossible de supprimer la tâche");
+            showToast("Impossible de supprimer la tâche", "error");
         }
     };
 
@@ -114,8 +119,9 @@ export function GlobalKanbanBoard() {
 
             setTasks(tasks.map(t => t._id === updatedTask._id ? newTask : t));
             setEditingTask(null);
+            showToast("Tâche mise à jour", "success");
         } catch (err) {
-            alert("Impossible de modifier la tâche");
+            showToast("Impossible de modifier la tâche", "error");
         }
     };
 

@@ -9,14 +9,14 @@ export function useProjectFiles(projectId: string, onUpdate?: () => void) {
     const { showToast } = useToast();
     const { confirm } = useConfirm();
 
-    const uploadFile = async (file: File, milestoneId?: string) => {
+    const uploadFile = async (file: File, milestoneId?: string, title?: string, description?: string) => {
         setUploading(true);
         setError('');
         const formData = new FormData();
         formData.append('file', file);
-        if (milestoneId) {
-            formData.append('milestoneId', milestoneId);
-        }
+        if (milestoneId) formData.append('milestoneId', milestoneId);
+        if (title) formData.append('title', title);
+        if (description) formData.append('description', description);
 
         try {
             await api.post(`/api/projects/${projectId}/files`, formData, {

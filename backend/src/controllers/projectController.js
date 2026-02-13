@@ -324,6 +324,7 @@ class ProjectController {
         })
         .on('finish', async () => {
           try {
+            const { title, description, milestoneId } = req.body;
             // Create Livrable
             const newLivrable = new Livrable({
               studentId: req.user.id,
@@ -331,14 +332,18 @@ class ProjectController {
               fileId: uploadStream.id, // GridFS file ID
               filename: filename,
               originalName: req.file.originalname,
+              title: title || req.file.originalname,
+              description: description || '',
               mimetype: req.file.mimetype,
-              milestoneId: req.body.milestoneId || undefined // Optional linkage
+              milestoneId: milestoneId || undefined // Optional linkage
             });
 
             await newLivrable.save();
 
             const newFile = {
-              name: req.file.originalname,
+              name: newLivrable.title,
+              description: newLivrable.description,
+              filename: filename,
               path: `api/projects/files/${filename}`,
               mimetype: req.file.mimetype,
               uploadedAt: newLivrable.uploadDate,

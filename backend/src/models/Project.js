@@ -12,7 +12,9 @@ const projectSchema = new mongoose.Schema({
   deadline: Date,
   tags: [String],
   files: [{
-    name: String,
+    name: String, // Titre du livrable
+    description: String,
+    filename: String, // Nom physique du fichier
     path: String,
     mimetype: String,
     uploadedAt: { type: Date, default: Date.now },

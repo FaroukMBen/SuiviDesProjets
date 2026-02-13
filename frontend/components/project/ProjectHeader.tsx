@@ -53,7 +53,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   };
 
   return (
-    <div className={`bg-white border-b border-gray-100 px-8 pt-6 pb-0 sticky top-0 z-40 transition-all duration-300 ${isModern ? 'shadow-sm' : 'shadow-none'}`}>
+    <div className={`bg-white/95 backdrop-blur-md border-b border-gray-200 px-8 pt-6 pb-0 sticky top-0 z-40 transition-all duration-300 ${isModern ? 'shadow-sm' : 'shadow-md shadow-gray-200/50'}`}>
       <div className="max-w-[1600px] mx-auto">
 
         {/* Top bar avec Breadcrumbs / Actions / Profil */}
@@ -118,7 +118,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar translate-y-px">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar translate-y-[1px]">
           {tabs.map((tab) => {
             const isActive = tab.exact
               ? pathname === tab.href
@@ -132,8 +132,12 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
                   px-6 py-3 text-xs uppercase tracking-widest border-b-2 transition-all whitespace-nowrap
                   ${isModern ? 'font-black rounded-t-[1.2rem]' : 'font-bold rounded-t-md'}
                   ${isActive
-                    ? isModern ? 'bg-[#f3f4f6] border-blue-600 text-blue-600' : 'bg-white border-blue-600 text-blue-700 border-x border-t border-b-white translate-y-[2px]'
-                    : isModern ? 'bg-transparent border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50' : 'bg-transparent border-transparent text-gray-500 hover:text-blue-700 hover:bg-gray-50'}
+                    ? isModern
+                      ? 'bg-[#f3f4f6] border-blue-600 text-blue-600'
+                      : 'bg-gray-50 border-blue-600 text-blue-700 border-x border-t border-b-gray-50 translate-y-0 shadow-sm'
+                    : isModern
+                      ? 'bg-transparent border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                      : 'bg-transparent border-transparent text-gray-500 hover:text-blue-700 hover:bg-gray-50'}
                 `}
               >
                 {tab.name}

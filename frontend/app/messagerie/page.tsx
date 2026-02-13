@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuthStore } from '@/lib/store';
+import { useSearchParams } from 'next/navigation';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import api from '@/lib/auth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
@@ -43,7 +44,10 @@ interface Conversation {
 
 export default function MessageriePage() {
   const { user } = useAuthStore();
-  const isModern = user?.theme === 'modern';
+  const searchParams = useSearchParams();
+  const conversationIdParam = searchParams.get('conversationId');
+  const { theme } = useThemeStore();
+  const isModern = theme === 'modern';
 
   const formatRole = (role?: string) => {
     switch (role) {
@@ -74,11 +78,22 @@ export default function MessageriePage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+
   useEffect(() => {
     fetchConversations();
     const interval = setInterval(fetchConversations, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Effect to select conversation from URL param once conversations are loaded
+  useEffect(() => {
+    if (conversationIdParam && conversations.length > 0 && !activeConversation) {
+      const conversationToSelect = conversations.find(c => c._id === conversationIdParam);
+      if (conversationToSelect) {
+        setActiveConversation(conversationToSelect);
+      }
+    }
+  }, [conversationIdParam, conversations, activeConversation]);
 
   useEffect(() => {
     if (activeConversation) {
@@ -321,24 +336,24 @@ export default function MessageriePage() {
 
           {/* Main Content */}
           <main className="flex-1 p-6 overflow-hidden flex flex-col">
-            <div className={`flex-1 ${isModern ? 'bg-white/80 backdrop-blur-xl rounded-[2.5rem]' : 'bg-white rounded-2xl'} overflow-hidden shadow-2xl border border-slate-200 flex`}>
+            <div className={`flex-1 ${isModern ? 'bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-slate-200' : 'bg-white rounded-lg border-gray-300'} overflow-hidden shadow-2xl border flex`}>
 
               {/* Sidebar - Conversations List */}
-              <div className={`w-80 border-r border-slate-200 ${isModern ? 'bg-slate-50/50' : 'bg-slate-50'} flex flex-col`}>
-                <div className={`p-5 border-b border-slate-200 ${isModern ? 'bg-transparent' : 'bg-white shadow-sm'} z-10 flex flex-col gap-3`}>
+              <div className={`w-80 border-r ${isModern ? 'border-slate-200 bg-slate-50/50' : 'border-gray-200 bg-gray-50'} flex flex-col`}>
+                <div className={`p-5 border-b ${isModern ? 'border-slate-200 bg-transparent' : 'border-gray-200 bg-white'} z-10 flex flex-col gap-3`}>
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Discussions</h2>
+                    <h2 className={`text-xl font-black ${isModern ? 'text-slate-800' : 'text-gray-700'} tracking-tight`}>Discussions</h2>
                     <div className="flex gap-1">
                       <button
                         onClick={() => { setShowNewChat(!showNewChat); setShowCreateGroup(false); }}
-                        className={`p-2.5 ${isModern ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:scale-105' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'} rounded-xl transition-all`}
+                        className={`p-2.5 ${isModern ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:scale-105 rounded-xl' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md'} transition-all`}
                         title="Nouveau message"
                       >
                         <MessageSquare size={18} strokeWidth={isModern ? 2.5 : 2} />
                       </button>
                       <button
                         onClick={() => { setShowCreateGroup(!showCreateGroup); setShowNewChat(false); }}
-                        className={`p-2.5 ${isModern ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:scale-105' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'} rounded-xl transition-all`}
+                        className={`p-2.5 ${isModern ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:scale-105 rounded-xl' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md'} transition-all`}
                         title="Créer un groupe"
                       >
                         <Users size={18} strokeWidth={isModern ? 2.5 : 2} />
@@ -354,6 +369,7 @@ export default function MessageriePage() {
                         buttonText="Discuter"
                         placeholder="Chercher une personne..."
                         excludeIds={[user?.id || '']}
+                        excludeRoles={user?.role === 'student' ? ['admin'] : undefined}
                       />
                     </div>
                   )}
@@ -393,38 +409,38 @@ export default function MessageriePage() {
                         <div
                           key={conv._id}
                           onClick={() => setActiveConversation(conv)}
-                          className={`p-4 cursor-pointer transition-all border-b border-slate-100 relative
+                          className={`p-4 cursor-pointer transition-all border-b ${isModern ? 'border-slate-100' : 'border-gray-200'} relative
                             ${isActive
-                              ? (isModern ? 'bg-white shadow-md z-[1] scale-[1.02] rounded-xl mx-2 my-1 border-b-transparent' : 'bg-white border-l-4 border-l-blue-500 shadow-sm')
-                              : (isModern ? 'hover:bg-white/60 hover:shadow-sm hover:scale-[1.01] rounded-lg mx-1' : 'hover:bg-slate-100')}`}
+                              ? (isModern ? 'bg-white shadow-md z-[1] scale-[1.02] rounded-xl mx-2 my-1 border-b-transparent' : 'bg-blue-50 border-l-4 border-l-blue-600')
+                              : (isModern ? 'hover:bg-white/60 hover:shadow-sm hover:scale-[1.01] rounded-lg mx-1' : 'hover:bg-gray-100')}`}
                         >
                           {isActive && isModern && <div className="absolute left-0 top-3 bottom-3 w-1.5 bg-blue-600 rounded-full" />}
                           <div className="flex items-center gap-3">
                             <div className="relative">
                               {displayImage ? (
-                                <img src={displayImage} alt={displayName} className={`w-12 h-12 ${isModern ? 'rounded-2xl' : 'rounded-full'} object-cover shadow-sm`} />
+                                <img src={displayImage} alt={displayName} className={`w-12 h-12 ${isModern ? 'rounded-2xl' : 'rounded-md'} object-cover shadow-sm`} />
                               ) : (
-                                <div className={`w-12 h-12 ${isModern ? 'rounded-2xl shadow-inner' : 'rounded-full'} flex items-center justify-center font-bold text-sm ${conv.isGroup ? (isModern ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-600') : (isModern ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600')}`}>
+                                <div className={`w-12 h-12 ${isModern ? 'rounded-2xl shadow-inner' : 'rounded-md'} flex items-center justify-center font-bold text-sm ${conv.isGroup ? (isModern ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700 border border-indigo-200') : (isModern ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 border border-blue-200')}`}>
                                   {conv.isGroup ? <Users size={20} /> : (displayName ? displayName[0] : '?')}
                                 </div>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-baseline mb-1">
-                                <h4 className="font-semibold text-slate-800 text-sm truncate">{displayName}</h4>
+                                <h4 className={`font-semibold ${isModern ? 'text-slate-800' : 'text-gray-900'} text-sm truncate`}>{displayName}</h4>
                                 {conv.lastMessage && (
                                   <span className="text-[10px] text-slate-400">
                                     {format(new Date(conv.updatedAt), 'HH:mm')}
                                   </span>
                                 )}
                               </div>
-                              <p className={`text-xs truncate ${isActive ? 'text-slate-600' : 'text-slate-400'}`}>
+                              <p className={`text-xs truncate ${isActive ? (isModern ? 'text-slate-600' : 'text-blue-800 font-medium') : 'text-slate-500'}`}>
                                 {conv.lastMessage ? (
                                   <span className="flex items-center gap-1">
                                     {isMeSender ? (
-                                      <span className="font-medium text-slate-500">Vous:</span>
+                                      <span className="font-medium opacity-75">Vous:</span>
                                     ) : (
-                                      <span className="font-medium text-slate-500">
+                                      <span className="font-medium opacity-75">
                                         {conv.lastMessage.sender.firstName || conv.lastMessage.sender.name || 'Inconnu'}:
                                       </span>
                                     )}
@@ -444,17 +460,17 @@ export default function MessageriePage() {
               </div>
 
               {/* Main Chat Area */}
-              <div className="flex-1 flex flex-col bg-slate-50/50 relative">
+              <div className={`flex-1 flex flex-col ${isModern ? 'bg-slate-50/50' : 'bg-white'} relative`}>
                 {activeConversation ? (
                   <>
                     {/* Chat Header */}
-                    <div className={`p-4 ${isModern ? 'bg-white/90 backdrop-blur-md px-6' : 'bg-white px-4'} border-b border-slate-200 flex items-center justify-between shadow-sm z-20`}>
+                    <div className={`p-4 ${isModern ? 'bg-white/90 backdrop-blur-md px-6' : 'bg-white border-b border-gray-200'} flex items-center justify-between shadow-sm z-20`}>
                       <div className="flex items-center gap-4 cursor-pointer" onClick={() => { if (activeConversation.isGroup) setShowMembersModal(true) }}>
-                        <div className={`w-11 h-11 ${isModern ? 'rounded-2xl shadow-lg shadow-blue-500/20' : 'rounded-full'} flex items-center justify-center font-bold ${activeConversation.isGroup ? (isModern ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-600') : (isModern ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600')}`}>
+                        <div className={`w-11 h-11 ${isModern ? 'rounded-2xl shadow-lg shadow-blue-500/20' : 'rounded-md border border-gray-200'} flex items-center justify-center font-bold ${activeConversation.isGroup ? (isModern ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700') : (isModern ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700')}`}>
                           {activeConversation.isGroup ? <Users size={22} /> : getConversationName(activeConversation)[0]}
                         </div>
                         <div>
-                          <h3 className={`font-black ${isModern ? 'text-lg tracking-tight' : ''} text-slate-800`}>{getConversationName(activeConversation)}</h3>
+                          <h3 className={`font-black ${isModern ? 'text-lg tracking-tight' : 'text-base font-bold'} text-slate-800`}>{getConversationName(activeConversation)}</h3>
                           <p className="text-xs text-slate-500 capitalize">{getConversationRole(activeConversation)}</p>
                         </div>
                       </div>
@@ -524,6 +540,7 @@ export default function MessageriePage() {
                             buttonText="Inviter"
                             placeholder="Rechercher..."
                             excludeIds={activeConversation.participants.map(p => p._id)}
+                            excludeRoles={user?.role === 'student' ? ['admin'] : undefined}
                           />
                           <button
                             onClick={() => setShowInviteModal(false)}
@@ -537,7 +554,7 @@ export default function MessageriePage() {
                     </div>
 
                     {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f8fafc]">
+                    <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${isModern ? 'bg-[#f8fafc]' : 'bg-[#e5e7eb]'}`}>
                       {messages.map((msg, index) => {
                         const isMe = msg.sender._id === user?.id;
                         const isSameSenderAsPrevious = index > 0 && messages[index - 1].sender._id === msg.sender._id;
@@ -546,7 +563,7 @@ export default function MessageriePage() {
                           <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
                             <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
                               {!isSameSenderAsPrevious && !isMe && (
-                                <span className="text-xs text-slate-400 ml-1 mb-1">
+                                <span className="text-xs text-slate-500 ml-1 mb-1 font-semibold">
                                   {msg.sender.firstName ? `${msg.sender.firstName} ${msg.sender.lastName || ''}`.trim() : (msg.sender.name || 'Inconnu')}
                                 </span>
                               )}
@@ -556,15 +573,15 @@ export default function MessageriePage() {
                                 ${isMe
                                   ? (isModern
                                     ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-[1.5rem] rounded-tr-none shadow-blue-200/50'
-                                    : 'bg-blue-600 text-white rounded-2xl rounded-tr-none')
+                                    : 'bg-blue-600 text-white rounded-lg rounded-tr-none')
                                   : (isModern
                                     ? 'bg-white text-slate-700 rounded-[1.5rem] rounded-tl-none border border-slate-100 shadow-slate-100'
-                                    : 'bg-white text-slate-700 rounded-2xl rounded-tl-none border border-slate-200')}
+                                    : 'bg-white text-gray-800 rounded-lg rounded-tl-none border border-gray-200')}
                               `}>
                                 {msg.content}
                               </div>
 
-                              <span className={`text-[10px] mt-1 px-1 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}>
+                              <span className={`text-[10px] mt-1 px-1 ${isMe ? 'text-slate-500' : 'text-slate-500'}`}>
                                 {format(new Date(msg.createdAt), 'HH:mm')}
                               </span>
                             </div>
@@ -575,19 +592,19 @@ export default function MessageriePage() {
                     </div>
 
                     {/* Input Area */}
-                    <div className={`p-4 ${isModern ? 'bg-white/50 backdrop-blur-sm px-6 pb-6' : 'bg-white'} border-t border-slate-200 z-20`}>
+                    <div className={`p-4 ${isModern ? 'bg-white/50 backdrop-blur-sm px-6 pb-6 border-t border-slate-200' : 'bg-gray-100 border-t border-gray-200'} z-20`}>
                       <form onSubmit={handleSendMessage} className="flex items-center gap-3">
                         <input
                           type="text"
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
                           placeholder="Écrivez votre message..."
-                          className={`flex-1 p-3.5 ${isModern ? 'bg-white rounded-2xl shadow-inner border border-slate-100' : 'bg-slate-100 border-0 rounded-xl'} focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm`}
+                          className={`flex-1 p-3.5 ${isModern ? 'bg-white rounded-2xl shadow-inner border border-slate-100' : 'bg-white border border-gray-300 rounded-md'} focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm`}
                         />
                         <button
                           type="submit"
                           disabled={!newMessage.trim()}
-                          className={`p-3.5 ${isModern ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30' : 'bg-blue-600 shadow-md shadow-blue-500/20'} text-white rounded-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
+                          className={`p-3.5 ${isModern ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 rounded-2xl' : 'bg-blue-600 text-white rounded-md hover:bg-blue-700'} text-white hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
                         >
                           <Send size={20} strokeWidth={isModern ? 2.5 : 2} />
                         </button>
@@ -596,7 +613,7 @@ export default function MessageriePage() {
                   </>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
-                    <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                    <div className={`w-24 h-24 ${isModern ? 'bg-slate-100 rounded-full' : 'bg-gray-200 rounded-lg'} flex items-center justify-center mb-6`}>
                       <MessageSquare size={40} className="text-slate-300" />
                     </div>
                     <h3 className="text-xl font-semibold text-slate-600">Vos conversations</h3>
@@ -666,6 +683,7 @@ export default function MessageriePage() {
                         buttonText="Inviter"
                         placeholder="Chercher quelqu'un..."
                         excludeIds={activeConversation.participants.map(p => p._id)}
+                        excludeRoles={user?.role === 'student' ? ['admin'] : undefined}
                       />
                     </div>
                   )}

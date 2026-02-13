@@ -73,10 +73,11 @@ export function Navbar() {
 
   const adminItems = [
     { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Utilisateurs', href: '/admin/users', icon: CheckSquare },
-    { name: 'Campagnes', href: '/admin/campaigns', icon: CheckSquare },
-    { name: 'Projets', href: '/admin/projects', icon: CheckSquare }
-  ]
+    { name: 'Utilisateurs', href: '/admin/users', icon: Users },
+    { name: 'Campagnes', href: '/admin/campaigns', icon: LayoutTemplate },
+    { name: 'Projets', href: '/admin/projects', icon: Folder },
+    { name: 'Messagerie', href: '/messagerie', icon: MessageSquare }
+  ];
 
 
   let navItems;

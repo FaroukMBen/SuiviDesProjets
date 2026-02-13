@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge'; // Le composant qu'on a créé au début
 
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import { NotificationBell } from '@/components/NotificationBell';
+import { Sparkles, Layout } from 'lucide-react';
 
 interface ProjectHeaderProps {
   project: {
@@ -19,61 +20,88 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ project }: ProjectHeaderProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const baseUrl = `/projects/${project._id}`;
 
   const tabs = [
     { name: 'Aperçu', href: baseUrl, exact: true },
-    { name: 'Tâches (Kanban)', href: `${baseUrl}/kanban` },
-    { name: 'Objectifs & Jalons', href: `${baseUrl}/milestones` },
-    { name: 'Git', href: `${baseUrl}/commits` },
+    { name: 'Kanban', href: `${baseUrl}/kanban` },
+    { name: 'Jalons', href: `${baseUrl}/milestones` },
+    { name: 'GitHub', href: `${baseUrl}/commits` },
     { name: 'Feedback', href: `${baseUrl}/feedback` },
     { name: 'Évaluation', href: `${baseUrl}/evaluations` },
-    { name: 'Paramètres', href: `${baseUrl}/settings` },
+    { name: 'Configuration', href: `${baseUrl}/settings` },
   ];
 
+  const isModern = theme === 'modern';
+
   return (
-    <div className="bg-white border-b border-gray-200 px-8 pt-8 pb-0">
+    <div className={`bg-white border-b border-gray-100 px-8 pt-6 pb-0 sticky top-0 z-40 transition-all duration-300 ${isModern ? 'shadow-sm' : 'shadow-none'}`}>
       <div className="max-w-[1600px] mx-auto">
 
-        {/* Ligne 1 : Badges & Infos + User Profile */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            {project.tags?.[0] ? (
-              <Badge variant="blue">{project.tags[0]}</Badge>
-            ) : (
-              <Badge variant="blue">Projet</Badge>
-            )}
-            <span className="text-sm text-gray-500 font-medium">
-              Prof: <span className="text-gray-900">{project.owner?.name}</span>
-            </span>
-            <Link href={`${baseUrl}/commits`} className="text-sm text-blue-600 hover:underline font-medium ml-2">
-              Git
-            </Link>
+        {/* Top bar avec Breadcrumbs / Actions / Profil */}
+        <div className="flex items-center justify-between mb-2">
+          <div className={`flex items-center gap-3 text-xs font-bold uppercase tracking-widest ${isModern ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Link href="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className={isModern ? 'text-gray-900' : 'text-gray-700'}>Projet</span>
           </div>
 
-          {/* User Profile Section */}
           <div className="flex items-center gap-4">
+
+            <button
+              onClick={toggleTheme}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isModern
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Layout size={14} />
+              <span>{isModern ? 'Mode Modern' : 'Mode Classique'}</span>
+            </button>
+            <div className="h-6 w-px bg-gray-100"></div>
             <NotificationBell />
-            <div className="h-8 w-px bg-gray-200 mx-2"></div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-gray-900">
-                {user ? `${user.firstName} ${user.lastName || user.name}` : 'Utilisateur'}
-              </p>
-              <p className="text-xs text-gray-500">
-                {user?.role === 'admin' ? 'Administrateur' : user?.role || 'Étudiant'}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm">
-              {user?.firstName ? user.firstName[0] : (user?.name ? user.name[0] : 'U')}
+            <div className="h-6 w-px bg-gray-100"></div>
+            <div className={`flex items-center gap-3 border transition-all ${isModern
+              ? 'bg-gray-50 pl-4 pr-1 py-1 rounded-2xl border-gray-100'
+              : 'bg-white px-3 py-1 rounded-lg border-gray-200 shadow-sm'
+              }`}>
+              <div className="text-right">
+                <p className={`text-xs text-gray-900 leading-none mb-1 ${isModern ? 'font-black' : 'font-bold'}`}>
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className={`text-[10px] font-bold uppercase tracking-tighter ${isModern ? 'text-blue-600' : 'text-gray-400'}`}>
+                  {user?.role === 'admin' ? 'Administrateur' : user?.role === 'instructor' ? 'Enseignant' : 'Étudiant'}
+                </p>
+              </div>
+              <div className={`flex items-center justify-center text-white text-[10px] transition-all ${isModern
+                ? 'w-8 h-8 bg-blue-600 rounded-xl font-black shadow-lg shadow-blue-200'
+                : 'w-8 h-8 bg-slate-800 rounded-lg font-bold shadow-sm'
+                }`}>
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Ligne 2 : Titre */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">{project.title}</h1>
+        {/* Titre & Badges */}
+        <div className="flex items-end gap-4 mb-6">
+          <h1 className={`text-3xl text-gray-900 tracking-tight leading-none ${isModern ? 'font-black' : 'font-bold underline decoration-blue-500/20 decoration-4 underline-offset-[12px]'}`}>
+            {project.title}
+          </h1>
+          <div className="flex gap-2 mb-1">
+            {project.tags?.map(tag => (
+              <span key={tag} className={`px-2 py-0.5 text-[10px] uppercase tracking-wider transition-all ${isModern
+                ? 'bg-blue-50 text-blue-600 font-black rounded-md'
+                : 'bg-white text-gray-700 font-bold border border-gray-200 rounded-sm'
+                }`}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
 
-        {/* Ligne 3 : Navigation (Tabs) */}
-        <div className="flex gap-1 overflow-x-auto no-scrollbar">
+        {/* Tab Navigation */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar translate-y-px">
           {tabs.map((tab) => {
             const isActive = tab.exact
               ? pathname === tab.href
@@ -84,10 +112,11 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
                 key={tab.name}
                 href={tab.href}
                 className={`
-                  px-5 py-2.5 text-sm font-medium rounded-t-xl border-b-2 transition-all whitespace-nowrap
+                  px-6 py-3 text-xs uppercase tracking-widest border-b-2 transition-all whitespace-nowrap
+                  ${isModern ? 'font-black rounded-t-[1.2rem]' : 'font-bold rounded-t-md'}
                   ${isActive
-                    ? 'bg-gray-100 border-gray-900 text-gray-900'
-                    : 'bg-transparent border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}
+                    ? isModern ? 'bg-[#f3f4f6] border-blue-600 text-blue-600' : 'bg-white border-blue-600 text-blue-700 border-x border-t border-b-white translate-y-[2px]'
+                    : isModern ? 'bg-transparent border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50' : 'bg-transparent border-transparent text-gray-500 hover:text-blue-700 hover:bg-gray-50'}
                 `}
               >
                 {tab.name}
@@ -96,6 +125,6 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           })}
         </div>
       </div>
-    </div>
+    </div >
   );
 }

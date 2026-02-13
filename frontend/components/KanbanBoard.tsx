@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, MoreHorizontal, Calendar, GripVertical, Trash2, Pencil, X, User as UserIcon } from 'lucide-react'; // Installe lucide-react
 import api from '@/lib/auth';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 
@@ -35,6 +35,7 @@ const COLUMNS = [
 
 export function KanbanBoard({ projectId }: { projectId: string }) {
   const { user } = useAuthStore();
+  // const { theme } = useThemeStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<Member[]>([]); // Ajout état membres
   const [loading, setLoading] = useState(true);
@@ -430,12 +431,12 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
           return (
             <div
               key={col.id}
-              className="flex flex-col h-auto min-h-[500px] rounded-xl bg-gray-50/10 border border-gray-200 shadow-sm"
+              className="flex flex-col h-auto min-h-[500px] rounded-lg bg-gray-50/10 border border-gray-200 shadow-sm"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, col.id)}
             >
               {/* Header Colonne */}
-              <div className="p-4 flex items-center justify-between border-b border-gray-100 bg-white rounded-t-xl">
+              <div className="p-4 flex items-center justify-between border-b border-gray-100 bg-white rounded-t-lg">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-gray-700 text-sm">{col.label}</h3>
                   <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs font-semibold">
@@ -457,7 +458,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
                 {/* Zone d'ajout rapide (Input) */}
                 {isAdding === col.id && (
-                  <div className="bg-white p-3 rounded-xl border-2 border-blue-100 shadow-sm animate-in fade-in zoom-in-95 duration-200">
+                  <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm animate-in fade-in zoom-in-95 duration-200">
                     <input
                       autoFocus
                       placeholder="Nom de la tâche..."
@@ -502,7 +503,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                     key={task._id}
                     draggable
                     onDragStart={() => setDraggedTaskId(task._id)}
-                    className="group bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
+                    className="group bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
                   >
                     <div className="absolute left-0 top-3 bottom-3 w-1 bg-transparent group-hover:bg-blue-500 rounded-r-full transition-all"></div>
 
@@ -557,7 +558,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       {/* Modal d'édition SIMPLIFIÉ */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-lg w-full max-w-sm shadow-2xl p-6 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-800">Modifier la tâche</h3>
               <button
@@ -579,7 +580,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                   type="text"
                   value={editingTask.title}
                   onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all font-bold text-gray-700"
+                  className="w-full p-2.5 rounded-md border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-bold text-gray-700"
                 />
               </div>
 
@@ -593,7 +594,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                     const member = members.find(m => m._id === memberId);
                     setEditingTask({ ...editingTask, assignee: member });
                   }}
-                  className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50/50 font-bold text-gray-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
+                  className="w-full p-3 rounded-md border border-gray-200 bg-gray-50/50 font-bold text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
                 >
                   <option value="">-- Non assigné --</option>
                   {members.map(m => (
@@ -609,20 +610,20 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                   type="date"
                   value={editingTask.dueDate ? new Date(editingTask.dueDate).toISOString().split('T')[0] : ''}
                   onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all font-bold text-gray-700"
+                  className="w-full p-2.5 rounded-md border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-bold text-gray-700"
                 />
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button
                   onClick={() => setEditingTask(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition"
+                  className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={() => handleUpdateTask(editingTask)}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-200 transition"
+                  className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-200 transition"
                 >
                   Enregistrer
                 </button>

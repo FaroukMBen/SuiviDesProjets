@@ -66,8 +66,9 @@ exports.sendCampaignNotification = async (req, res) => {
 exports.getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ recipient: req.user.id })
-            .populate('sender', 'name email')
+            .populate('sender', 'firstName lastName name email profilePicture')
             .populate('project', 'title')
+            .populate('conversation', 'name isGroup')
             .sort({ createdAt: -1 });
         res.json(notifications);
     } catch (error) {

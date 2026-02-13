@@ -5,6 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import api from '@/lib/auth';
 import { useToast } from '@/components/ui/Toast';
+import Link from 'next/link';
 import {
     Bell,
     Check,
@@ -12,23 +13,32 @@ import {
     Info,
     UserPlus,
     Calendar,
-    CheckCircle2
+    CheckCircle2,
+    MessageSquare
 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 interface Notification {
     _id: string;
-    type: 'INVITATION' | 'INFO';
+    type: 'INVITATION' | 'INFO' | 'MESSAGE';
     message: string;
     status: 'unread' | 'read';
     project?: {
         _id: string;
         title: string;
     };
+    conversation?: {
+        _id: string;
+        name?: string;
+        isGroup: boolean;
+    };
     sender?: {
-        name: string;
+        name?: string;
+        firstName?: string;
+        lastName?: string;
+        profilePicture?: string;
     };
     createdAt: string;
     actionStatus?: 'pending' | 'accepted' | 'declined';
@@ -36,7 +46,9 @@ interface Notification {
 
 export default function NotificationsPage() {
     const { user } = useAuthStore();
-    const isModern = user?.theme === 'modern';
+    const { theme } = useThemeStore();
+    const isModern = theme === 'modern';
+
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -57,12 +69,13 @@ export default function NotificationsPage() {
         fetchNotifications();
     }, []);
 
-    const markAsRead = async (id: string) => {
+    const markAsRead = async (id: string, redirectUrl?: string) => {
         try {
             await api.put(`/api/notifications/${id}/read`);
             setNotifications(prev =>
                 prev.map(n => n._id === id ? { ...n, status: 'read' } : n)
             );
+            // Redirection is handled by Link usually
         } catch (error) {
             console.error(error);
         }
@@ -143,17 +156,22 @@ export default function NotificationsPage() {
                                                 <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-all duration-500 group-hover:rotate-12 group-hover:scale-110
                                             ${notification.type === 'INVITATION'
                                                         ? 'bg-gradient-to-br from-purple-50 to-indigo-50 text-purple-600'
-                                                        : 'bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-600'
+                                                        : notification.type === 'MESSAGE'
+                                                            ? 'bg-gradient-to-br from-indigo-50 to-blue-50 text-indigo-600'
+                                                            : 'bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-600'
                                                     }
                                         `}>
-                                                    {notification.type === 'INVITATION' ? <UserPlus size={24} strokeWidth={2.5} /> : <Info size={24} strokeWidth={2.5} />}
+                                                    {notification.type === 'INVITATION' ? <UserPlus size={24} strokeWidth={2.5} /> :
+                                                        notification.type === 'MESSAGE' ? <MessageSquare size={24} strokeWidth={2.5} /> :
+                                                            <Info size={24} strokeWidth={2.5} />}
                                                 </div>
 
                                                 <div className="flex-1">
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex flex-col">
                                                             <h4 className="text-gray-900 font-black text-lg tracking-tight leading-tight">
-                                                                {notification.type === 'INVITATION' ? 'Invitation Projet' : 'Nouvelle Information'}
+                                                                {notification.type === 'INVITATION' ? 'Invitation Projet' :
+                                                                    notification.type === 'MESSAGE' ? 'Nouveau Message' : 'Nouvelle Information'}
                                                             </h4>
                                                             <span className="text-xs font-black uppercase tracking-widest text-gray-400 mt-2 flex items-center gap-2">
                                                                 <Calendar size={14} className="text-blue-500" />
@@ -196,7 +214,17 @@ export default function NotificationsPage() {
                                                             </div>
                                                         )}
 
-                                                        {notification.type === 'INFO' && notification.status === 'unread' && (
+                                                        {notification.type === 'MESSAGE' && (
+                                                            <Link
+                                                                href="/messagerie"
+                                                                onClick={() => markAsRead(notification._id)}
+                                                                className="group/btn flex items-center gap-2 px-6 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-black hover:bg-indigo-100 transition-all border border-indigo-100"
+                                                            >
+                                                                <MessageSquare size={18} /> Répondre
+                                                            </Link>
+                                                        )}
+
+                                                        {(notification.type === 'INFO' || (notification.type === 'MESSAGE' && false)) && notification.status === 'unread' && (
                                                             <button
                                                                 onClick={() => markAsRead(notification._id)}
                                                                 className="text-xs font-black text-blue-600 bg-blue-50/50 px-8 py-3 rounded-2xl hover:bg-blue-100/50 transition-all tracking-wider border border-blue-100"
@@ -239,8 +267,12 @@ export default function NotificationsPage() {
                                 notifications.map((notification) => (
                                     <div key={notification._id} className={`p-6 bg-white border rounded-xl shadow-sm flex justify-between items-center transition-all ${notification.status === 'unread' ? 'border-l-4 border-l-blue-600 border-blue-100 bg-blue-50/20' : 'border-gray-200'}`}>
                                         <div className="flex gap-4">
-                                            <div className={`p-3 rounded-lg flex items-center justify-center h-fit ${notification.type === 'INVITATION' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                {notification.type === 'INVITATION' ? <UserPlus size={20} /> : <Info size={20} />}
+                                            <div className={`p-3 rounded-lg flex items-center justify-center h-fit ${notification.type === 'INVITATION' ? 'bg-purple-100 text-purple-600' :
+                                                    notification.type === 'MESSAGE' ? 'bg-indigo-100 text-indigo-600' :
+                                                        'bg-blue-100 text-blue-600'}`}>
+                                                {notification.type === 'INVITATION' ? <UserPlus size={20} /> :
+                                                    notification.type === 'MESSAGE' ? <MessageSquare size={20} /> :
+                                                        <Info size={20} />}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-800">{notification.message}</p>
@@ -254,6 +286,18 @@ export default function NotificationsPage() {
                                                 )}
                                                 {notification.actionStatus === 'accepted' && <p className="text-xs font-bold text-emerald-600 mt-2">✓ Vous avez rejoint le projet</p>}
                                                 {notification.actionStatus === 'declined' && <p className="text-xs font-bold text-red-600 mt-2">✗ Invitation déclinée</p>}
+
+                                                {notification.type === 'MESSAGE' && (
+                                                    <div className="mt-4">
+                                                        <Link
+                                                            href="/messagerie"
+                                                            onClick={() => markAsRead(notification._id)}
+                                                            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition inline-flex items-center gap-2"
+                                                        >
+                                                            <MessageSquare size={14} /> Répondre
+                                                        </Link>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         {notification.status === 'unread' && notification.type === 'INFO' && (

@@ -4,6 +4,7 @@ const Livrable = require('../models/Livrable');
 const mongoose = require('mongoose');
 const { Readable } = require('stream');
 const path = require('path');
+const CommitController = require('./commitController');
 
 class ProjectController {
 
@@ -119,8 +120,14 @@ class ProjectController {
           await Notification.insertMany(invitations);
         }
       }
-
       await project.populate('owner members', 'name email profilePicture');
+
+      // Sync automatique si URL GitHub présente
+      if (repositoryUrl) {
+        CommitController.syncRepository(project._id, repositoryUrl, req.user.id)
+          .then(result => console.log(`Auto-sync for project ${project._id}: ${result.totalSynced} new commits`))
+          .catch(err => console.error(`Auto-sync failed for project ${project._id}:`, err.message));
+      }
 
       res.status(201).json({ success: true, project });
     } catch (err) {

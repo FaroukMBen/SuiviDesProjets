@@ -17,9 +17,11 @@ interface UserSearchProps {
     excludeIds?: string[];
     placeholder?: string;
     buttonText?: string;
+    role?: string;
+    excludeRoles?: string[];
 }
 
-export function UserSearch({ onSelect, excludeIds = [], placeholder = 'Rechercher un étudiant...', buttonText = 'Ajouter' }: UserSearchProps) {
+export function UserSearch({ onSelect, excludeIds = [], placeholder = 'Rechercher un étudiant...', buttonText = 'Ajouter', role, excludeRoles }: UserSearchProps) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<User[]>([]);
     const [searching, setSearching] = useState(false);
@@ -33,7 +35,9 @@ export function UserSearch({ onSelect, excludeIds = [], placeholder = 'Recherche
 
             setSearching(true);
             try {
-                const response = await api.get(`/api/users/search?q=${encodeURIComponent(query)}`);
+                const roleParam = role ? `&role=${role}` : '';
+                const excludeRolesParam = excludeRoles ? `&excludeRoles=${excludeRoles.join(',')}` : '';
+                const response = await api.get(`/api/users/search?q=${encodeURIComponent(query)}${roleParam}${excludeRolesParam}`);
                 const filtered = response.data.users.filter((u: User) => !excludeIds.includes(u._id));
                 setResults(filtered);
             } catch (error) {

@@ -124,8 +124,8 @@ class UserController {
   // 5. RECHERCHER (Pour l'admin ou général)
   static async searchUsers(req, res) {
     try {
-      const { q, role } = req.query;
-      if (!q && !role) return res.json({ success: true, users: [] });
+      const { q, role, excludeRoles } = req.query;
+      if (!q && !role && !excludeRoles) return res.json({ success: true, users: [] });
 
       let filter = {};
       if (q) {
@@ -139,6 +139,20 @@ class UserController {
       }
       if (role) {
         filter.role = role;
+      }
+
+      if (excludeRoles) {
+        const excluded = excludeRoles.split(',').filter(r => r.trim() !== '');
+        if (excluded.length > 0) {
+          if (filter.role) {
+            // Si on a déjà un filtre par rôle, on vérifie qu'il n'est pas dans les exclus
+            if (excluded.includes(filter.role)) {
+              return res.json({ success: true, users: [] });
+            }
+          } else {
+            filter.role = { $nin: excluded };
+          }
+        }
       }
 
       const users = await User.find(filter).select('-password');

@@ -15,140 +15,154 @@ class CommitController {
     }
   }
 
-  static async syncCommitsFromGitHub(req, res) {
+  static async syncRepository(projectId, repositoryUrl, userId) {
+    const Project = require('../models/Project');
+
+    // 1. Validation de l'URL
+    const parsed = GitHubService.parseRepositoryUrl(repositoryUrl);
+    if (!parsed) {
+      throw new Error('URL GitHub invalide.');
+    }
+    const { owner, repo } = parsed;
+
+    // 2. Récupération du token utilisateur
+    const user = await User.findById(userId);
+    const githubService = new GitHubService(user.githubToken || null);
+
+    // 3. Récupération des branches
+    let branches = [];
     try {
-      let { owner, repo } = req.body;
-      const { projectId } = req.params;
+      branches = await githubService.getRepositoryBranches(owner, repo);
+    } catch (e) {
+      branches = [{ name: 'main' }];
+    }
 
-      if (!owner || !repo) {
-        const Project = require('../models/Project');
-        const project = await Project.findById(projectId);
-        if (!project || !project.repositoryUrl) {
-          return res.status(400).json({ success: false, message: 'Aucune URL de dépôt trouvée pour ce projet.' });
-        }
-        const parsed = GitHubService.parseRepositoryUrl(project.repositoryUrl);
-        if (!parsed) {
-          return res.status(400).json({ success: false, message: 'URL GitHub invalide.' });
-        }
-        owner = parsed.owner;
-        repo = parsed.repo;
-      }
+    let totalSynced = 0;
+    let totalUpdated = 0;
+    let totalProcessed = 0;
+    let totalCommits = 0;
 
-      const user = await User.findById(req.user.id);
-      const githubService = new GitHubService(user.githubToken || null);
-
-      // Récupérer les branches
-      let branches = [];
+    // 4. Compter le nombre total de commits (approximatif)
+    for (const branch of branches) {
       try {
-        branches = await githubService.getRepositoryBranches(owner, repo);
+        const commits = await githubService.getRepositoryCommits(owner, repo, branch.name, 1, 100);
+        totalCommits += commits.length;
       } catch (e) {
-        branches = [{ name: 'main' }];
+        console.warn(`Could not count commits for branch ${branch.name}`);
+      }
+    }
+
+    // 5. Synchronisation
+    for (const branch of branches) {
+      let commits = [];
+      try {
+        commits = await githubService.getRepositoryCommits(owner, repo, branch.name);
+      } catch (e) {
+        console.warn(`Skipping branch ${branch.name}: ${e.message}`);
+        continue;
       }
 
-      let totalSynced = 0;
-      let totalUpdated = 0;
-      let totalProcessed = 0;
-      let totalCommits = 0;
+      for (const commitData of commits) {
+        totalProcessed++;
 
-      // Compter le nombre total de commits à traiter
-      for (const branch of branches) {
-        try {
-          const commits = await githubService.getRepositoryCommits(owner, repo, branch.name, 1, 100);
-          totalCommits += commits.length;
-        } catch (e) {
-          console.warn(`Could not count commits for branch ${branch.name}`);
-        }
-      }
+        const githubAuthor = {
+          login: commitData.author?.login || commitData.commit?.author?.name || 'unknown',
+          avatarUrl: commitData.author?.avatar_url || null,
+          name: commitData.commit?.author?.name || 'Unknown'
+        };
 
-      for (const branch of branches) {
-        let commits = [];
-        try {
-          commits = await githubService.getRepositoryCommits(owner, repo, branch.name);
-        } catch (e) {
-          console.warn(`Skipping branch ${branch.name}: ${e.message}`);
+        const existing = await Commit.findOne({ githubCommitId: commitData.sha, projectId });
+
+        if (existing) {
+          // Mise à jour si nécessaire
+          if (existing.insertions === 0 && existing.deletions === 0) {
+            try {
+              const detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
+              existing.insertions = detail?.stats?.additions || 0;
+              existing.deletions = detail?.stats?.deletions || 0;
+              existing.filesChanged = detail?.files?.length || 0;
+              existing.files = (detail?.files || []).map(f => ({
+                filename: f.filename,
+                status: f.status,
+                additions: f.additions,
+                deletions: f.deletions
+              }));
+              existing.githubAuthor = githubAuthor;
+              existing.branch = branch.name;
+              await existing.save();
+              totalUpdated++;
+            } catch (e) {
+              console.warn(`Could not update detail for ${commitData.sha}: ${e.message}`);
+            }
+          }
           continue;
         }
 
-        for (const commitData of commits) {
-          totalProcessed++;
+        // Création nouveau commit
+        let detail = null;
+        try {
+          detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
+        } catch (e) {
+          console.warn(`Could not fetch detail for ${commitData.sha}: ${e.message}`);
+        }
 
-          // Extraire l'auteur réel depuis les données GitHub du commit
-          const githubAuthor = {
-            login: commitData.author?.login || commitData.commit?.author?.name || 'unknown',
-            avatarUrl: commitData.author?.avatar_url || null,
-            name: commitData.commit?.author?.name || 'Unknown'
-          };
+        const newCommit = new Commit({
+          projectId,
+          githubCommitId: commitData.sha,
+          message: commitData.commit.message,
+          url: commitData.html_url,
+          timestamp: new Date(commitData.commit.author.date),
+          branch: branch.name,
+          githubAuthor,
+          filesChanged: detail?.files?.length || 0,
+          insertions: detail?.stats?.additions || 0,
+          deletions: detail?.stats?.deletions || 0,
+          files: (detail?.files || []).map(f => ({
+            filename: f.filename,
+            status: f.status,
+            additions: f.additions,
+            deletions: f.deletions
+          }))
+        });
 
-          const existing = await Commit.findOne({ githubCommitId: commitData.sha, projectId });
-
-          if (existing) {
-            // Mettre à jour les commits existants qui ont 0 en stats ou pas d'auteur GitHub
-            if (existing.insertions === 0 && existing.deletions === 0) {
-              try {
-                const detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
-                existing.insertions = detail?.stats?.additions || 0;
-                existing.deletions = detail?.stats?.deletions || 0;
-                existing.filesChanged = detail?.files?.length || 0;
-                existing.files = (detail?.files || []).map(f => ({
-                  filename: f.filename,
-                  status: f.status,
-                  additions: f.additions,
-                  deletions: f.deletions
-                }));
-                existing.githubAuthor = githubAuthor;
-                existing.branch = branch.name;
-                await existing.save();
-                totalUpdated++;
-              } catch (e) {
-                console.warn(`Could not update detail for ${commitData.sha}: ${e.message}`);
-              }
-            }
-            continue;
-          }
-
-          // Nouveau commit : récupérer le détail
-          let detail = null;
-          try {
-            detail = await githubService.getCommitDetail(owner, repo, commitData.sha);
-          } catch (e) {
-            console.warn(`Could not fetch detail for ${commitData.sha}: ${e.message}`);
-          }
-
-          const newCommit = new Commit({
-            projectId,
-            githubCommitId: commitData.sha,
-            message: commitData.commit.message,
-            url: commitData.html_url,
-            timestamp: new Date(commitData.commit.author.date),
-            branch: branch.name,
-            githubAuthor,
-            filesChanged: detail?.files?.length || 0,
-            insertions: detail?.stats?.additions || 0,
-            deletions: detail?.stats?.deletions || 0,
-            files: (detail?.files || []).map(f => ({
-              filename: f.filename,
-              status: f.status,
-              additions: f.additions,
-              deletions: f.deletions
-            }))
-          });
-
-          try {
-            await newCommit.save();
-            totalSynced++;
-          } catch (e) {
-            if (e.code !== 11000) console.error(`Save error: ${e.message}`);
-          }
+        try {
+          await newCommit.save();
+          totalSynced++;
+        } catch (e) {
+          if (e.code !== 11000) console.error(`Save error: ${e.message}`);
         }
       }
+    }
+
+    return {
+      totalSynced,
+      totalUpdated,
+      totalProcessed,
+      branches: branches.map(b => b.name)
+    };
+  }
+
+  static async syncCommitsFromGitHub(req, res) {
+    try {
+      let { owner, repo } = req.body; // legacy params, unused if using repositoryUrl from project
+      const { projectId } = req.params;
+
+      const Project = require('../models/Project');
+      const project = await Project.findById(projectId);
+
+      if (!project || !project.repositoryUrl) {
+        return res.status(400).json({ success: false, message: 'Aucune URL de dépôt trouvée pour ce projet.' });
+      }
+
+      const result = await CommitController.syncRepository(projectId, project.repositoryUrl, req.user.id);
 
       res.json({
         success: true,
-        message: `${totalSynced} nouveaux commits, ${totalUpdated} mis à jour`,
-        newCount: totalSynced,
-        updatedCount: totalUpdated,
-        totalProcessed,
-        branches: branches.map(b => b.name)
+        message: `${result.totalSynced} nouveaux commits, ${result.totalUpdated} mis à jour`,
+        newCount: result.totalSynced,
+        updatedCount: result.totalUpdated,
+        totalProcessed: result.totalProcessed,
+        branches: result.branches
       });
     } catch (err) {
       console.error('Sync error:', err);

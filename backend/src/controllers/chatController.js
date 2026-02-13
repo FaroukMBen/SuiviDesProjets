@@ -42,6 +42,17 @@ class ChatController {
             const { conversationId, content } = req.body;
             const senderId = req.user.id;
 
+            // 1. Check conversation and participants
+            const conversation = await Conversation.findById(conversationId);
+            if (!conversation) {
+                return res.status(404).json({ success: false, message: 'Conversation not found' });
+            }
+
+            if (!conversation.participants.includes(senderId)) {
+                return res.status(403).json({ success: false, message: 'Not authorized' });
+            }
+
+            // 2. Create message
             const message = await Message.create({
                 conversationId,
                 sender: senderId,
@@ -56,8 +67,27 @@ class ChatController {
 
             await message.populate('sender', 'firstName lastName name profilePicture');
 
+            // 3. Create notifications for other participants
+            const recipients = conversation.participants.filter(p => p.toString() !== senderId);
+            const senderName = message.sender.firstName ? `${message.sender.firstName} ${message.sender.lastName || ''}`.trim() : (message.sender.name || 'Un utilisateur');
+
+            // Optional: Check if we want to bundle notifications, but for now simple 1-to-1 is fine.
+            const notifications = recipients.map(recipientId => ({
+                recipient: recipientId,
+                sender: senderId,
+                type: 'MESSAGE',
+                conversation: conversationId,
+                message: `Nouveau message de ${senderName}`,
+                status: 'unread'
+            }));
+
+            if (notifications.length > 0) {
+                await Notification.insertMany(notifications);
+            }
+
             res.json({ success: true, message });
         } catch (err) {
+            console.error(err);
             res.status(500).json({ success: false, message: err.message });
         }
     }

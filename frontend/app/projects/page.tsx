@@ -7,7 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import api from '@/lib/auth';
 import { Folder, Plus, ChevronRight, ChevronLeft, Calendar, CheckCircle2, Search } from 'lucide-react';
 import { NotificationBell } from '@/components/NotificationBell';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import { MultiSelectDropdown } from '@/components/ui/MultiSelectDropdown';
 
 interface Project {
@@ -23,6 +23,7 @@ interface Project {
 
 export default function ProjectsPage() {
     const { user } = useAuthStore();
+    // const { theme } = useThemeStore();
     const isModern = user?.theme === 'modern';
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);

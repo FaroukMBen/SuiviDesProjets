@@ -31,6 +31,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   }
 }));
 
+interface ThemeState {
+  theme: 'modern' | 'classic';
+  setTheme: (theme: 'modern' | 'classic') => void;
+  toggleTheme: () => void;
+}
+
+export const useThemeStore = create<ThemeState>((set) => ({
+  theme: 'modern',
+  setTheme: (theme) => set({ theme }),
+  toggleTheme: () => set((state) => ({ theme: state.theme === 'modern' ? 'classic' : 'modern' }))
+}));
+
 interface ProjectState {
   currentProject: any | null;
   projects: any[];

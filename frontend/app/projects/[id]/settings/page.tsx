@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/auth';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { Card } from '@/components/ui/Card';
@@ -40,6 +40,7 @@ export default function ProjectSettingsPage() {
     const params = useParams();
     const router = useRouter();
     const { user } = useAuthStore();
+    const { theme } = useThemeStore();
     const { showToast } = useToast();
     const { confirm } = useConfirm();
 
@@ -244,8 +245,8 @@ export default function ProjectSettingsPage() {
                                     disabled={!canEdit}
                                     onClick={() => setFormData({ ...formData, visibility: 'private' })}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition ${formData.visibility === 'private'
-                                            ? 'border-gray-900 bg-gray-900 text-white'
-                                            : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                                        ? 'border-gray-900 bg-gray-900 text-white'
+                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                                         } disabled:opacity-50`}
                                 >
                                     <Lock size={14} />
@@ -256,8 +257,8 @@ export default function ProjectSettingsPage() {
                                     disabled={!canEdit}
                                     onClick={() => setFormData({ ...formData, visibility: 'public' })}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition ${formData.visibility === 'public'
-                                            ? 'border-blue-600 bg-blue-600 text-white'
-                                            : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                                        ? 'border-blue-600 bg-blue-600 text-white'
+                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                                         } disabled:opacity-50`}
                                 >
                                     <Globe size={14} />

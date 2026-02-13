@@ -5,7 +5,9 @@ import api from '@/lib/auth';
 
 interface User {
     _id: string;
-    name: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
     email: string;
     profilePicture?: string;
 }
@@ -76,10 +78,12 @@ export function UserSearch({ onSelect, excludeIds = [], placeholder = 'Recherche
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">
-                                    {user.name.charAt(0).toUpperCase()}
+                                    {user.firstName ? user.firstName[0] : (user.name ? user.name[0] : '?')}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.name || 'Utilisateur sans nom')}
+                                    </p>
                                     <p className="text-xs text-gray-500">{user.email}</p>
                                 </div>
                             </div>

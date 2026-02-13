@@ -7,10 +7,10 @@ class ChatController {
     static async getConversations(req, res) {
         try {
             const conversations = await Conversation.find({ participants: req.user.id })
-                .populate('participants', 'name email profilePicture role')
+                .populate('participants', 'firstName lastName name email profilePicture role')
                 .populate({
                     path: 'lastMessage',
-                    populate: { path: 'sender', select: 'name' }
+                    populate: { path: 'sender', select: 'firstName lastName name' }
                 })
                 .sort({ updatedAt: -1 });
 
@@ -29,7 +29,7 @@ class ChatController {
             }
 
             const messages = await Message.find({ conversationId })
-                .populate('sender', 'name profilePicture')
+                .populate('sender', 'firstName lastName name profilePicture')
                 .sort({ createdAt: 1 });
             res.json({ success: true, messages });
         } catch (err) {
@@ -54,7 +54,7 @@ class ChatController {
                 updatedAt: Date.now()
             });
 
-            await message.populate('sender', 'name profilePicture');
+            await message.populate('sender', 'firstName lastName name profilePicture');
 
             res.json({ success: true, message });
         } catch (err) {
@@ -72,14 +72,14 @@ class ChatController {
             let conversation = await Conversation.findOne({
                 participants: { $all: [senderId, recipientId], $size: 2 },
                 isGroup: false
-            }).populate('participants', 'name email profilePicture role');
+            }).populate('participants', 'firstName lastName name email profilePicture role');
 
             if (!conversation) {
                 conversation = await Conversation.create({
                     participants: [senderId, recipientId],
                     isGroup: false
                 });
-                await conversation.populate('participants', 'name email profilePicture role');
+                await conversation.populate('participants', 'firstName lastName name email profilePicture role');
             }
 
             res.json({ success: true, conversation });
@@ -102,7 +102,7 @@ class ChatController {
                 participants: [senderId]
             });
 
-            await conversation.populate('participants', 'name email profilePicture role');
+            await conversation.populate('participants', 'firstName lastName name email profilePicture role');
             res.status(201).json({ success: true, conversation });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });

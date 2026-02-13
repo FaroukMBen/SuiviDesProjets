@@ -40,7 +40,8 @@ class AuthController {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          role: user.role
+          role: user.role,
+          theme: user.theme
         }
       });
     } catch (err) {
@@ -80,7 +81,8 @@ class AuthController {
           lastName: effectiveLastName,
           email: user.email,
           role: user.role,
-          profilePicture: user.profilePicture
+          profilePicture: user.profilePicture,
+          theme: user.theme
         }
       });
     } catch (err) {
@@ -110,7 +112,8 @@ class AuthController {
           role: user.role,
           profilePicture: user.profilePicture,
           academicYear: user.academicYear,
-          group: user.group
+          group: user.group,
+          theme: user.theme
         }
       });
     } catch (err) {
@@ -154,6 +157,7 @@ class AuthController {
       if (password) user.password = password;
       if (req.body.academicYear) user.academicYear = req.body.academicYear;
       if (req.body.group) user.group = req.body.group;
+      if (req.body.theme) user.theme = req.body.theme;
 
       await user.save();
 
@@ -169,7 +173,8 @@ class AuthController {
           role: updatedUser.role,
           profilePicture: updatedUser.profilePicture,
           academicYear: updatedUser.academicYear,
-          group: updatedUser.group
+          group: updatedUser.group,
+          theme: updatedUser.theme
         },
         message: 'Profile updated successfully'
       });

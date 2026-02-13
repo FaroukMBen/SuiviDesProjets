@@ -12,6 +12,7 @@ export interface User {
   profilePicture?: string;
   academicYear?: string;
   group?: string;
+  theme?: 'classic' | 'modern';
 }
 
 export interface AuthResponse {

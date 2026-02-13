@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema({
     uppercase: true,
     trim: true
   },
+  theme: {
+    type: String,
+    enum: ['classic', 'modern'],
+    default: 'modern'
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });

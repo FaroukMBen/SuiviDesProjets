@@ -20,7 +20,8 @@ import {
   FolderGit2,
   Clock,
   UserPlus,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import api from '@/lib/auth';
 import { UserSearch } from '@/components/UserSearch';
@@ -129,10 +130,9 @@ export default function ProjectOverviewPage() {
                   <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter mt-1">Timeline de la campagne</p>
                 </div>
                 <Link href={`/projects/${project._id}/milestones`} className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase tracking-widest group">
-                  Détails <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
-              <ProjectMilestones campaignId={project.campaignId} projectId={project._id} />
+              <ProjectMilestones campaignId={project.campaignId} projectId={project._id} projectFiles={project.files} />
             </div>
           )}
 
@@ -186,13 +186,10 @@ export default function ProjectOverviewPage() {
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter mt-1">Documents partagés</p>
               </div>
               <div className="flex items-center gap-4">
-                <label className={`cursor-pointer text-xs font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1 uppercase tracking-widest transition-all ${uploading ? 'opacity-50' : ''}`}>
+                <Link href={`/projects/${project._id}/liverables`} className="text-xs font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1 uppercase tracking-widest transition-all">
                   <Plus size={14} />
-                  {uploading ? 'Envoi...' : 'Ajouter'}
-                  <input type="file" className="hidden" onChange={async (e) => {
-                    if (e.target.files?.[0]) await uploadFile(e.target.files[0]);
-                  }} disabled={uploading} />
-                </label>
+                  Gérer / Envoi
+                </Link>
                 <Link href={`/projects/${project._id}/liverables`} className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase tracking-widest group">
                   Voir tout <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
@@ -231,19 +228,41 @@ export default function ProjectOverviewPage() {
             }`}>
             <h3 className={`text-base text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-tight ${isModern ? 'font-black' : 'font-bold'}`}>
               <LayoutDashboard size={20} className="text-blue-600" />
-              Raccourcis
+              Actions Rapides
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               {[
-                { label: 'Kanban', href: 'kanban', icon: <ArrowRight className={`w-6 h-6 rotate-[-45deg] group-hover:rotate-0 transition-transform`} /> },
-                { label: 'Git Code', href: 'commits', icon: <GitCommit size={24} /> },
-                { label: 'Évaluation', href: 'evaluations', icon: <BarChart3 size={24} /> },
-                { label: 'Config', href: 'settings', icon: <Settings size={24} /> }
+                {
+                  label: 'Historique Git',
+                  href: 'commits?tab=history',
+                  icon: <GitCommit size={18} />,
+                  color: 'text-blue-600',
+                  bg: 'bg-blue-50'
+                },
+                {
+                  label: 'Livrables Bonus',
+                  href: 'liverables',
+                  icon: <FileText size={18} />,
+                  color: 'text-purple-600',
+                  bg: 'bg-purple-50'
+                },
+                {
+                  label: 'Synchroniser Git',
+                  href: 'commits?sync=true',
+                  icon: <UploadCloud size={18} />,
+                  color: 'text-emerald-600',
+                  bg: 'bg-emerald-50'
+                },
               ].map(action => (
-                <Link key={action.label} href={`/projects/${project._id}/${action.href}`} className={`flex flex-col items-center justify-center p-4 transition-all group gap-2 ${isModern ? 'bg-gray-50 rounded-2xl hover:bg-blue-50 hover:text-blue-600' : 'bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 text-gray-700'
+                <Link key={action.label} href={`/projects/${project._id}/${action.href}`} className={`flex items-center justify-between p-3 transition-all group ${isModern ? 'bg-gray-50 rounded-2xl hover:bg-white hover:shadow-md' : 'bg-white border border-gray-200 rounded-lg hover:border-blue-300'
                   }`}>
-                  {action.icon}
-                  <span className="text-[10px] font-black uppercase tracking-widest text-center">{action.label}</span>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${action.bg} ${action.color}`}>
+                      {action.icon}
+                    </div>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-gray-700">{action.label}</span>
+                  </div>
+                  <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                 </Link>
               ))}
             </div>
@@ -289,6 +308,22 @@ export default function ProjectOverviewPage() {
               Infos Techniques
             </h3>
             <div className="space-y-4">
+              {/* Campaign Linkage Status */}
+              <div className={`p-4 border transition-all ${isModern ? 'bg-gray-50 rounded-2xl border-gray-100' : 'bg-white rounded-lg border-gray-200'}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isModern ? 'text-gray-400' : 'text-gray-500'}`}>Campagne Pédagogique</p>
+                {project.campaignId ? (
+                  <div className="flex items-center gap-2 text-xs font-black text-emerald-600">
+                    <CheckCircle size={14} />
+                    <span>Lié à : {project.campaignId?.title || 'Campagne Active'}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs font-black text-orange-500">
+                    <AlertCircle size={14} />
+                    <span>Non rattaché</span>
+                  </div>
+                )}
+              </div>
+
               {project.repositoryUrl ? (
                 <div className={`p-4 border transition-all ${isModern ? 'bg-blue-50/50 rounded-2xl border-blue-100' : 'bg-white rounded-lg border-gray-200'}`}>
                   <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isModern ? 'text-blue-600' : 'text-gray-500'}`}>Dépôt GitHub</p>

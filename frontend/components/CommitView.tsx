@@ -57,13 +57,21 @@ interface Commit {
 
 type TimeFilter = 'week' | 'month' | 'all';
 
-export function CommitView({ projectId }: { projectId: string }) {
+export function CommitView({
+  projectId,
+  initialTab = 'stats',
+  autoSync = false
+}: {
+  projectId: string;
+  initialTab?: 'history' | 'stats';
+  autoSync?: boolean;
+}) {
   const { user } = useAuthStore();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const [commits, setCommits] = useState<Commit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'history' | 'stats'>('stats');
+  const [activeTab, setActiveTab] = useState<'history' | 'stats'>(initialTab);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -110,6 +118,13 @@ export function CommitView({ projectId }: { projectId: string }) {
       setLoading(false);
     }
   };
+
+  // Trigger autoSync if requested
+  useEffect(() => {
+    if (autoSync && repoUrl && !isSyncing) {
+      handleSync();
+    }
+  }, [autoSync, repoUrl]);
 
   const handleSync = async () => {
     try {

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import api from '@/lib/auth';
 import { X, Upload, FileText, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface Props {
     isOpen: boolean;
@@ -14,6 +15,7 @@ export function CsvImportModal({ isOpen, onClose, onSuccess }: Props) {
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const { showToast } = useToast();
 
     if (!isOpen) return null;
 
@@ -43,7 +45,7 @@ export function CsvImportModal({ isOpen, onClose, onSuccess }: Props) {
             }
         } catch (error: any) {
             console.error(error);
-            alert(error.response?.data?.message || "Erreur lors de l'import");
+            showToast(error.response?.data?.message || "Erreur lors de l'import", "error");
         } finally {
             setLoading(false);
         }

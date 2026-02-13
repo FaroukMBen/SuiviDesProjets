@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/auth';
 import { X, Save, AlertTriangle, FileText } from 'lucide-react';
 import { EvaluationGridEditor } from './EvaluationGridEditor';
+import { useToast } from '@/components/ui/Toast';
 
 import { SCHOOL_STRUCTURE } from '@/lib/constants';
 
@@ -17,6 +18,7 @@ interface Props {
 export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Props) {
   const isEditing = !!campaignToEdit;
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
 
   const initialState = {
@@ -71,7 +73,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
 
     // 2. SÉCURITÉ : On vérifie qu'il reste au moins un critère
     if (cleanTemplate.length === 0) {
-      alert("La grille d'évaluation doit contenir au moins un critère valide.");
+      showToast("La grille d'évaluation doit contenir au moins un critère valide.", "error");
       return;
     }
 
@@ -101,7 +103,7 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
       onClose();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "Erreur lors de l'enregistrement");
+      showToast(err.response?.data?.message || "Erreur lors de l'enregistrement", "error");
     } finally {
       setLoading(false);
     }

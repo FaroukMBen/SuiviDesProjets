@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/auth';
 import { X, Save, Folder, Link as LinkIcon, Calendar, Clock } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface Props {
     isOpen: boolean;
@@ -13,6 +14,7 @@ interface Props {
 
 export function EditAdminProjectModal({ isOpen, onClose, onSuccess, project }: Props) {
     const [loading, setLoading] = useState(false);
+    const { showToast } = useToast();
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -45,7 +47,7 @@ export function EditAdminProjectModal({ isOpen, onClose, onSuccess, project }: P
             onClose();
         } catch (err: any) {
             console.error(err);
-            alert(err.response?.data?.message || "Erreur lors de la mise à jour");
+            showToast(err.response?.data?.message || "Erreur lors de la mise à jour", "error");
         } finally {
             setLoading(false);
         }

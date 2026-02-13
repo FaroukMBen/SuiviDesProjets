@@ -17,12 +17,18 @@ import {
   AlertCircle,
   Camera,
   PenTool,
-  LayoutTemplate
+  LayoutTemplate,
+  GitCommit,
+  Info
 } from 'lucide-react';
 import { NotificationBell } from '@/components/NotificationBell';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 export default function SettingsPage() {
   const { user, setUser } = useAuthStore();
+  const { showToast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -78,7 +84,7 @@ export default function SettingsPage() {
       }
 
       const res = await api.put('/api/auth/profile', payload);
-      setUser(res.data.user); // Met à jour le store global
+      setUser(res.data.user);
 
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
       setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
@@ -95,10 +101,8 @@ export default function SettingsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#f3f4f6] flex font-sans">
-        {/* Navbar Laterale */}
         <Navbar />
 
-        {/* Contenu Principal */}
         <div className="flex-1 ml-64 flex flex-col min-h-screen">
 
           {/* Header */}
@@ -272,7 +276,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      {/* NOUVEAU : Champs Année et Groupe (Uniquement si étudiant) */}
+                      {/* Champs Année et Groupe (Uniquement si étudiant) */}
                       {user?.role === 'student' && (
                         <>
                           <div className="space-y-2">
@@ -317,7 +321,7 @@ export default function SettingsPage() {
                       <div className="space-y-4 md:col-span-2 pt-4 border-t border-gray-100">
                         <label className="text-sm font-bold text-gray-800 flex items-center gap-2">
                           <PenTool className="text-blue-500" size={16} />
-                          Apparence de l'interface
+                          Apparence de l&apos;interface
                         </label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <button
@@ -357,10 +361,98 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
+                    {/* Intégration GitHub */}
+                    <div className="pt-6 border-t border-gray-100">
+                      <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <GitCommit size={16} className="text-gray-400" />
+                        Intégration GitHub
+                      </h4>
+
+                      {user?.githubUsername ? (
+                        /* Connecté */
+                        <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            {user.profilePicture ? (
+                              <img src={user.profilePicture} alt="" className="w-10 h-10 rounded-full" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold">
+                                {user.githubUsername[0]?.toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-bold text-emerald-900">Compte GitHub connecté</p>
+                              <p className="text-xs text-emerald-700">@{user.githubUsername}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const ok = await confirmDialog({
+                                title: 'Déconnecter GitHub',
+                                message: 'Voulez-vous déconnecter votre compte GitHub ?',
+                                confirmText: 'Déconnecter',
+                                cancelText: 'Annuler',
+                                type: 'danger'
+                              });
+                              if (ok) {
+                                try {
+                                  await api.post('/api/github/disconnect');
+                                  const res = await api.get('/api/auth/profile');
+                                  setUser(res.data.user);
+                                  showToast('Compte GitHub déconnecté.', 'success');
+                                } catch (err) {
+                                  showToast('Erreur lors de la déconnexion.', 'error');
+                                }
+                              }
+                            }}
+                            className="text-xs text-red-600 hover:text-red-800 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition"
+                          >
+                            Déconnecter
+                          </button>
+                        </div>
+                      ) : (
+                        /* Non connecté */
+                        <div>
+                          <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl mb-4">
+                            <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-xs text-blue-800">
+                              <p className="font-semibold mb-1">La connexion n&apos;est pas obligatoire !</p>
+                              <p className="text-blue-700">
+                                Les dépôts publics fonctionnent sans connexion. Connectez votre compte GitHub pour :
+                              </p>
+                              <ul className="list-disc list-inside mt-2 space-y-1 text-blue-700">
+                                <li>Synchroniser des dépôts <strong>privés</strong></li>
+                                <li>Effectuer des synchronisations <strong>illimitées</strong></li>
+                              </ul>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const res = await api.get('/api/github/connect-url');
+                                if (res.data.url) {
+                                  window.location.href = res.data.url;
+                                }
+                              } catch (err: any) {
+                                showToast(err.response?.data?.message || 'GitHub OAuth non configuré sur le serveur.', 'error');
+                              }
+                            }}
+                            className="flex items-center gap-3 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl transition shadow-lg shadow-gray-900/10 w-full justify-center"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+                            Connecter avec GitHub
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sécurité & Mot de passe */}
                     <div className="pt-6 border-t border-gray-100">
                       <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <Lock size={16} className="text-gray-400" />
-                        Sécurité & Mot de passe
+                        Sécurité &amp; Mot de passe
                       </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

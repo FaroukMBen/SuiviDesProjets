@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Calendar, FileText, MoreVertical, Trash2, Eye, X, Archive, Flag } from 'lucide-react';
 import Link from 'next/link';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 
 interface Campaign {
   _id: string;
@@ -26,6 +27,7 @@ interface CampaignListProps {
 
 export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArchive }: CampaignListProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const { confirm } = useConfirm();
 
 
   if (loading) {
@@ -141,8 +143,8 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
 
                       {/* Option 2: SUPPRIMER */}
                       <button
-                        onClick={() => {
-                          if (confirm('⚠️ Attention : Cette action est irréversible. Voulez-vous supprimer définitivement ?')) {
+                        onClick={async () => {
+                          if (await confirm({ title: "Suppression définitive", message: "⚠️ Attention : Cette action est irréversible. Voulez-vous supprimer définitivement cette campagne ?", type: "danger" })) {
                             onDelete(campaign._id);
                             setOpenMenuId(null);
                           }

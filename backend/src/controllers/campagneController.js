@@ -20,7 +20,21 @@ class CampaignController {
       let filter = {};
 
       // 1. Filtres optionnels (URL) valables pour tout le monde
-      if (req.query.status) filter.status = req.query.status;
+      if (req.query.status && req.query.status !== 'all') {
+        const statuses = req.query.status.split(',').filter(s => s.trim() !== '');
+        if (statuses.length > 0) {
+          filter.status = statuses.length > 1 ? { $in: statuses } : statuses[0];
+        }
+      }
+      if (req.query.targetYear && req.query.targetYear !== 'all') {
+        const years = req.query.targetYear.split(',').filter(y => y.trim() !== '');
+        if (years.length > 0) {
+          filter.targetYear = years.length > 1 ? { $in: years } : years[0];
+        }
+      }
+      if (req.query.search) {
+        filter.title = { $regex: req.query.search, $options: 'i' };
+      }
 
       // --- LOGIQUE DE SÉCURITÉ PAR RÔLE ---
 
@@ -59,11 +73,19 @@ class CampaignController {
         filter.status = { $ne: 'draft' };
       }
 
+      // Pagination
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 1000;
+      const skip = (page - 1) * limit;
+
       // Exécution
+      const total = await Campaign.countDocuments(filter);
       const campaigns = await Campaign.find(filter)
         .populate('manager', 'name email')
         .populate('coManagers', 'name email profilePicture')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
       const Project = require('../models/Project');
 
@@ -75,7 +97,16 @@ class CampaignController {
         };
       }));
 
-      res.json({ success: true, campaigns: campaignsWithStats });
+      res.json({
+        success: true,
+        campaigns: campaignsWithStats,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

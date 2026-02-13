@@ -9,28 +9,49 @@ class ProjectController {
 
   static async getAllProjects(req, res) {
     try {
-      const { campaign } = req.query;
+      const { campaign, status, search } = req.query;
       let filter = {};
 
-      // 1. Filtre par campagne (valable pour tout le monde)
-
-      if (campaign) {
-        filter.campaignId = campaign;
+      // 1. Filtre par campagne
+      if (campaign && campaign !== 'all') {
+        const campaignIds = campaign.split(',').filter(id => id.trim() !== '');
+        if (campaignIds.length > 0) {
+          filter.campaignId = campaignIds.length > 1 ? { $in: campaignIds } : campaignIds[0];
+        }
       }
 
-      // --- LOGIQUE DE SÉCURITÉ PAR RÔLE ---
+      // 2. Filtre par status
+      if (status && status !== 'all') {
+        const statusList = status.split(',').filter(s => s.trim() !== '');
+        if (statusList.length > 0) {
+          filter.status = statusList.length > 1 ? { $in: statusList } : statusList[0];
+        }
+      }
 
-      if (req.user.role === 'student') {
-        // ✅ STUDENT : Ne voit que SES projets
+      // 3. Filtre par recherche
+      if (search) {
+        const searchRegex = { $regex: search, $options: 'i' };
         filter.$or = [
-          { owner: req.user.id },
-          { members: req.user.id }
+          { title: searchRegex },
+          { description: searchRegex }
         ];
       }
 
-      // ✅ ADMIN & INSTRUCTOR :
-      // Ils passent ici. Le filtre reste vide (ou juste filtré par campagne).
-      // Donc ils voient TOUS les projets correspondants.
+      // --- LOGIQUE DE SÉCURITÉ PAR RÔLE ---
+      if (req.user.role === 'student') {
+        const studentFilter = {
+          $or: [
+            { owner: req.user.id },
+            { members: req.user.id }
+          ]
+        };
+        // Merge with existing filter
+        if (Object.keys(filter).length > 0) {
+          filter = { $and: [filter, studentFilter] };
+        } else {
+          filter = studentFilter;
+        }
+      }
 
       // Pagination parameters
       const page = parseInt(req.query.page) || 1;
@@ -59,7 +80,6 @@ class ProjectController {
           limit
         }
       });
-
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }
@@ -155,6 +175,28 @@ class ProjectController {
       await project.populate('owner members', 'name email profilePicture');
 
       res.json({ success: true, project });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  static async unlinkGitHubRepository(req, res) {
+    try {
+      const project = await Project.findById(req.params.id);
+
+      if (!project) {
+        return res.status(404).json({ success: false, message: 'Project not found' });
+      }
+
+      if (project.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+      }
+
+      project.repositoryUrl = null;
+      await project.save();
+      await project.populate('owner members', 'name email profilePicture');
+
+      res.json({ success: true, project, message: 'Dépôt GitHub dissocié avec succès' });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

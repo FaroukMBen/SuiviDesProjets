@@ -5,9 +5,10 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/auth';
-import { Folder, Plus, ChevronRight, ChevronLeft, Calendar, CheckCircle2 } from 'lucide-react';
+import { Folder, Plus, ChevronRight, ChevronLeft, Calendar, CheckCircle2, Search } from 'lucide-react';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useAuthStore } from '@/lib/store';
+import { MultiSelectDropdown } from '@/components/ui/MultiSelectDropdown';
 
 interface Project {
     _id: string;
@@ -16,17 +17,22 @@ interface Project {
     status: string;
     deadline: string;
     tags: string[];
-    members: { _id: string; name: string }[];
+    members: { _id: string; name?: string; firstName?: string; lastName?: string }[];
+    campaignId?: { _id: string, title: string };
 }
 
 export default function ProjectsPage() {
     const { user } = useAuthStore();
     const isModern = user?.theme === 'modern';
     const [projects, setProjects] = useState<Project[]>([]);
-    const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Filtres
+    const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [filterCampaigns, setFilterCampaigns] = useState<string[]>([]);
+    const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -37,7 +43,12 @@ export default function ProjectsPage() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            const response = await api.get(`/api/projects?page=${page}&limit=${limit}`);
+            let url = `/api/projects?page=${page}&limit=${limit}`;
+            if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
+            if (filterStatuses.length > 0) url += `&status=${filterStatuses.join(',')}`;
+            if (filterCampaigns.length > 0) url += `&campaign=${filterCampaigns.join(',')}`;
+
+            const response = await api.get(url);
             setProjects(response.data.projects);
             setTotalPages(response.data.pagination?.totalPages || 1);
             setTotalProjects(response.data.pagination?.total || 0);
@@ -49,17 +60,29 @@ export default function ProjectsPage() {
         }
     };
 
-    useEffect(() => {
-        fetchProjects();
-    }, [page, limit]);
+    const fetchCampaigns = async () => {
+        try {
+            const res = await api.get('/api/campaigns?scope=student');
+            setCampaigns(res.data.campaigns);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     useEffect(() => {
-        const results = projects.filter(project =>
-            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-        setFilteredProjects(results);
-    }, [searchTerm, projects]);
+        fetchProjects();
+    }, [page, limit, searchTerm, filterStatuses, filterCampaigns]);
+
+    useEffect(() => {
+        fetchCampaigns();
+    }, []);
+
+    const getMemberName = (member: any) => {
+        if (member.firstName || member.lastName) {
+            return `${member.firstName || ''} ${member.lastName || ''}`.trim();
+        }
+        return member.name || 'U';
+    };
 
     return (
         <ProtectedRoute>
@@ -77,7 +100,7 @@ export default function ProjectsPage() {
                                             {totalProjects} {totalProjects > 1 ? 'projets' : 'projet'}
                                         </span>
                                     </h1>
-                                    <p className="text-gray-500 mt-1">Page {page} sur {totalPages}</p>
+                                    <p className="text-gray-500 mt-1">Gérez vos collaborations et jalons.</p>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <NotificationBell />
@@ -92,23 +115,42 @@ export default function ProjectsPage() {
                             </div>
 
 
-                            {/* Search Bar */}
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Rechercher sur cette page..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className={`w-full px-4 py-3 bg-white border border-gray-200 focus:outline-none transition-all pl-11 ${isModern ? 'rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 shadow-sm' : 'rounded-lg focus:border-blue-600'}`}
-                                />
-                                <svg
-                                    className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+                            {/* Search & Multi-Filters */}
+                            <div className="flex flex-col gap-4">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Rechercher par titre ou tag..."
+                                        value={searchTerm}
+                                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                                        className={`w-full px-4 py-3 bg-white border border-gray-200 focus:outline-none transition-all pl-11 ${isModern ? 'rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 shadow-sm' : 'rounded-lg focus:border-blue-600'}`}
+                                    />
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                </div>
+
+                                <div className="flex flex-wrap gap-3 relative z-20 pb-1">
+                                    <MultiSelectDropdown
+                                        label="Campagnes"
+                                        options={campaigns.map(c => ({ value: c._id, label: c.title }))}
+                                        selectedValues={filterCampaigns}
+                                        onChange={(vals) => { setFilterCampaigns(vals); setPage(1); }}
+                                        placeholder="Toutes les campagnes"
+                                        isModern={isModern}
+                                    />
+                                    <MultiSelectDropdown
+                                        label="Statuts"
+                                        options={[
+                                            { value: 'active', label: 'Actif' },
+                                            { value: 'in_progress', label: 'En cours' },
+                                            { value: 'completed', label: 'Terminé' },
+                                            { value: 'waiting', label: 'En attente' }
+                                        ]}
+                                        selectedValues={filterStatuses}
+                                        onChange={(vals) => { setFilterStatuses(vals); setPage(1); }}
+                                        placeholder="Tous les statuts"
+                                        isModern={isModern}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -121,7 +163,7 @@ export default function ProjectsPage() {
                             <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
                                 {error}
                             </div>
-                        ) : filteredProjects.length === 0 ? (
+                        ) : projects.length === 0 ? (
                             <div className={`text-center py-12 bg-white ${isModern ? 'rounded-2xl border-gray-100 shadow-xl shadow-blue-500/5' : 'rounded-lg border-gray-200 shadow-sm'} border`}>
                                 <Folder size={48} className="mx-auto text-gray-300 mb-4" />
                                 <h3 className="text-lg font-medium text-gray-900">Aucun projet trouvé</h3>
@@ -141,7 +183,7 @@ export default function ProjectsPage() {
                         ) : (
                             <>
                                 <div className="grid gap-6">
-                                    {filteredProjects.map((project) => (
+                                    {projects.map((project) => (
                                         <Link
                                             key={project._id}
                                             href={`/projects/${project._id}`}
@@ -211,9 +253,9 @@ export default function ProjectsPage() {
                                                                 <div
                                                                     key={member._id || i}
                                                                     className={`w-8 h-8 rounded-full ${isModern ? 'bg-gradient-to-br from-indigo-500 to-blue-600 font-black text-white' : 'bg-gray-200 text-gray-600 font-bold'} border-2 border-white flex items-center justify-center text-[10px] shadow-sm`}
-                                                                    title={member.name}
+                                                                    title={getMemberName(member)}
                                                                 >
-                                                                    {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+                                                                    {getMemberName(member).charAt(0).toUpperCase()}
                                                                 </div>
                                                             ))}
                                                             {project.members && project.members.length > 3 && (

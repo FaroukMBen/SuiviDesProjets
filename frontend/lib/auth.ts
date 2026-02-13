@@ -4,7 +4,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  name?: string; // Temporaire pour compatibilité
   email: string;
   role: 'student' | 'instructor' | 'admin';
   profilePicture?: string;
@@ -47,8 +49,8 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  async register(name: string, email: string, password: string): Promise<AuthResponse> {
-    const response = await api.post('/api/auth/register', { name, email, password });
+  async register(firstName: string, lastName: string, email: string, password: string): Promise<AuthResponse> {
+    const response = await api.post('/api/auth/register', { firstName, lastName, email, password });
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
     }

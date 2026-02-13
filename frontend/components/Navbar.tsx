@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Folder, 
-  CheckSquare, 
-  FileText, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Folder,
+  CheckSquare,
+  FileText,
+  Settings,
+  LogOut,
   Bell,
   LayoutTemplate,
   ClipboardCheck,
@@ -49,7 +49,7 @@ export function Navbar() {
     router.push('/login');
   };
 
-  const isInstructor = user?.role === 'instructor' 
+  const isInstructor = user?.role === 'instructor'
   const isStudent = user?.role === 'student';
   const isAdmin = user?.role === 'admin';
 
@@ -61,7 +61,6 @@ export function Navbar() {
     { name: 'Évaluations', href: '/evaluations', icon: FileText },
     { name: 'Messagerie', href: '/messagerie', icon: MessageSquare },
     { name: 'Notifications', href: '/notifications', icon: Bell },
-    { name: 'Paramètres', href: '/settings', icon: Settings },
   ];
 
   // --- MENU ENSEIGNANT ---
@@ -71,21 +70,20 @@ export function Navbar() {
     { name: 'Validations', href: '/validations', icon: ClipboardCheck }, // Corriger les livrables
     { name: 'Messagerie', href: '/messagerie', icon: MessageSquare }, // Discussion
     { name: 'Notifications', href: '/notifications', icon: Bell },
-    { name: 'Paramètres', href: '/settings', icon: Settings },
   ];
 
   const adminItems = [
     { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Utilisateurs', href: '/admin/users', icon: CheckSquare},
-    { name: 'Campagnes', href: '/admin/campaigns', icon: CheckSquare},
-    { name: 'Projets', href: '/admin/projects', icon: CheckSquare}
+    { name: 'Utilisateurs', href: '/admin/users', icon: CheckSquare },
+    { name: 'Campagnes', href: '/admin/campaigns', icon: CheckSquare },
+    { name: 'Projets', href: '/admin/projects', icon: CheckSquare }
   ]
 
   // On choisit quelle liste afficher
   let navItems;
-  if(isInstructor) {
+  if (isInstructor) {
     navItems = instructorItems
-  } else if( isStudent){
+  } else if (isStudent) {
     navItems = studentItems;
   } else {
     navItems = adminItems
@@ -117,7 +115,7 @@ export function Navbar() {
             >
               <item.icon size={20} />
               {item.name}
-              
+
               {/* Badge de notifications */}
               {item.name === 'Notifications' && unreadCount > 0 && (
                 <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -131,15 +129,23 @@ export function Navbar() {
 
       <div className="p-4 border-t border-slate-700">
         {/* Info utilisateur rapide */}
-        <div className="mb-4 px-4 flex items-center gap-3 opacity-60">
-            <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold">
-                {user?.name ? user.name[0] : 'U'}
-            </div>
-            <div className="overflow-hidden">
-                <p className="text-sm font-medium truncate">{user?.name}</p>
-                <p className="text-xs truncate">{user?.role}</p>
-            </div>
-        </div>
+        <Link
+          href="/settings"
+          className="mb-4 px-3 py-2 flex items-center gap-3 rounded-lg hover:bg-slate-800 transition-all cursor-pointer group border border-transparent hover:border-slate-700"
+        >
+          <div className="w-9 h-9 min-w-[36px] rounded-full bg-slate-700 group-hover:bg-blue-600 transition-colors flex items-center justify-center text-xs font-bold text-white shadow-sm ring-2 ring-slate-800 group-hover:ring-blue-500/30">
+            {user?.firstName ? user.firstName[0] : (user?.name ? user.name[0] : 'U')}
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-medium truncate text-slate-200 group-hover:text-white transition-colors">
+              {user ? `${user.firstName} ${user.lastName || user.name}` : ''}
+            </p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 group-hover:text-blue-400 font-semibold transition-colors">
+              {user?.role === 'instructor' ? 'Enseignant' : (user?.role === 'admin' ? 'Admin' : 'Étudiant')}
+            </p>
+          </div>
+          <Settings size={14} className="text-slate-600 group-hover:text-slate-400 transform group-hover:rotate-45 transition-all" />
+        </Link>
 
         <button
           onClick={handleLogout}

@@ -9,7 +9,7 @@ import { useAuthStore } from '@/lib/store';
 export default function RegisterPage() {
   const router = useRouter();
   const { setToken, setUser } = useAuthStore();
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +23,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await authService.register(formData.name, formData.email, formData.password);
+      const response = await authService.register(formData.firstName, formData.lastName, formData.email, formData.password);
       setToken(response.token);
       setUser(response.user);
       router.push('/dashboard');
@@ -36,7 +36,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-      
+
       {/* Header avec Logo */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="mx-auto h-12 w-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -52,7 +52,7 @@ export default function RegisterPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200 sm:rounded-2xl sm:px-10 border border-gray-100">
-          
+
           {error && (
             <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
@@ -61,23 +61,44 @@ export default function RegisterPage() {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            
-            {/* Champ Nom */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Nom complet
-              </label>
-              <div className="mt-1">
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm transition-all"
-                  placeholder="Jean Dupont"
-                />
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Champ Prénom */}
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Prénom
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    required
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm transition-all"
+                    placeholder="Jean"
+                  />
+                </div>
+              </div>
+
+              {/* Champ Nom */}
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nom
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    required
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm transition-all"
+                    placeholder="Dupont"
+                  />
+                </div>
               </div>
             </div>
 
@@ -155,8 +176,8 @@ export default function RegisterPage() {
             </div>
 
             <div className="mt-6 text-center">
-              <Link 
-                href="/login" 
+              <Link
+                href="/login"
                 className="font-medium text-blue-600 hover:text-blue-500 hover:underline transition-colors"
               >
                 Se connecter

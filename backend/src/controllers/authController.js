@@ -14,14 +14,20 @@ class AuthController {
 
   static async register(req, res) {
     try {
-      const { name, email, password } = req.body;
+      const { firstName, lastName, email, password } = req.body;
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ message: 'Email already registered' });
       }
 
-      const user = new User({ name, email, password, role: 'student' });
+      const user = new User({
+        firstName: firstName || 'inconnu',
+        lastName,
+        email,
+        password,
+        role: 'student'
+      });
       await user.save();
 
       const token = generateToken(user._id, user.email, user.role);
@@ -31,12 +37,14 @@ class AuthController {
         token,
         user: {
           id: user._id,
-          name: user.name,
+          firstName: user.firstName,
+          lastName: user.lastName,
           email: user.email,
           role: user.role
         }
       });
     } catch (err) {
+      console.error("Erreur inscription:", err);
       res.status(500).json({ success: false, message: err.message });
     }
   }
@@ -51,18 +59,21 @@ class AuthController {
 
       const user = await User.findOne({ email });
       if (!user || !(await user.comparePassword(password))) {
-        console.log(res.status(401).json)
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
       const token = generateToken(user._id, user.email, user.role);
+
+      const effectiveLastName = user.lastName || user.name;
+      const effectiveFirstName = user.firstName || 'inconnu';
 
       res.json({
         success: true,
         token,
         user: {
           id: user._id,
-          name: user.name,
+          firstName: effectiveFirstName,
+          lastName: effectiveLastName,
           email: user.email,
           role: user.role,
           profilePicture: user.profilePicture
@@ -74,7 +85,6 @@ class AuthController {
   }
 
   static async githubCallback(req, res) {
-    // Note : req.user est rempli par Passport avant d'arriver ici
     const token = generateToken(req.user._id, req.user.email, req.user.role);
     res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
   }
@@ -82,11 +92,16 @@ class AuthController {
   static async getProfile(req, res) {
     try {
       const user = await User.findById(req.user.id).select('-password');
+
+      const effectiveLastName = user.lastName || user.name;
+      const effectiveFirstName = user.firstName || 'inconnu';
+
       res.json({
         success: true,
         user: {
           id: user._id,
-          name: user.name,
+          firstName: effectiveFirstName,
+          lastName: effectiveLastName,
           email: user.email,
           role: user.role,
           profilePicture: user.profilePicture,
@@ -111,16 +126,19 @@ class AuthController {
   static async logout(req, res) {
     res.json({ success: true, message: 'Logged out successfully' });
   }
+
   static async updateProfile(req, res) {
     try {
-      const { name, email, password } = req.body;
+      const { firstName, lastName, email, password } = req.body;
       const user = await User.findById(req.user.id);
 
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
-      if (name) user.name = name;
+      if (firstName) user.firstName = firstName;
+      if (lastName) user.lastName = lastName;
+
       // Vérifier si l'email change et s'il est déjà pris
       if (email && email !== user.email) {
         const existingUser = await User.findOne({ email });
@@ -135,12 +153,20 @@ class AuthController {
 
       await user.save();
 
-      // Retourner les infos mises à jour (sans le mot de passe)
       const updatedUser = await User.findById(user._id).select('-password');
 
       res.json({
         success: true,
-        user: updatedUser,
+        user: {
+          id: updatedUser._id,
+          firstName: updatedUser.firstName || 'inconnu',
+          lastName: updatedUser.lastName || updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          profilePicture: updatedUser.profilePicture,
+          academicYear: updatedUser.academicYear,
+          group: updatedUser.group
+        },
         message: 'Profile updated successfully'
       });
     } catch (err) {

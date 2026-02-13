@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -10,24 +11,30 @@ import { RecentCampaigns } from '@/components/campaigns/RecentCampaigns';
 import { QuickActions } from '@/components/QuickActions';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import api from '@/lib/auth';
+import { GitActivity } from '@/components/GitActivity';
 import {
   Clock,
   AlertTriangle,
   FileText,
   Folder,
-  TrendingUp
+  TrendingUp,
+  Bell,
+  Info,
+  UserPlus,
+  ArrowRight
 } from 'lucide-react';
 
 
 const StatCard = ({ title, value, icon: Icon, color, subtext }: any) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between transition hover:shadow-md">
+  <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between transition hover:shadow-md">
     <div>
-      <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
-      <h3 className={`text-3xl font-bold ${color}`}>{value}</h3>
-      {subtext && <p className="text-xs text-gray-400 mt-2">{subtext}</p>}
+      <p className="text-gray-500 text-xs font-bold mb-1 uppercase tracking-wider">{title}</p>
+      <h3 className={`text-2xl font-black ${color}`}>{value}</h3>
+      {subtext && <p className="text-[10px] text-gray-400 mt-1 font-medium italic">{subtext}</p>}
     </div>
-    <div className={`p-3 rounded-full ${color.replace('text-', 'bg-').replace('600', '100').replace('500', '100')}`}>
-      <Icon className={`w-6 h-6 ${color}`} />
+    <div className={`p-2.5 rounded-xl ${color.replace('text-', 'bg-').replace('600', '100').replace('500', '100')}`}>
+      <Icon className={`w-5 h-5 ${color}`} />
     </div>
   </div>
 );
@@ -36,6 +43,27 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const { stats, loading } = useDashboardStats();
 
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifLoading, setNotifLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLatestNotifications = async () => {
+      try {
+        const { data } = await api.get('/api/notifications');
+        // On ne garde que les 3 dernières
+        setNotifications(data.slice(0, 3));
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setNotifLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchLatestNotifications();
+    }
+  }, [user]);
 
   const isAdmin = user?.role === 'admin';
   const isInstructor = user?.role === 'instructor';
@@ -76,16 +104,16 @@ export default function DashboardPage() {
 
           </header>
 
-          <main className="p-8 max-w-[1600px] mx-auto space-y-8">
+          <main className="p-6 max-w-[1600px] mx-auto space-y-6">
 
-            {/* 🔥 LOGIQUE D'AFFICHAGE CONDITIONNEL 🔥 */}
+            {/* Logique d'affichage conditionnel */}
 
             {isAdmin ? (
               <AdminDashboard />
             ) : (
               <>
                 {/* 1. Cartes Statistiques */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <StatCard
                     title="Projets Actifs"
                     value={loading ? "..." : stats.activeProjects}
@@ -117,33 +145,67 @@ export default function DashboardPage() {
                 </div>
 
                 {/* 2. Grille Principale */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                  {/* Colonne Gauche : Tableaux */}
-                  <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+                  {/* Colonne Gauche : Tableaux & Git */}
+                  <div className="xl:col-span-2 flex flex-col gap-8">
                     {isInstructor ? <RecentCampaigns /> : <RecentProjects />}
+
+                    {!isAdmin && <GitActivity />}
                   </div>
 
-                  {/* Colonne Droite : Actions & Alertes */}
-                  <div className="space-y-8">
+                  {/* Colonne Droite : Actions & Notifications */}
+                  <div className="flex flex-col gap-6">
                     <QuickActions />
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                      <h3 className="font-bold text-gray-800 mb-4">🔔 Alertes importantes</h3>
-                      <div className="space-y-3">
-                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800 flex gap-3">
-                          <AlertTriangle className="shrink-0 w-5 h-5 text-red-500" />
-                          <div>
-                            <span className="font-bold block mb-1">Retard Critique</span>
-                            Le groupe "App Santé" n'a pas commité depuis 5 jours.
+                    <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
+                          <Bell size={16} className="text-blue-600" />
+                          Dernières notifications
+                        </h3>
+                        {notifications.length > 0 && (
+                          <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 group">
+                            Voir plus
+                            <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                          </Link>
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        {notifLoading ? (
+                          <div className="space-y-3">
+                            {[1, 2].map(i => (
+                              <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse"></div>
+                            ))}
                           </div>
-                        </div>
-                        <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-sm text-yellow-800 flex gap-3">
-                          <Clock className="shrink-0 w-5 h-5 text-yellow-600" />
-                          <div>
-                            <span className="font-bold block mb-1">Jalon Approche</span>
-                            Rendu final SAE S3 attendu pour demain.
+                        ) : notifications.length > 0 ? (
+                          <>
+                            {notifications.map((notif: any) => (
+                              <div key={notif._id} className="p-3 bg-gray-50/50 border border-gray-100 rounded-2xl transition-hover hover:border-blue-100 hover:bg-blue-50/30 group">
+                                <div className="flex gap-2">
+                                  <div className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${notif.type === 'INVITATION' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                                    {notif.type === 'INVITATION' ? <UserPlus size={14} /> : <Info size={14} />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[11px] font-bold text-gray-900 line-clamp-2 leading-tight">
+                                      {notif.message}
+                                    </p>
+                                    <p className="text-[9px] text-gray-400 mt-0.5 font-medium uppercase tracking-tighter">
+                                      {new Date(notif.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        ) : (
+                          <div className="py-6 text-center">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-50 text-gray-300 mb-3">
+                              <Bell size={24} />
+                            </div>
+                            <p className="text-xs text-gray-400 font-medium">Aucune notification récente</p>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -154,6 +216,6 @@ export default function DashboardPage() {
           </main>
         </div>
       </div>
-    </ProtectedRoute>
+    </ProtectedRoute >
   );
 }

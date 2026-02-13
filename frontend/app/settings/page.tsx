@@ -15,7 +15,9 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
-  Camera
+  Camera,
+  PenTool,
+  LayoutTemplate
 } from 'lucide-react';
 import { NotificationBell } from '@/components/NotificationBell';
 
@@ -28,7 +30,8 @@ export default function SettingsPage() {
     password: '',
     confirmPassword: '',
     academicYear: 'BUT1',
-    group: 'G1'
+    group: 'G1',
+    theme: 'modern'
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -41,7 +44,8 @@ export default function SettingsPage() {
         lastName: user.lastName || user.name || '',
         email: user.email || '',
         academicYear: user.academicYear || 'BUT1',
-        group: user.group || 'G1'
+        group: user.group || 'G1',
+        theme: user.theme || 'modern'
       }));
     }
   }, [user]);
@@ -66,7 +70,8 @@ export default function SettingsPage() {
         lastName: formData.lastName,
         email: formData.email,
         academicYear: formData.academicYear,
-        group: formData.group
+        group: formData.group,
+        theme: formData.theme
       };
       if (formData.password) {
         payload.password = formData.password;
@@ -307,6 +312,49 @@ export default function SettingsPage() {
                           </div>
                         </>
                       )}
+
+                      {/* Thème */}
+                      <div className="space-y-4 md:col-span-2 pt-4 border-t border-gray-100">
+                        <label className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <PenTool className="text-blue-500" size={16} />
+                          Apparence de l'interface
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, theme: 'classic' })}
+                            className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${formData.theme === 'classic'
+                              ? 'border-blue-600 bg-blue-50 shadow-sm'
+                              : 'border-gray-100 hover:border-gray-200 bg-gray-50'
+                              }`}
+                          >
+                            <div className={`p-2 rounded-lg ${formData.theme === 'classic' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                              <LayoutTemplate size={20} />
+                            </div>
+                            <div className="text-left">
+                              <p className={`text-sm font-bold ${formData.theme === 'classic' ? 'text-blue-900' : 'text-gray-700'}`}>Style Basique</p>
+                              <p className="text-xs text-gray-500">Interface classique et épurée</p>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, theme: 'modern' })}
+                            className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${formData.theme === 'modern'
+                              ? 'border-indigo-600 bg-indigo-50 shadow-sm'
+                              : 'border-gray-100 hover:border-gray-200 bg-gray-50'
+                              }`}
+                          >
+                            <div className={`p-2 rounded-lg ${formData.theme === 'modern' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                              <PenTool size={20} />
+                            </div>
+                            <div className="text-left">
+                              <p className={`text-sm font-bold ${formData.theme === 'modern' ? 'text-indigo-900' : 'text-gray-700'}`}>Style Moderne / Animé</p>
+                              <p className="text-xs text-gray-500">Effets premium et animations</p>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="pt-6 border-t border-gray-100">

@@ -4,225 +4,272 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import api from '@/lib/auth';
-import { 
-  Bell, 
-  Check, 
-  X, 
-  Info, 
-  UserPlus, 
-  Calendar, 
-  CheckCircle2 
+import {
+    Bell,
+    Check,
+    X,
+    Info,
+    UserPlus,
+    Calendar,
+    CheckCircle2
 } from 'lucide-react';
+import { useAuthStore } from '@/lib/store';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 interface Notification {
-  _id: string;
-  type: 'INVITATION' | 'INFO';
-  message: string;
-  status: 'unread' | 'read';
-  project?: {
     _id: string;
-    title: string;
-  };
-  sender?: {
-    name: string;
-  };
-  createdAt: string;
-  actionStatus?: 'pending' | 'accepted' | 'declined';
+    type: 'INVITATION' | 'INFO';
+    message: string;
+    status: 'unread' | 'read';
+    project?: {
+        _id: string;
+        title: string;
+    };
+    sender?: {
+        name: string;
+    };
+    createdAt: string;
+    actionStatus?: 'pending' | 'accepted' | 'declined';
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+    const { user } = useAuthStore();
+    const isModern = user?.theme === 'modern';
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  const fetchNotifications = async () => {
-    try {
-      const { data } = await api.get('/api/notifications');
-      setNotifications(data);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchNotifications = async () => {
+        try {
+            const { data } = await api.get('/api/notifications');
+            setNotifications(data);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
 
-  const markAsRead = async (id: string) => {
-    try {
-      await api.put(`/api/notifications/${id}/read`);
-      setNotifications(prev =>
-        prev.map(n => n._id === id ? { ...n, status: 'read' } : n)
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    const markAsRead = async (id: string) => {
+        try {
+            await api.put(`/api/notifications/${id}/read`);
+            setNotifications(prev =>
+                prev.map(n => n._id === id ? { ...n, status: 'read' } : n)
+            );
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
-  const handleInvitation = async (id: string, action: 'accept' | 'decline') => {
-    try {
-      // On suppose que ta route API gère ça (ex: /api/notifications/:id/respond)
-      await api.post(`/api/notifications/${id}/respond`, { action });
-      
-      // Mise à jour optimiste de l'UI
-      setNotifications(prev => 
-        prev.map(n => n._id === id ? { 
-            ...n, 
-            actionStatus: action === 'accept' ? 'accepted' : 'declined',
-            status: 'read' 
-        } : n)
-      );
-    } catch (error) {
-      alert("Une erreur est survenue lors de la réponse à l'invitation.");
-    }
-  };
+    const handleInvitation = async (id: string, action: 'accept' | 'decline') => {
+        try {
+            await api.post(`/api/notifications/${id}/respond`, { action });
+            setNotifications(prev =>
+                prev.map(n => n._id === id ? {
+                    ...n,
+                    actionStatus: action === 'accept' ? 'accepted' : 'declined',
+                    status: 'read'
+                } : n)
+            );
+        } catch (error) {
+            alert("Une erreur est survenue lors de la réponse à l'invitation.");
+        }
+    };
 
-  // Compteur de non-lues
-  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+    const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
-  return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-[#f3f4f6] flex font-sans">
-        
-        {/* 1. SIDEBAR */}
-        <Navbar />
+    return (
+        <ProtectedRoute>
+            <div className={`min-h-screen ${isModern ? 'bg-[#f8fafc]' : 'bg-white'} flex font-sans overflow-hidden relative`}>
+                {/* Animated Background Elements */}
+                {isModern && (
+                    <>
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl"></div>
+                    </>
+                )}
 
-        {/* 2. CONTENU PRINCIPAL */}
-        <div className="flex-1 ml-64 p-8">
-            
-            {/* --- HEADER --- */}
-            <div className="mb-8 flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Centre de Notifications</h1>
-                    <p className="text-gray-500">Gérez vos invitations et restez informé des mises à jour.</p>
-                </div>
-                <div className={`px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm border ${
-                    unreadCount > 0 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-white text-gray-500 border-gray-200'
-                }`}>
-                    <Bell size={18} />
-                    {unreadCount > 0 ? `${unreadCount} non lue(s)` : 'Tout est lu'}
-                </div>
-            </div>
+                <Navbar />
 
-            {/* --- LISTE DES NOTIFICATIONS --- */}
-            <div className="space-y-4 max-w-4xl">
-                
-                {loading ? (
-                    // SKELETON
-                    [...Array(3)].map((_, i) => (
-                        <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
-                    ))
-                ) : notifications.length > 0 ? (
-                    notifications.map((notification) => (
-                        <div 
-                            key={notification._id} 
-                            className={`group relative bg-white rounded-xl p-6 border transition-all duration-200
-                                ${notification.status === 'unread' 
-                                    ? 'border-blue-200 shadow-md shadow-blue-50' 
-                                    : 'border-gray-100 shadow-sm opacity-80 hover:opacity-100'
-                                }
-                            `}
-                        >
-                            <div className="flex gap-5">
-                                
-                                {/* 1. Icône Latérale */}
-                                <div className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center
-                                    ${notification.type === 'INVITATION' 
-                                        ? 'bg-purple-100 text-purple-600' 
-                                        : 'bg-blue-100 text-blue-600'
-                                    }
-                                `}>
-                                    {notification.type === 'INVITATION' ? <UserPlus size={24} /> : <Info size={24} />}
+                <div className="flex-1 ml-64 p-12 relative overflow-y-auto h-screen">
+
+                    {/* --- HEADER --- */}
+                    <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                        <div>
+                            <h1 className={`${isModern ? 'text-4xl font-black' : 'text-3xl font-bold'} text-gray-900 tracking-tight leading-none mb-3`}>
+                                Centre de <span className="text-blue-600">Notifications</span>
+                            </h1>
+                            <p className="text-gray-500 text-lg">Suivez vos invitations et restez informé en temps réel.</p>
+                        </div>
+                        <div className={`${isModern ? 'px-5 py-2 rounded-2xl text-xs font-black shadow-lg shadow-blue-500/20' : 'px-4 py-1.5 rounded-lg text-[10px] font-bold shadow-sm'} flex items-center gap-2 transition-all duration-300 border ${unreadCount > 0
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-400 border-gray-100'
+                            }`}>
+                            <Bell size={isModern ? 16 : 14} className={unreadCount > 0 ? 'animate-bounce' : ''} />
+                            {unreadCount > 0 ? `${unreadCount} nouveaux` : 'Tout est vu'}
+                        </div>
+                    </div>
+
+                    {/* --- LISTE DES NOTIFICATIONS --- */}
+                    {isModern ? (
+                        <div className="max-w-4xl mx-auto">
+                            {loading ? (
+                                <div className="space-y-6">
+                                    {[...Array(3)].map((_, i) => (
+                                        <div key={i} className="bg-white/50 backdrop-blur-sm p-10 rounded-3xl border border-white shadow-sm animate-pulse h-40"></div>
+                                    ))}
                                 </div>
+                            ) : notifications.length > 0 ? (
+                                <div className="space-y-6">
+                                    {notifications.map((notification) => (
+                                        <div
+                                            key={notification._id}
+                                            className={`group relative bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 md:p-10 border transition-all duration-500 transform hover:scale-[1.02] hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)]
+                                        ${notification.status === 'unread'
+                                                    ? 'border-blue-100 shadow-xl shadow-blue-500/5'
+                                                    : 'border-white/50 shadow-sm opacity-90'
+                                                }
+                                    `}
+                                        >
+                                            <div className="flex flex-col md:flex-row gap-8">
+                                                <div className={`shrink-0 w-20 h-20 rounded-[1.5rem] flex items-center justify-center shadow-inner transition-all duration-500 group-hover:rotate-12 group-hover:scale-110
+                                            ${notification.type === 'INVITATION'
+                                                        ? 'bg-gradient-to-br from-purple-50 to-indigo-50 text-purple-600'
+                                                        : 'bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-600'
+                                                    }
+                                        `}>
+                                                    {notification.type === 'INVITATION' ? <UserPlus size={32} strokeWidth={2.5} /> : <Info size={32} strokeWidth={2.5} />}
+                                                </div>
 
-                                {/* 2. Contenu Texte */}
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="text-gray-900 font-bold text-lg mb-1">
-                                            {notification.type === 'INVITATION' ? 'Invitation reçue' : 'Information'}
-                                        </h4>
-                                        <span className="text-xs text-gray-400 flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                                            <Calendar size={12} />
-                                            {format(new Date(notification.createdAt), "d MMM à HH:mm", { locale: fr })}
-                                        </span>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex flex-col">
+                                                            <h4 className="text-gray-900 font-black text-2xl tracking-tight leading-tight">
+                                                                {notification.type === 'INVITATION' ? 'Invitation Projet' : 'Nouvelle Information'}
+                                                            </h4>
+                                                            <span className="text-xs font-black uppercase tracking-widest text-gray-400 mt-2 flex items-center gap-2">
+                                                                <Calendar size={14} className="text-blue-500" />
+                                                                {format(new Date(notification.createdAt), "EEEE d MMMM 'à' HH:mm", { locale: fr })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="text-gray-600 text-[16px] leading-[1.6] mt-6 bg-gray-50/30 p-6 rounded-3xl border border-gray-100/50 backdrop-blur-sm">
+                                                        {notification.message}
+                                                    </div>
+
+                                                    <div className="mt-8 flex flex-wrap gap-4 items-center">
+                                                        {notification.type === 'INVITATION' && (!notification.actionStatus || notification.actionStatus === 'pending') && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleInvitation(notification._id, 'accept')}
+                                                                    className="group/btn flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/25 transform hover:-translate-y-1 active:translate-y-0"
+                                                                >
+                                                                    <CheckCircle2 size={20} /> Accepter maintenant
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleInvitation(notification._id, 'decline')}
+                                                                    className="px-10 py-4 bg-white border border-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-50 hover:text-red-600 hover:border-red-100 transition-all shadow-sm"
+                                                                >
+                                                                    Plus tard
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {notification.actionStatus === 'accepted' && (
+                                                            <div className="flex items-center gap-4 px-8 py-3 bg-emerald-50 text-emerald-600 rounded-2xl text-[15px] font-black border border-emerald-100 shadow-sm animate-in slide-in-from-left duration-300">
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                                Vous avez rejoint le projet
+                                                            </div>
+                                                        )}
+                                                        {notification.actionStatus === 'declined' && (
+                                                            <div className="flex items-center gap-4 px-8 py-3 bg-red-50 text-red-600 rounded-2xl text-[15px] font-black border border-red-100 shadow-sm">
+                                                                Invitation déclinée
+                                                            </div>
+                                                        )}
+
+                                                        {notification.type === 'INFO' && notification.status === 'unread' && (
+                                                            <button
+                                                                onClick={() => markAsRead(notification._id)}
+                                                                className="text-xs font-black text-blue-600 bg-blue-50/50 px-8 py-3 rounded-2xl hover:bg-blue-100/50 transition-all tracking-wider border border-blue-100"
+                                                            >
+                                                                MARQUER COMME VU
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {notification.status === 'unread' && (
+                                                <div className="absolute top-10 right-10 w-4 h-4 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50">
+                                                    <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-24 bg-white/50 backdrop-blur-md rounded-[3rem] border border-white shadow-xl flex flex-col items-center">
+                                    <div className="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center mb-8 shadow-inner">
+                                        <Bell className="text-gray-300" size={56} strokeWidth={1.5} />
                                     </div>
-                                    
-                                    <p className="text-gray-600 leading-relaxed">
-                                        {notification.message}
+                                    <h3 className="text-3xl font-black text-gray-900 tracking-tight">C'est très calme ici...</h3>
+                                    <p className="text-gray-500 text-lg max-w-sm mx-auto mt-4 px-6">
+                                        Vous n'avez aucune nouvelle notification. <br />Revenez plus tard pour voir les mises à jour !
                                     </p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        /* --- CLASSIC NOTIFICATIONS VIEW --- */
+                        <div className="max-w-4xl mx-auto space-y-4">
+                            {loading ? (
+                                <div className="space-y-4">
+                                    {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-xl animate-pulse"></div>)}
+                                </div>
+                            ) : notifications.length > 0 ? (
+                                notifications.map((notification) => (
+                                    <div key={notification._id} className={`p-6 bg-white border rounded-xl shadow-sm flex justify-between items-center transition-all ${notification.status === 'unread' ? 'border-l-4 border-l-blue-600 border-blue-100 bg-blue-50/20' : 'border-gray-200'}`}>
+                                        <div className="flex gap-4">
+                                            <div className={`p-3 rounded-lg flex items-center justify-center h-fit ${notification.type === 'INVITATION' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                {notification.type === 'INVITATION' ? <UserPlus size={20} /> : <Info size={20} />}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-800">{notification.message}</p>
+                                                <p className="text-xs text-gray-500 mt-1">{format(new Date(notification.createdAt), "d MMMM 'à' HH:mm", { locale: fr })}</p>
 
-                                    {/* 3. Zone d'Actions (Conditionnelle) */}
-                                    <div className="mt-4 flex flex-wrap gap-3 items-center">
-                                        
-                                        {/* CAS INVITATION EN ATTENTE */}
-                                        {notification.type === 'INVITATION' && (!notification.actionStatus || notification.actionStatus === 'pending') && (
-                                            <>
-                                                <button 
-                                                    onClick={() => handleInvitation(notification._id, 'accept')}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition shadow-sm hover:shadow-md"
-                                                >
-                                                    <Check size={16} /> Accepter
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleInvitation(notification._id, 'decline')}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
-                                                >
-                                                    <X size={16} /> Refuser
-                                                </button>
-                                            </>
-                                        )}
-
-                                        {/* CAS INVITATION DÉJÀ TRAITÉE */}
-                                        {notification.actionStatus === 'accepted' && (
-                                            <span className="text-green-600 bg-green-50 px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-2 border border-green-100">
-                                                <CheckCircle2 size={16} /> Invitation acceptée
-                                            </span>
-                                        )}
-                                        {notification.actionStatus === 'declined' && (
-                                            <span className="text-red-600 bg-red-50 px-3 py-1 rounded-lg text-sm font-medium border border-red-100">
-                                                Invitation refusée
-                                            </span>
-                                        )}
-
-                                        {/* BOUTON MARQUER COMME LU (Pour les Infos non lues) */}
-                                        {notification.type === 'INFO' && notification.status === 'unread' && (
-                                            <button 
-                                                onClick={() => markAsRead(notification._id)}
-                                                className="text-sm text-gray-500 hover:text-blue-600 underline decoration-gray-300 underline-offset-4 transition"
-                                            >
-                                                Marquer comme lu
+                                                {notification.type === 'INVITATION' && (!notification.actionStatus || notification.actionStatus === 'pending') && (
+                                                    <div className="flex gap-2 mt-4">
+                                                        <button onClick={() => handleInvitation(notification._id, 'accept')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm">Accepter</button>
+                                                        <button onClick={() => handleInvitation(notification._id, 'decline')} className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 transition">Refuser</button>
+                                                    </div>
+                                                )}
+                                                {notification.actionStatus === 'accepted' && <p className="text-xs font-bold text-emerald-600 mt-2">✓ Vous avez rejoint le projet</p>}
+                                                {notification.actionStatus === 'declined' && <p className="text-xs font-bold text-red-600 mt-2">✗ Invitation déclinée</p>}
+                                            </div>
+                                        </div>
+                                        {notification.status === 'unread' && notification.type === 'INFO' && (
+                                            <button onClick={() => markAsRead(notification._id)} className="p-2 hover:bg-blue-100 rounded-full text-blue-600 transition" title="Marquer comme lu">
+                                                <Check size={18} />
                                             </button>
                                         )}
                                     </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-20 bg-white border border-gray-200 rounded-3xl">
+                                    <Bell size={48} className="mx-auto text-gray-200 mb-4" />
+                                    <h3 className="text-xl font-bold text-gray-800">Aucune notification</h3>
+                                    <p className="text-gray-500 mt-2">C'est très calme ici pour le moment.</p>
                                 </div>
-                            </div>
-
-                            {/* Indicateur point bleu (Non lu) */}
-                            {notification.status === 'unread' && (
-                                <div className="absolute top-6 right-6 w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse"></div>
                             )}
                         </div>
-                    ))
-                ) : (
-                    // EMPTY STATE
-                    <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
-                        <div className="mx-auto w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                            <Bell className="text-gray-400" size={32} />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900">Aucune notification</h3>
-                        <p className="text-gray-500 max-w-sm mx-auto mt-1">
-                            Vous êtes à jour ! Tout est calme pour le moment.
-                        </p>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
-        </div>
-      </div>
-    </ProtectedRoute>
-  );
+        </ProtectedRoute>
+    );
 }

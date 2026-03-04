@@ -259,10 +259,8 @@ class ChatController {
                 if (conversation.admin && conversation.admin.toString() !== userId) {
                     return res.status(403).json({ message: 'Only admin can delete this group' });
                 }
-            } else {
-                if (!conversation.participants.map(p => p.toString()).includes(userId)) {
-                    return res.status(403).json({ message: 'Not authorized' });
-                }
+            } else if (!conversation.participants.map(p => p.toString()).includes(userId)) {
+                return res.status(403).json({ message: 'Not authorized' });
             }
 
             await Message.deleteMany({ conversationId: id });

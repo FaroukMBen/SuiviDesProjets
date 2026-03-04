@@ -44,7 +44,7 @@ class GitHubService {
         currentPage++;
       } catch (err) {
         // Si rate limit (403), propager l'erreur avec l'objet response intact
-        if (err.response && err.response.status === 403) {
+        if (err.response?.status === 403) {
           console.warn(`[GitHub] Rate limit hit on page ${currentPage}. Returning ${allCommits.length} commits collected so far.`);
           if (allCommits.length > 0) return allCommits;
           throw err; // Propager l'erreur originale (pas un new Error) pour garder .response

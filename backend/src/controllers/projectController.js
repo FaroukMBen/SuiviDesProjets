@@ -2,8 +2,8 @@ const Project = require('../models/Project');
 const Task = require('../models/Task');
 const Livrable = require('../models/Livrable');
 const mongoose = require('mongoose');
-const { Readable } = require('stream');
-const path = require('path');
+const { Readable } = require('node:stream');
+const path = require('node:path');
 const CommitController = require('./commitController');
 
 class ProjectController {
@@ -55,8 +55,8 @@ class ProjectController {
       }
 
       // Pagination parameters
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 8;
+      const page = Number.parseInt(req.query.page) || 1;
+      const limit = Number.parseInt(req.query.limit) || 8;
       const skip = (page - 1) * limit;
 
       // Exécution
@@ -315,8 +315,7 @@ class ProjectController {
 
       // Convert buffer to stream and pipe to GridFS
       const readableStream = new Readable();
-      readableStream.push(req.file.buffer);
-      readableStream.push(null);
+      readableStream.push(req.file.buffer, null);
 
       readableStream.pipe(uploadStream)
         .on('error', (error) => {

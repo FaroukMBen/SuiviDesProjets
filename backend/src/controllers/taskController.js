@@ -4,7 +4,7 @@ const Project = require('../models/Project');
 class TaskController {
   static async getMyTasks(req, res) {
     try {
-      if (!req.user || !req.user.id) {
+      if (!req.user?.id) {
         return res.status(401).json({ message: "Utilisateur non identifié" });
       }
 

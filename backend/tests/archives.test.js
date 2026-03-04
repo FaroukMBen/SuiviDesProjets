@@ -4,8 +4,8 @@ const Archive = require('../src/models/Archive');
 const Project = require('../src/models/Project');
 const ExportService = require('../src/services/exportService');
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // --- 1. MOCKS DES MODÈLES ---
 
@@ -23,7 +23,7 @@ jest.mock('../src/models/Archive', () => {
   MockArchive.find = jest.fn();
   // On attache save au prototype pour être sûr
   MockArchive.prototype.save = jest.fn().mockResolvedValue({});
-  
+
   return MockArchive;
 });
 
@@ -39,7 +39,7 @@ jest.mock('../src/models/Project', () => {
 
   MockProject.findById = jest.fn();
   MockProject.prototype.save = jest.fn().mockResolvedValue({});
-  
+
   return MockProject;
 });
 
@@ -80,9 +80,7 @@ describe('Archive API', () => {
   // On doit créer ces fichiers physiquement pour que res.download ne plante pas.
   const csvFileName = `project-${projectId}.csv`;
   const pdfFileName = `project-${projectId}.pdf`;
-  
-  const csvPath = path.join(__dirname, '..', csvFileName); // À la racine (niveau de package.json)
-  const pdfPath = path.join(__dirname, '..', pdfFileName);
+
 
   beforeAll(() => {
     // On crée des fichiers vides pour leurrer le contrôleur
@@ -107,11 +105,11 @@ describe('Archive API', () => {
   describe('GET /api/archive', () => {
     it('devrait récupérer la liste des archives', async () => {
       const mockArchives = [{ reason: 'Old project' }];
-      
+
       const mockSort = jest.fn().mockResolvedValue(mockArchives);
       const mockPopulate2 = jest.fn().mockReturnValue({ sort: mockSort });
       const mockPopulate1 = jest.fn().mockReturnValue({ populate: mockPopulate2 });
-      
+
       Archive.find.mockReturnValue({ populate: mockPopulate1 });
 
       const res = await request(app)

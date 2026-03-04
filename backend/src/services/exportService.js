@@ -1,7 +1,7 @@
 const PDFDocument = require('pdfkit');
 const { createObjectCsvWriter } = require('csv-writer');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 class ExportService {
   static async exportProjectToPDF(project, evaluations, tasks, filename) {

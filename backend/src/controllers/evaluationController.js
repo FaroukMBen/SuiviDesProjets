@@ -31,7 +31,7 @@ class EvaluationController {
           let maxScore = c.maxScore || 20;
 
           // Process sub-criteria if any
-          let subs = undefined;
+          let subs;
           if (c.subCriteria && c.subCriteria.length > 0) {
             const subResult = processCriteria(c.subCriteria);
             subs = subResult.processed;
@@ -105,7 +105,7 @@ class EvaluationController {
             let maxScore = c.maxScore || 20;
 
             // Process sub-criteria if any
-            let subs = undefined;
+            let subs;
             if (c.subCriteria && c.subCriteria.length > 0) {
               const subResult = processCriteria(c.subCriteria);
               subs = subResult.processed;

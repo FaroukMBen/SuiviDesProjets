@@ -1,7 +1,7 @@
 const Campaign = require('../models/Campagne');
 const mongoose = require('mongoose');
-const path = require('path');
-const { Readable } = require('stream');
+const path = require('node:node:path');
+const { Readable } = require('node:stream');
 
 class CampaignController {
 
@@ -77,8 +77,8 @@ class CampaignController {
       }
 
       // Pagination
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 1000;
+      const page = Number.parseInt(req.query.page) || 1;
+      const limit = Number.parseInt(req.query.limit) || 1000;
       const skip = (page - 1) * limit;
 
       // Exécution
@@ -150,8 +150,8 @@ class CampaignController {
       // Déterminer les nouveaux co-managers ajoutés (si modification de coManagers)
       let newCoManagers = [];
       if (req.body.coManagers && Array.isArray(req.body.coManagers)) {
-        const previousCoManagerIds = existingCampaign.coManagers.map(id => id.toString());
-        newCoManagers = req.body.coManagers.filter(id => !previousCoManagerIds.includes(id));
+        const previousCoManagerIds = new Set(existingCampaign.coManagers.map(id => id.toString()));
+        newCoManagers = req.body.coManagers.filter(id => !previousCoManagerIds.has(id));
       }
 
       // 2. Mise à jour
@@ -231,8 +231,7 @@ class CampaignController {
 
       // Convert buffer to stream and pipe to GridFS
       const readableStream = new Readable();
-      readableStream.push(req.file.buffer);
-      readableStream.push(null);
+      readableStream.push(req.file.buffer, null);
 
       readableStream.pipe(uploadStream)
         .on('error', (error) => {

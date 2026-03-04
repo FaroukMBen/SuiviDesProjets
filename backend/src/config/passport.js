@@ -11,7 +11,10 @@ passport.use(new GitHubStrategy({
   try {
     let user = await User.findOne({ githubId: profile.id });
 
-    if (!user) {
+    if (user) {
+      user.githubToken = accessToken;
+      await user.save();
+    } else {
       user = new User({
         name: profile.displayName || profile.username,
         email: profile.emails?.[0]?.value || `${profile.username}@github.com`,
@@ -21,9 +24,6 @@ passport.use(new GitHubStrategy({
         profilePicture: profile.photos?.[0]?.value,
         role: 'student'
       });
-      await user.save();
-    } else {
-      user.githubToken = accessToken;
       await user.save();
     }
 

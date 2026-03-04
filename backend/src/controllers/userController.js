@@ -66,8 +66,8 @@ class UserController {
   // 4. LISTER TOUS LES UTILISATEURS (Avec pagination et filtres)
   static async getAllUsers(req, res) {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      const page = Number.parseInt(req.query.page) || 1;
+      const limit = Number.parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
 
       let filter = {};
@@ -184,8 +184,8 @@ class UserController {
       }
 
       // Pagination
-      const pageNum = parseInt(page);
-      const limitNum = parseInt(limit);
+      const pageNum = Number.parseInt(page);
+      const limitNum = Number.parseInt(limit);
       const skip = (pageNum - 1) * limitNum;
 
       const totalStudents = await User.countDocuments(query);
@@ -241,7 +241,7 @@ class UserController {
 
       // Extraction de l'en-tête pour identifier les colonnes
       // On attend : name, email, academicYear, group
-      const headers = lines[0].split(/[;,]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      const headers = lines[0].split(/[;,]/).map(h => h.trim().toLowerCase().replaceAll('"', ''));
 
       // Mapping des index
       const idxFirstName = headers.indexOf('firstname');
@@ -258,7 +258,7 @@ class UserController {
       // Traitement des lignes de données (à partir de l'index 1)
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
-        const cols = line.split(/[;,]/).map(c => c.trim().replace(/^"|"$/g, '')); // Gestion basique des guillemets
+        const cols = line.split(/[;,]/).map(c => c.trim().replaceAll(/^"|"$/g, '')); // Gestion basique des guillemets
 
         if (cols.length < headers.length) {
           // Ligne incomplète ou vide
@@ -267,12 +267,12 @@ class UserController {
 
         results.total++;
 
-        const firstNameRaw = idxFirstName !== -1 ? cols[idxFirstName] : '';
-        const lastNameRaw = idxLastName !== -1 ? cols[idxLastName] : '';
-        const nameFallback = idxName !== -1 ? cols[idxName] : '';
+        const firstNameRaw = idxFirstName === -1 ? '' : cols[idxFirstName];
+        const lastNameRaw = idxLastName === -1 ? '' : cols[idxLastName];
+        const nameFallback = idxName === -1 ? '' : cols[idxName];
         const email = cols[idxEmail];
-        const academicYear = idxYear !== -1 ? cols[idxYear] : 'BUT1';
-        const group = idxGroup !== -1 ? cols[idxGroup] : '';
+        const academicYear = idxYear === -1 ? 'BUT1' : cols[idxYear];
+        const group = idxGroup === -1 ? '' : cols[idxGroup];
 
         if (!email || (!nameFallback && !lastNameRaw)) {
           results.errors++;

@@ -25,20 +25,20 @@ class CommitController {
         });
       }
 
-      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit);
       const commits = await Commit.find(query)
         .sort({ timestamp: -1 })
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(Number.Number.parseInt(limit));
 
       res.json({
         success: true,
         commits,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: Number.Number.parseInt(page),
+          limit: Number.Number.parseInt(limit),
           total,
-          pages: Math.ceil(total / parseInt(limit))
+          pages: Math.ceil(total / Number.parseInt(limit))
         }
       });
     } catch (err) {
@@ -47,7 +47,6 @@ class CommitController {
   }
 
   static async syncRepository(projectId, repositoryUrl, userId) {
-    const Project = require('../models/Project');
 
     // 1. Validation de l'URL
     const parsed = GitHubService.parseRepositoryUrl(repositoryUrl);
@@ -79,7 +78,7 @@ class CommitController {
       try {
         commits = await githubService.getRepositoryCommits(owner, repo, branch.name);
       } catch (e) {
-        if (e.response && e.response.status === 403) {
+        if (e.response?.status === 403) {
           rateLimitHit = true;
           break;
         }
@@ -130,7 +129,7 @@ class CommitController {
               await existing.save();
               totalUpdated++;
             } catch (e) {
-              if (e.response && e.response.status === 403) {
+              if (e.response?.status === 403) {
                 rateLimitHit = true;
                 break;
               }
@@ -177,7 +176,7 @@ class CommitController {
               await newCommit.save();
             }
           } catch (detailError) {
-            if (detailError.response && detailError.response.status === 403) {
+            if (detailError.response?.status === 403) {
               rateLimitHit = true;
             }
           }
@@ -302,7 +301,7 @@ class CommitController {
           console.log(`[SYNC] Branch ${branch.name}: ${commits.length} commits found`);
         } catch (e) {
           console.error(`[SYNC] Error fetching commits for ${branch.name}:`, e.message);
-          if (e.response && e.response.status === 403) {
+          if (e.response?.status === 403) {
             rateLimitHit = true;
             break;
           }

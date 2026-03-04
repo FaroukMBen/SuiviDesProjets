@@ -56,6 +56,7 @@ app.use('/api/livrables', require('./routes/livrables'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/github', require('./routes/github'));
+app.use('/api/gantt-tasks', require('./routes/ganttTasks'));
 
 
 // Error handling middleware

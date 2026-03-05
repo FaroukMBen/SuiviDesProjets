@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/store';
 import api from '@/lib/auth';
 import { format, differenceInDays, addDays, startOfDay, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Trash2, Link as LinkIcon, Calendar, Edit2, X } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Calendar, Edit2, X, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface Member {
@@ -36,6 +36,7 @@ export function GanttBoard({ projectId }: { projectId: string }) {
     const [newTaskDependsOn, setNewTaskDependsOn] = useState<string[]>([]);
     const [newTaskStatus, setNewTaskStatus] = useState<GanttTask['status']>('todo');
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+    const [isDependenciesModalOpen, setIsDependenciesModalOpen] = useState(false);
 
     useEffect(() => {
         fetchTasks();
@@ -106,6 +107,7 @@ export function GanttBoard({ projectId }: { projectId: string }) {
         setNewTaskEndDate('');
         setNewTaskDependsOn([]);
         setNewTaskStatus('todo');
+        setIsDependenciesModalOpen(false);
     };
 
     const openEditForm = (task: GanttTask) => {
@@ -116,6 +118,7 @@ export function GanttBoard({ projectId }: { projectId: string }) {
         setNewTaskDependsOn(task.dependsOn ? task.dependsOn.map(d => d._id) : []);
         setNewTaskStatus(task.status);
         setIsAdding(true);
+        setIsDependenciesModalOpen(false);
     };
 
     const handleDeleteTask = async (taskId: string) => {
@@ -266,47 +269,140 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                     </div>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Dépendances (Maintenir Ctrl/Cmd)</label>
-                                    <select
-                                        multiple
-                                        value={newTaskDependsOn}
-                                        onChange={e => {
-                                            const options = Array.from(e.target.selectedOptions, option => option.value);
-                                            let validOptions = options;
-                                            if (options.includes("")) validOptions = []; // (Aucune) overrides
-                                            setNewTaskDependsOn(validOptions);
+                                <div className="space-y-1 relative">
+                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Dépendances</label>
+                                    <div className="min-h-[42px] p-1.5 bg-gray-50/50 border border-gray-200 rounded-xl flex items-center flex-wrap gap-1.5 transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white">
+                                        {newTaskDependsOn.length === 0 ? (
+                                            <span className="text-sm text-gray-400 italic px-2 font-medium">Aucune dépendance</span>
+                                        ) : (
+                                            newTaskDependsOn.map(depId => {
+                                                const dep = tasks.find(t => t._id === depId);
+                                                return dep ? (
+                                                    <div key={depId} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-[13px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm">
+                                                        <LinkIcon size={12} className="text-blue-500" />
+                                                        <span className="truncate max-w-[120px]">{dep.title}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setNewTaskDependsOn(newTaskDependsOn.filter(id => id !== depId))}
+                                                            className="ml-0.5 text-blue-400 hover:text-blue-600 bg-white/50 hover:bg-white p-0.5 rounded-md transition-colors"
+                                                        >
+                                                            <X size={12} strokeWidth={3} />
+                                                        </button>
+                                                    </div>
+                                                ) : null;
+                                            })
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDependenciesModalOpen(!isDependenciesModalOpen)}
+                                            className="ml-auto w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-blue-600 hover:border-blue-200 shadow-sm transition-all"
+                                            title="Gérer les dépendances"
+                                        >
+                                            <Plus size={16} strokeWidth={2.5} />
+                                        </button>
+                                    </div>
 
-                                            if (validOptions.length > 0) {
-                                                let maxEndDate: Date | null = null;
-                                                validOptions.forEach(depId => {
-                                                    const depTask = tasks.find(t => t._id === depId);
-                                                    if (depTask) {
-                                                        const dEndDate = new Date(depTask.endDate);
-                                                        if (!maxEndDate || dEndDate > maxEndDate) maxEndDate = dEndDate;
-                                                    }
-                                                });
-                                                if (maxEndDate) {
-                                                    const currentStart = newTaskStartDate ? new Date(newTaskStartDate) : new Date(0);
-                                                    if (currentStart < maxEndDate) {
-                                                        const newStartStr = format(maxEndDate, 'yyyy-MM-dd');
-                                                        setNewTaskStartDate(newStartStr);
-                                                        if (!newTaskEndDate || new Date(newTaskEndDate) < maxEndDate) {
-                                                            setNewTaskEndDate(newStartStr);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }}
-                                        className="w-full p-3 text-sm bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all shadow-inner h-28"
-                                    >
-                                        <option value="" className="text-gray-500 italic p-1 rounded hover:bg-gray-50">(Aucune dépendance)</option>
-                                        {tasks.filter(t => t._id !== editingTaskId).map(t => (
-                                            <option key={t._id} value={t._id} className="p-1.5 my-0.5 rounded-md hover:bg-gray-100 cursor-pointer text-gray-700 font-medium">
-                                                {t.title}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {isDependenciesModalOpen && (
+                                        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                                            {/* Overlay pour fermer en cliquant à côté */}
+                                            <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" onClick={() => setIsDependenciesModalOpen(false)}></div>
+
+                                            <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[70vh] animate-in zoom-in-95 duration-200 border border-gray-100">
+                                                <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 rounded-t-2xl">
+                                                    <span className="text-sm font-black text-gray-800 uppercase tracking-widest">Sélectionner les dépendances</span>
+                                                    <button type="button" onClick={() => setIsDependenciesModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-200/50 transition-colors">
+                                                        <X size={16} strokeWidth={3} />
+                                                    </button>
+                                                </div>
+                                                <div className="overflow-y-auto p-3 space-y-1.5 custom-scrollbar bg-gray-50/30">
+                                                    <div
+                                                        onClick={() => {
+                                                            setNewTaskDependsOn([]);
+                                                            setIsDependenciesModalOpen(false);
+                                                        }}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${newTaskDependsOn.length === 0
+                                                                ? 'bg-blue-50/80 border-blue-200 text-blue-800 shadow-sm'
+                                                                : 'bg-white border-transparent text-gray-600 hover:bg-gray-100'
+                                                            }`}
+                                                    >
+                                                        <div className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${newTaskDependsOn.length === 0
+                                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                                : 'border-gray-300 bg-white'
+                                                            }`}>
+                                                            {newTaskDependsOn.length === 0 && <Check size={12} strokeWidth={3} />}
+                                                        </div>
+                                                        <span className="text-sm font-bold">
+                                                            (Aucune dépendance)
+                                                        </span>
+                                                    </div>
+
+                                                    {tasks.filter(t => t._id !== editingTaskId).length > 0 && (
+                                                        <div className="h-px bg-gray-200 my-2"></div>
+                                                    )}
+
+                                                    {tasks.filter(t => t._id !== editingTaskId).map(t => {
+                                                        const isSelected = newTaskDependsOn.includes(t._id);
+                                                        return (
+                                                            <div
+                                                                key={t._id}
+                                                                onClick={() => {
+                                                                    let newDependsOn: string[];
+                                                                    if (isSelected) {
+                                                                        newDependsOn = newTaskDependsOn.filter(id => id !== t._id);
+                                                                    } else {
+                                                                        newDependsOn = [...newTaskDependsOn, t._id];
+                                                                    }
+
+                                                                    setNewTaskDependsOn(newDependsOn);
+
+                                                                    if (newDependsOn.length > 0) {
+                                                                        let maxEndDate: Date | null = null;
+                                                                        newDependsOn.forEach(depId => {
+                                                                            const depTask = tasks.find(tsk => tsk._id === depId);
+                                                                            if (depTask) {
+                                                                                const dEndDate = new Date(depTask.endDate);
+                                                                                if (!maxEndDate || dEndDate > maxEndDate) maxEndDate = dEndDate;
+                                                                            }
+                                                                        });
+                                                                        if (maxEndDate) {
+                                                                            const currentStart = newTaskStartDate ? new Date(newTaskStartDate) : new Date(0);
+                                                                            if (currentStart < maxEndDate) {
+                                                                                const newStartStr = format(maxEndDate, 'yyyy-MM-dd');
+                                                                                setNewTaskStartDate(newStartStr);
+                                                                                if (!newTaskEndDate || new Date(newTaskEndDate) < maxEndDate) {
+                                                                                    setNewTaskEndDate(newStartStr);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${isSelected
+                                                                        ? 'bg-blue-50/80 border-blue-200 shadow-sm'
+                                                                        : 'bg-white border-transparent hover:bg-gray-100'
+                                                                    }`}
+                                                            >
+                                                                <div className={`flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected
+                                                                        ? 'bg-blue-600 border-blue-600 text-white'
+                                                                        : 'border-gray-300 bg-white'
+                                                                    }`}>
+                                                                    {isSelected && <Check size={12} strokeWidth={3} />}
+                                                                </div>
+                                                                <span className={`text-sm ${isSelected ? 'font-bold text-blue-800' : 'font-medium text-gray-700'
+                                                                    }`}>
+                                                                    {t.title}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <div className="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end">
+                                                    <button type="button" onClick={() => setIsDependenciesModalOpen(false)} className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-md shadow-blue-500/20 hover:bg-blue-700 transition-colors">
+                                                        Terminer
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

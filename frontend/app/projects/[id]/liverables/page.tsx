@@ -69,7 +69,8 @@ export default function LiverablesPage() {
 
       // Si le projet a une campagne, on récupère les jalons
       if (response.data.project.campaignId) {
-        const mRes = await api.get(`/api/milestones/campaign/${response.data.project.campaignId}`);
+        const campId = typeof response.data.project.campaignId === 'string' ? response.data.project.campaignId : response.data.project.campaignId._id;
+        const mRes = await api.get(`/api/milestones/campaign/${campId}`);
         setMilestones(mRes.data.milestones || []);
       }
     } catch (err) {

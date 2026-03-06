@@ -321,13 +321,13 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                             setIsDependenciesModalOpen(false);
                                                         }}
                                                         className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${newTaskDependsOn.length === 0
-                                                                ? 'bg-blue-50/80 border-blue-200 text-blue-800 shadow-sm'
-                                                                : 'bg-white border-transparent text-gray-600 hover:bg-gray-100'
+                                                            ? 'bg-blue-50/80 border-blue-200 text-blue-800 shadow-sm'
+                                                            : 'bg-white border-transparent text-gray-600 hover:bg-gray-100'
                                                             }`}
                                                     >
                                                         <div className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${newTaskDependsOn.length === 0
-                                                                ? 'bg-blue-600 border-blue-600 text-white'
-                                                                : 'border-gray-300 bg-white'
+                                                            ? 'bg-blue-600 border-blue-600 text-white'
+                                                            : 'border-gray-300 bg-white'
                                                             }`}>
                                                             {newTaskDependsOn.length === 0 && <Check size={12} strokeWidth={3} />}
                                                         </div>
@@ -377,13 +377,13 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                                     }
                                                                 }}
                                                                 className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${isSelected
-                                                                        ? 'bg-blue-50/80 border-blue-200 shadow-sm'
-                                                                        : 'bg-white border-transparent hover:bg-gray-100'
+                                                                    ? 'bg-blue-50/80 border-blue-200 shadow-sm'
+                                                                    : 'bg-white border-transparent hover:bg-gray-100'
                                                                     }`}
                                                             >
                                                                 <div className={`flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected
-                                                                        ? 'bg-blue-600 border-blue-600 text-white'
-                                                                        : 'border-gray-300 bg-white'
+                                                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                                                    : 'border-gray-300 bg-white'
                                                                     }`}>
                                                                     {isSelected && <Check size={12} strokeWidth={3} />}
                                                                 </div>
@@ -425,40 +425,48 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                     <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Le Gantt est vide</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto pb-4">
-                    <div className="min-w-[800px]">
+                <div className="overflow-auto max-h-[70vh] pb-4 custom-scrollbar rounded-xl border border-gray-200 bg-white relative shadow-inner">
+                    <div style={{ minWidth: `max(800px, ${totalDays * 35 + 250}px)` }}>
                         {/* Timeline Header */}
-                        <div className="flex border-b border-gray-100 pb-2 mb-4 relative ml-[250px]">
-                            {days.map((day, i) => {
-                                const isToday = isSameDay(day, new Date());
-                                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-                                return (
-                                    <div
-                                        key={i}
-                                        className="flex-1 min-w-[35px] flex flex-col items-center justify-end relative"
-                                    >
-                                        <span className={`text-[10px] ${isToday ? 'text-blue-600 font-black' : isWeekend ? 'text-gray-300 font-medium' : 'text-gray-500 font-bold'}`}>
-                                            {format(day, 'd', { locale: fr })}
-                                        </span>
-                                        <span className={`text-[9px] uppercase ${isToday ? 'text-blue-500 font-bold' : 'text-gray-300'}`}>
-                                            {format(day, 'MMM', { locale: fr })}
-                                        </span>
-                                        {/* Grid vertical line */}
-                                        <div className="absolute top-full bottom-[-2000px] w-full border-r border-gray-100/60 z-[-1] h-[2000px] left-0 mt-2 pointer-events-none"></div>
+                        <div className="flex border-b border-gray-200 pb-2 sticky top-0 z-40 bg-white/95 backdrop-blur-md pt-3 shadow-sm">
+                            {/* Coin supérieur gauche fixe */}
+                            <div className="w-[250px] shrink-0 sticky left-0 z-50 bg-white/95 backdrop-blur-md flex items-end px-4 pb-1 border-r border-gray-100/50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tâches</span>
+                            </div>
 
-                                        {isToday && (
-                                            <div className="absolute top-full bottom-[-2000px] w-0.5 bg-blue-500/20 z-0 h-[2000px] left-1/2 transform -translate-x-1/2 mt-2 border-l-2 border-dashed border-blue-400 pointer-events-none"></div>
-                                        )}
-                                        {isWeekend && !isToday && (
-                                            <div className="absolute top-full bottom-[-2000px] w-full bg-gray-50/50 z-[-1] h-[2000px] left-0 mt-2 pointer-events-none"></div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                            {/* Jours */}
+                            <div className="flex flex-1">
+                                {days.map((day, i) => {
+                                    const isToday = isSameDay(day, new Date());
+                                    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                    return (
+                                        <div
+                                            key={i}
+                                            className="flex-1 flex flex-col items-center justify-end relative min-w-[35px]"
+                                        >
+                                            <span className={`text-[10px] ${isToday ? 'text-blue-600 font-black' : isWeekend ? 'text-gray-300 font-medium' : 'text-gray-500 font-bold'}`}>
+                                                {format(day, 'd', { locale: fr })}
+                                            </span>
+                                            <span className={`text-[9px] uppercase ${isToday ? 'text-blue-500 font-bold' : 'text-gray-300'}`}>
+                                                {format(day, 'MMM', { locale: fr })}
+                                            </span>
+                                            {/* Grid vertical line */}
+                                            <div className="absolute top-full w-full border-r border-gray-100/60 z-[-1] h-[20000px] left-0 mt-2 pointer-events-none filter sepia-0"></div>
+
+                                            {isToday && (
+                                                <div className="absolute top-full w-0.5 bg-blue-500/20 z-0 h-[20000px] left-1/2 transform -translate-x-1/2 mt-2 border-l-2 border-dashed border-blue-400 pointer-events-none"></div>
+                                            )}
+                                            {isWeekend && !isToday && (
+                                                <div className="absolute top-full w-full bg-gray-50/50 z-[-1] h-[20000px] left-0 mt-2 pointer-events-none"></div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* Tasks List */}
-                        <div className="space-y-4 relative z-10">
+                        <div className="space-y-4 relative z-10 mt-4">
                             {tasks.map(task => {
                                 const start = startOfDay(new Date(task.startDate));
                                 const end = startOfDay(new Date(task.endDate));
@@ -484,8 +492,8 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                 return (
                                     <div key={task._id} className="flex items-center group relative mt-1">
                                         {/* Infos de gauche */}
-                                        <div className="w-[250px] pr-4 shrink-0 bg-white z-20 group-hover:bg-gray-50/50 transition-colors py-1 rounded-l-lg flex justify-between items-center border-r border-gray-100">
-                                            <div className="truncate">
+                                        <div className="w-[250px] pr-4 shrink-0 bg-white/95 backdrop-blur-sm z-30 group-hover:bg-gray-50/90 transition-colors py-1 rounded-l-lg flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                            <div className="truncate pl-4">
                                                 <div className="text-xs font-bold text-gray-800 truncate" title={task.title}>{task.title}</div>
                                                 {task.dependsOn && task.dependsOn.length > 0 && (
                                                     <div className="flex items-center gap-1 text-[9px] text-orange-500 font-bold mt-0.5">
@@ -494,7 +502,7 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-1 bg-white/80 group-hover:bg-gray-50/80 rounded-lg">
                                                 <button onClick={() => openEditForm(task)} className="text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Modifier">
                                                     <Edit2 size={12} />
                                                 </button>

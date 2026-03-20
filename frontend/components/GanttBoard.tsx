@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/store';
 import api from '@/lib/auth';
 import { format, differenceInDays, addDays, startOfDay, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Trash2, Link as LinkIcon, Calendar, Edit2, X, Check } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Calendar, Edit2, X, Check, ChevronRight, ChevronDown, ListTodo } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface Member {
@@ -21,6 +21,7 @@ interface GanttTask {
     startDate: string;
     endDate: string;
     dependsOn: { _id: string; title: string; startDate: string; endDate: string; status: string }[];
+    kanbanTasks?: { _id: string; title: string; status: string; assignee?: Member; dueDate?: string }[];
 }
 
 export function GanttBoard({ projectId }: { projectId: string }) {
@@ -38,6 +39,89 @@ export function GanttBoard({ projectId }: { projectId: string }) {
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [isDependenciesModalOpen, setIsDependenciesModalOpen] = useState(false);
 
+    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+    const [addingKanbanTo, setAddingKanbanTo] = useState<string | null>(null);
+    const [newKanbanTitle, setNewKanbanTitle] = useState('');
+
+    const [editingKanbanTaskId, setEditingKanbanTaskId] = useState<string | null>(null);
+    const [editingKanbanTitle, setEditingKanbanTitle] = useState('');
+    const [linkingKanbanTo, setLinkingKanbanTo] = useState<string | null>(null);
+    const [freeKanbanTasks, setFreeKanbanTasks] = useState<{ _id: string, title: string }[]>([]);
+
+    const toggleExpand = (taskId: string) => {
+        const newExpanded = new Set(expandedTasks);
+        if (newExpanded.has(taskId)) newExpanded.delete(taskId);
+        else newExpanded.add(taskId);
+        setExpandedTasks(newExpanded);
+    };
+
+    const handleAddKanban = async (ganttTaskId: string) => {
+        if (!newKanbanTitle.trim()) return;
+        try {
+            await api.post('/api/tasks', {
+                projectId,
+                ganttTaskId,
+                title: newKanbanTitle,
+                status: 'todo',
+                type: 'objectif'
+            });
+            fetchTasks();
+            setNewKanbanTitle('');
+            setAddingKanbanTo(null);
+            showToast("Sous-tâche ajoutée", "success");
+        } catch (err) {
+            showToast("Erreur ajout sous-tâche", "error");
+        }
+    };
+
+    const handleUpdateKanbanStatus = async (taskId: string, newStatus: string) => {
+        try {
+            await api.put(`/api/tasks/${taskId}`, { status: newStatus });
+            fetchTasks();
+        } catch (err) {
+            showToast("Erreur modification statut", "error");
+        }
+    };
+
+    const saveEditKanban = async (taskId: string) => {
+        if (!editingKanbanTitle.trim()) return;
+        try {
+            await api.put(`/api/tasks/${taskId}`, { title: editingKanbanTitle });
+            setEditingKanbanTaskId(null);
+            fetchTasks();
+            showToast("Sous-tâche modifiée", "success");
+        } catch (err) {
+            showToast("Erreur modification", "error");
+        }
+    };
+
+    const handleUnlinkKanbanTask = async (taskId: string) => {
+        try {
+
+
+
+            if (!confirm("Voulez-vous vraiment supprimer cette sous-tâche ?")) return;
+            await api.delete(`/api/tasks/${taskId}`);
+            fetchTasks();
+            showToast("Sous-tâche supprimée", "success");
+        } catch (err) {
+            showToast("Erreur suppression", "error");
+        }
+    };
+
+    const linkExistingKanban = async (ganttTaskId: string, kanbanTaskId: string) => {
+        if (!kanbanTaskId) return;
+        try {
+
+            await api.put(`/api/tasks/${kanbanTaskId}`, { ganttTaskId });
+            setLinkingKanbanTo(null);
+            fetchTasks();
+            showToast("Tâche liée", "success");
+        } catch (err) {
+            showToast("Erreur lors de la liaison", "error");
+        }
+    };
+
     useEffect(() => {
         fetchTasks();
     }, [projectId]);
@@ -47,6 +131,10 @@ export function GanttBoard({ projectId }: { projectId: string }) {
         try {
             const response = await api.get(`/api/gantt-tasks/project/${projectId}`);
             setTasks(response.data.tasks);
+
+            const kResponse = await api.get(`/api/tasks/project/${projectId}`);
+            const kTasks = kResponse.data.tasks;
+            setFreeKanbanTasks(kTasks.filter((t: any) => !t.ganttTaskId));
         } catch (err) {
             console.error("Erreur chargement tâches Gantt", err);
             showToast("Erreur de chargement du Gantt", "error");
@@ -489,57 +577,184 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                     'done': 'Fini'
                                 }[task.status] || 'À faire';
 
+                                const isExpanded = expandedTasks.has(task._id);
+
                                 return (
-                                    <div key={task._id} className="flex items-center group relative mt-1">
-                                        {/* Infos de gauche */}
-                                        <div className="w-[250px] pr-4 shrink-0 bg-white/95 backdrop-blur-sm z-30 group-hover:bg-gray-50/90 transition-colors py-1 rounded-l-lg flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                                            <div className="truncate pl-4">
-                                                <div className="text-xs font-bold text-gray-800 truncate" title={task.title}>{task.title}</div>
+                                    <div key={task._id} className="flex flex-col mt-1">
+                                        <div className="flex items-center group relative">
+                                            {/* Infos de gauche */}
+                                            <div className="w-[250px] pr-4 shrink-0 bg-white/95 backdrop-blur-sm z-30 group-hover:bg-gray-50/90 transition-colors py-1 rounded-l-lg flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                                <div className="flex items-center pl-2 w-full overflow-hidden">
+                                                    <button onClick={() => toggleExpand(task._id)} className="p-1 mr-1 text-gray-400 hover:text-gray-700 transition-colors shrink-0">
+                                                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                                    </button>
+                                                    <div className="truncate flex-1">
+                                                        <div className="text-xs font-bold text-gray-800 truncate" title={task.title}>{task.title}</div>
+                                                        {task.dependsOn && task.dependsOn.length > 0 && (
+                                                            <div className="flex items-center gap-1 text-[9px] text-orange-500 font-bold mt-0.5">
+                                                                <LinkIcon size={10} />
+                                                                Dépend de: {task.dependsOn.map(d => d.title).join(', ')}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 bg-white/80 group-hover:bg-gray-50/80 rounded-lg shrink-0">
+                                                    <button onClick={() => openEditForm(task)} className="text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Modifier">
+                                                        <Edit2 size={12} />
+                                                    </button>
+                                                    <button onClick={() => handleDeleteTask(task._id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Supprimer">
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Barre du Gantt */}
+                                            <div className="flex-1 relative h-7 bg-transparent overflow-visible rounded-r-lg group-hover:bg-gray-50/30 transition-colors py-0.5">
+                                                {/* Barre */}
+                                                <div
+                                                    className={`absolute top-0.5 bottom-0.5 rounded-md bg-gradient-to-r ${statusColor} shadow-md transition-all group-hover:brightness-110 flex items-center px-2 cursor-pointer z-10`}
+                                                    style={{ left: `${startPercent}%`, width: `${widthPercent}%` }}
+                                                    title={`${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')} (Cliquez pour modifier)`}
+                                                    onClick={() => openEditForm(task)}
+                                                >
+                                                    <span className="text-[9px] font-black text-white/90 truncate drop-shadow-sm leading-none flex items-center justify-between w-full">
+                                                        <span>{displayStatus}</span>
+                                                        <span>{durationDays} j</span>
+                                                    </span>
+                                                </div>
+
+                                                {/* Visualiser une ligne de dépendance très basique (vers la gauche si dépendance) */}
                                                 {task.dependsOn && task.dependsOn.length > 0 && (
-                                                    <div className="flex items-center gap-1 text-[9px] text-orange-500 font-bold mt-0.5">
-                                                        <LinkIcon size={10} />
-                                                        Dépend de: {task.dependsOn.map(d => d.title).join(', ')}
+                                                    <div
+                                                        className="absolute h-[1px] bg-orange-400 top-1/2 -translate-y-1/2 z-0"
+                                                        style={{
+                                                            left: `${Math.max(0, startPercent - 5)}%`,
+                                                            width: `5%`
+                                                        }}
+                                                    >
+                                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 border-t border-r border-orange-400 rotate-45 transform bg-white" />
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-1 bg-white/80 group-hover:bg-gray-50/80 rounded-lg">
-                                                <button onClick={() => openEditForm(task)} className="text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Modifier">
-                                                    <Edit2 size={12} />
-                                                </button>
-                                                <button onClick={() => handleDeleteTask(task._id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Supprimer">
-                                                    <Trash2 size={12} />
-                                                </button>
-                                            </div>
                                         </div>
 
-                                        {/* Barre du Gantt */}
-                                        <div className="flex-1 relative h-7 bg-transparent overflow-visible rounded-r-lg group-hover:bg-gray-50/30 transition-colors py-0.5">
-                                            {/* Barre */}
-                                            <div
-                                                className={`absolute top-0.5 bottom-0.5 rounded-md bg-gradient-to-r ${statusColor} shadow-md transition-all group-hover:brightness-110 flex items-center px-2 cursor-pointer z-10`}
-                                                style={{ left: `${startPercent}%`, width: `${widthPercent}%` }}
-                                                title={`${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')} (Cliquez pour modifier)`}
-                                                onClick={() => openEditForm(task)}
-                                            >
-                                                <span className="text-[9px] font-black text-white/90 truncate drop-shadow-sm leading-none flex items-center justify-between w-full">
-                                                    <span>{displayStatus}</span>
-                                                    <span>{durationDays} j</span>
-                                                </span>
-                                            </div>
+                                        {/* Expanded tasks underneath */}
+                                        {isExpanded && (
+                                            <div className="flex flex-col bg-gray-50/20 border-t border-gray-100/50 mt-[1px]">
+                                                {(task.kanbanTasks || []).map(kt => (
+                                                    <div key={kt._id} className="flex items-center group/kt relative h-[44px] border-b border-gray-100/40">
+                                                        {/* Left Pane for Kanban Task */}
+                                                        <div className="w-[250px] pr-3 shrink-0 bg-gray-50/70 backdrop-blur-sm z-30 group-hover/kt:bg-white transition-colors py-1 flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] pl-8">
 
-                                            {/* Visualiser une ligne de dépendance très basique (vers la gauche si dépendance) */}
-                                            {task.dependsOn && task.dependsOn.length > 0 && (
-                                                <div
-                                                    className="absolute h-[1px] bg-orange-400 top-1/2 -translate-y-1/2 z-0"
-                                                    style={{
-                                                        left: `${Math.max(0, startPercent - 5)}%`,
-                                                        width: `5%`
-                                                    }}
-                                                >
-                                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 border-t border-r border-orange-400 rotate-45 transform bg-white" />
+                                                            {editingKanbanTaskId === kt._id ? (
+                                                                <div className="flex-1 flex items-center pr-2 gap-1 h-[28px]">
+                                                                    <input
+                                                                        autoFocus
+                                                                        className="w-full text-[11px] p-1 border border-blue-300 rounded outline-none h-full bg-blue-50/30"
+                                                                        value={editingKanbanTitle}
+                                                                        onChange={e => setEditingKanbanTitle(e.target.value)}
+                                                                        onKeyDown={e => { if (e.key === 'Enter') saveEditKanban(kt._id); if (e.key === 'Escape') setEditingKanbanTaskId(null); }}
+                                                                    />
+                                                                    <button onClick={() => saveEditKanban(kt._id)} className="text-blue-500 p-1 hover:bg-blue-50 rounded bg-white shadow-sm border border-blue-100 h-full"><Check size={12} strokeWidth={3} /></button>
+                                                                    <button onClick={() => setEditingKanbanTaskId(null)} className="text-gray-400 p-1 hover:bg-red-50 hover:text-red-500 rounded bg-white shadow-sm border border-gray-100 h-full"><X size={12} strokeWidth={3} /></button>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="flex items-center w-full overflow-hidden pr-2">
+                                                                        <ListTodo size={12} className="text-gray-400 mr-2 shrink-0 opacity-60" />
+                                                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                            <div className="text-[11px] font-bold text-gray-700 truncate" title={kt.title}>{kt.title}</div>
+                                                                            {kt.assignee && (
+                                                                                <div className="text-[9.5px] font-black text-gray-400 mt-0.5 truncate uppercase tracking-widest">
+                                                                                    {kt.assignee.name}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex items-center shrink-0">
+                                                                        <div className="group-hover/kt:flex hidden items-center gap-0.5 mr-1.5 opacity-0 group-hover/kt:opacity-100 transition-opacity">
+                                                                            <button onClick={() => { setEditingKanbanTaskId(kt._id); setEditingKanbanTitle(kt.title); }} className="p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Modifier le titre">
+                                                                                <Edit2 size={12} strokeWidth={2.5} />
+                                                                            </button>
+                                                                            <button onClick={() => handleUnlinkKanbanTask(kt._id)} className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Supprimer la sous-tâche">
+                                                                                <Trash2 size={12} strokeWidth={2.5} />
+                                                                            </button>
+                                                                        </div>
+                                                                        {/* Status switcher for Kanban task */}
+                                                                        <select
+                                                                            value={kt.status}
+                                                                            onChange={(e) => handleUpdateKanbanStatus(kt._id, e.target.value)}
+                                                                            className={`text-[9.5px] font-bold border rounded-[6px] px-1.5 py-1 outline-none cursor-pointer transition-colors shadow-sm appearance-none min-w-[65px] text-center ${kt.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' :
+                                                                                    kt.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' :
+                                                                                        kt.status === 'review' ? 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100' :
+                                                                                            'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                                                                }`}
+                                                                        >
+                                                                            <option value="todo">À faire</option>
+                                                                            <option value="in-progress">En cours</option>
+                                                                            <option value="review">Revue</option>
+                                                                            <option value="done">Terminé</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 relative bg-transparent" />
+                                                    </div>
+                                                ))}
+
+                                                {/* Actions container (Ajout / Liaison) */}
+                                                <div className="flex items-center relative min-h-[40px] border-b border-gray-100/20">
+                                                    <div className="w-[250px] pr-4 shrink-0 bg-gray-50/70 backdrop-blur-sm z-30 py-1 flex flex-col justify-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] pl-8">
+
+                                                        {addingKanbanTo === task._id ? (
+                                                            <div className="flex items-center w-full gap-1 bg-white/80 p-1 rounded-md shadow-sm border border-gray-100">
+                                                                <input
+                                                                    autoFocus
+                                                                    type="text"
+                                                                    className="flex-1 text-[11px] font-medium text-gray-700 bg-transparent outline-none w-full"
+                                                                    placeholder="Nom..."
+                                                                    value={newKanbanTitle}
+                                                                    onChange={e => setNewKanbanTitle(e.target.value)}
+                                                                    onKeyDown={e => { if (e.key === 'Enter') handleAddKanban(task._id); if (e.key === 'Escape') setAddingKanbanTo(null); }}
+                                                                />
+                                                                <button onClick={() => setAddingKanbanTo(null)} className="p-1 text-gray-400 hover:text-red-500 bg-white rounded shadow-sm scale-90 border border-gray-100"><X size={12} strokeWidth={3} /></button>
+                                                                <button onClick={() => handleAddKanban(task._id)} className="p-1 text-blue-500 hover:text-blue-700 bg-white rounded shadow-sm scale-90 border border-gray-100"><Check size={12} strokeWidth={3} /></button>
+                                                            </div>
+                                                        ) : linkingKanbanTo === task._id ? (
+                                                            <div className="flex items-center w-full gap-1 bg-white/80 p-1 rounded-md shadow-sm border border-gray-100">
+                                                                <select
+                                                                    autoFocus
+                                                                    onChange={e => linkExistingKanban(task._id, e.target.value)}
+                                                                    className="flex-1 text-[11px] font-medium text-gray-700 bg-transparent outline-none w-full cursor-pointer"
+                                                                    defaultValue=""
+                                                                >
+                                                                    <option value="" disabled>Sélectionnez une tâche...</option>
+                                                                    {freeKanbanTasks.map(fk => (
+                                                                        <option key={fk._id} value={fk._id}>{fk.title}</option>
+                                                                    ))}
+                                                                    {freeKanbanTasks.length === 0 && (
+                                                                        <option disabled>(Aucune tâche libre)</option>
+                                                                    )}
+                                                                </select>
+                                                                <button onClick={() => setLinkingKanbanTo(null)} className="p-1 text-gray-400 hover:text-red-500 bg-white rounded shadow-sm scale-90 border border-gray-100"><X size={12} strokeWidth={3} /></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col gap-1 w-full my-1">
+                                                                <button onClick={() => { setAddingKanbanTo(task._id); setNewKanbanTitle(''); setLinkingKanbanTo(null); }} className="flex items-center text-[10.5px] text-gray-500 hover:text-blue-600 font-bold transition-all py-1 px-1.5 rounded-md hover:bg-white border border-transparent hover:border-blue-100 shadow-sm hover:shadow">
+                                                                    <Plus size={11} className="mr-1.5" strokeWidth={3} /> Créer sous-tâche
+                                                                </button>
+                                                                <button onClick={() => { setLinkingKanbanTo(task._id); setAddingKanbanTo(null); }} className="flex items-center text-[10.5px] text-gray-500 hover:text-purple-600 font-bold transition-all py-1 px-1.5 rounded-md hover:bg-white border border-transparent hover:border-purple-100 shadow-sm hover:shadow">
+                                                                    <LinkIcon size={11} className="mr-1.5" strokeWidth={3} /> Lier tâche existante
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 relative bg-transparent" />
                                                 </div>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

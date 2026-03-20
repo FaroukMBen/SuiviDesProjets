@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const Project = require('../models/Project');
+const GanttTask = require('../models/GanttTask');
 
 class TaskController {
   static async getMyTasks(req, res) {
@@ -22,23 +23,21 @@ class TaskController {
     try {
       const userId = req.user.id;
 
-      // 1. Trouver tous les projets où l'utilisateur est membre ou propriétaire
       const projects = await Project.find({
         $or: [{ owner: userId }, { members: userId }]
       }).select('_id');
 
       const projectIds = projects.map(p => p._id);
 
-      // 2. Trouver les tâches de ces projets qui sont soit assignées à l'utilisateur, soit non assignées
       const tasks = await Task.find({
         projectId: { $in: projectIds },
         $or: [
           { assignee: userId },
           { assignee: null },
-          { assignee: { $exists: false } } // Cas où le champ n'existe pas
+          { assignee: { $exists: false } }
         ]
       })
-        .populate('projectId', 'title') // Pour savoir de quel projet ça vient
+        .populate('projectId', 'title')
         .populate('assignee', 'name email profilePicture')
         .sort({ dueDate: 1 });
 
@@ -62,9 +61,10 @@ class TaskController {
 
   static async createTask(req, res) {
     try {
-      const { projectId, title, description, priority, dueDate, assignee, type } = req.body;
+      const { projectId, ganttTaskId, title, description, priority, dueDate, assignee, type } = req.body;
 
-      // Verify project exists
+
+
       const project = await Project.findById(projectId);
       if (!project) {
         return res.status(404).json({ success: false, message: 'Project not found' });
@@ -78,15 +78,20 @@ class TaskController {
         title,
         description,
         priority: priority || 'medium',
-        type: type || 'objectif', // Default to objectif if not provided
+        type: type || 'objectif',
         dueDate,
         assignee,
+        ganttTaskId,
         status: 'todo',
         order: nextOrder
       });
 
       await task.save();
       await task.populate('assignee', 'name email profilePicture');
+
+      if (ganttTaskId) {
+        await TaskController.syncGanttStatus(ganttTaskId);
+      }
 
       res.status(201).json({ success: true, task });
     } catch (err) {
@@ -96,7 +101,7 @@ class TaskController {
 
   static async updateTask(req, res) {
     try {
-      const { title, description, status, priority, dueDate, assignee, order, type, reminderDelay } = req.body;
+      const { title, description, status, priority, dueDate, assignee, order, type, reminderDelay, ganttTaskId } = req.body;
 
       const task = await Task.findById(req.params.id);
       if (!task) {
@@ -112,9 +117,14 @@ class TaskController {
       if (assignee) task.assignee = assignee;
       if (order !== undefined) task.order = order;
       if (reminderDelay) task.reminderDelay = reminderDelay;
+      if (ganttTaskId !== undefined) task.ganttTaskId = ganttTaskId;
 
       await task.save();
       await task.populate('assignee', 'name email profilePicture');
+
+      if (task.ganttTaskId) {
+        await TaskController.syncGanttStatus(task.ganttTaskId);
+      }
 
       res.json({ success: true, task });
     } catch (err) {
@@ -144,9 +154,44 @@ class TaskController {
         return res.status(404).json({ success: false, message: 'Task not found' });
       }
 
+      if (task.ganttTaskId) {
+        await TaskController.syncGanttStatus(task.ganttTaskId);
+      }
+
       res.json({ success: true, message: 'Task deleted' });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  static async syncGanttStatus(ganttTaskId) {
+    try {
+      const ganttTask = await GanttTask.findById(ganttTaskId);
+      if (!ganttTask) return;
+
+      const kanbanTasks = await Task.find({ ganttTaskId });
+      if (kanbanTasks.length === 0) return;
+
+      const allDone = kanbanTasks.every(t => t.status === 'done');
+      const anyInProgress = kanbanTasks.some(t => t.status === 'in-progress' || t.status === 'review');
+
+      let newStatus = ganttTask.status;
+
+      if (allDone) {
+        newStatus = 'done';
+      } else if (anyInProgress && ganttTask.status === 'todo') {
+        newStatus = 'in-progress';
+      } else if (!allDone && ganttTask.status === 'done') {
+
+        newStatus = 'in-progress';
+      }
+
+      if (newStatus !== ganttTask.status) {
+        ganttTask.status = newStatus;
+        await ganttTask.save();
+      }
+    } catch (err) {
+      console.error("Erreur syncGanttStatus:", err);
     }
   }
 }

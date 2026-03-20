@@ -43,10 +43,26 @@ exports.createTask = async (req, res) => {
 exports.getTasksByProject = async (req, res) => {
     try {
         const { projectId } = req.params;
-        const tasks = await GanttTask.find({ projectId })
+        const ganttTasks = await GanttTask.find({ projectId })
             .populate('assignee', 'firstName lastName name email')
             .populate('dependsOn', 'title startDate endDate status')
-            .sort('startDate');
+            .sort('startDate')
+            .lean();
+
+
+
+        const Task = require('../models/Task');
+        const kanbanTasks = await Task.find({ projectId }).populate('assignee', 'name').lean();
+
+
+
+
+        const tasks = ganttTasks.map(gt => {
+            return {
+                ...gt,
+                kanbanTasks: kanbanTasks.filter(kt => kt.ganttTaskId && String(kt.ganttTaskId) === String(gt._id))
+            };
+        });
 
         res.json({ tasks });
     } catch (err) {

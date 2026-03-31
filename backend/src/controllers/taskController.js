@@ -114,7 +114,7 @@ class TaskController {
       if (priority) task.priority = priority;
       if (type) task.type = type;
       if (dueDate) task.dueDate = dueDate;
-      if (assignee) task.assignee = assignee;
+      if (assignee !== undefined) task.assignee = assignee === '' ? null : assignee;
       if (order !== undefined) task.order = order;
       if (reminderDelay) task.reminderDelay = reminderDelay;
       if (ganttTaskId !== undefined) task.ganttTaskId = ganttTaskId;

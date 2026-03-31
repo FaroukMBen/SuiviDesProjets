@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/store';
 import api from '@/lib/auth';
 import { format, differenceInDays, addDays, startOfDay, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Trash2, Link as LinkIcon, Calendar, Edit2, X, Check, ChevronRight, ChevronDown, ListTodo } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Calendar, Edit2, X, Check, ChevronRight, ChevronDown, ListTodo, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface Member {
@@ -38,13 +38,18 @@ export function GanttBoard({ projectId }: { projectId: string }) {
     const [newTaskStatus, setNewTaskStatus] = useState<GanttTask['status']>('todo');
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [isDependenciesModalOpen, setIsDependenciesModalOpen] = useState(false);
+    const [members, setMembers] = useState<Member[]>([]);
 
     const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
     const [addingKanbanTo, setAddingKanbanTo] = useState<string | null>(null);
     const [newKanbanTitle, setNewKanbanTitle] = useState('');
+    const [newKanbanAssignee, setNewKanbanAssignee] = useState<string>('');
+    const [newKanbanDueDate, setNewKanbanDueDate] = useState<string>('');
 
     const [editingKanbanTaskId, setEditingKanbanTaskId] = useState<string | null>(null);
     const [editingKanbanTitle, setEditingKanbanTitle] = useState('');
+    const [editingKanbanAssignee, setEditingKanbanAssignee] = useState<string>('');
+    const [editingKanbanDueDate, setEditingKanbanDueDate] = useState<string>('');
     const [linkingKanbanTo, setLinkingKanbanTo] = useState<string | null>(null);
     const [freeKanbanTasks, setFreeKanbanTasks] = useState<{ _id: string, title: string }[]>([]);
 
@@ -58,15 +63,21 @@ export function GanttBoard({ projectId }: { projectId: string }) {
     const handleAddKanban = async (ganttTaskId: string) => {
         if (!newKanbanTitle.trim()) return;
         try {
-            await api.post('/api/tasks', {
+            const payload: any = {
                 projectId,
                 ganttTaskId,
                 title: newKanbanTitle,
                 status: 'todo',
                 type: 'objectif'
-            });
+            };
+            if (newKanbanAssignee) payload.assignee = newKanbanAssignee;
+            if (newKanbanDueDate) payload.dueDate = newKanbanDueDate;
+
+            await api.post('/api/tasks', payload);
             fetchTasks();
             setNewKanbanTitle('');
+            setNewKanbanAssignee('');
+            setNewKanbanDueDate('');
             setAddingKanbanTo(null);
             showToast("Sous-tâche ajoutée", "success");
         } catch (err) {
@@ -86,7 +97,11 @@ export function GanttBoard({ projectId }: { projectId: string }) {
     const saveEditKanban = async (taskId: string) => {
         if (!editingKanbanTitle.trim()) return;
         try {
-            await api.put(`/api/tasks/${taskId}`, { title: editingKanbanTitle });
+            const payload: any = { title: editingKanbanTitle };
+            if (editingKanbanAssignee !== undefined) payload.assignee = editingKanbanAssignee;
+            if (editingKanbanDueDate !== undefined) payload.dueDate = editingKanbanDueDate;
+
+            await api.put(`/api/tasks/${taskId}`, payload);
             setEditingKanbanTaskId(null);
             fetchTasks();
             showToast("Sous-tâche modifiée", "success");
@@ -135,6 +150,11 @@ export function GanttBoard({ projectId }: { projectId: string }) {
             const kResponse = await api.get(`/api/tasks/project/${projectId}`);
             const kTasks = kResponse.data.tasks;
             setFreeKanbanTasks(kTasks.filter((t: any) => !t.ganttTaskId));
+
+            const projResponse = await api.get(`/api/projects/${projectId}`);
+            const project = projResponse.data.project;
+            const allMembers = [project.owner, ...project.members].filter((v: any, i: number, a: any) => a.findIndex((v2: any) => v2._id === v._id) === i);
+            setMembers(allMembers);
         } catch (err) {
             console.error("Erreur chargement tâches Gantt", err);
             showToast("Erreur de chargement du Gantt", "error");
@@ -514,11 +534,11 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                 </div>
             ) : (
                 <div className="overflow-auto max-h-[70vh] pb-4 custom-scrollbar rounded-xl border border-gray-200 bg-white relative shadow-inner">
-                    <div style={{ minWidth: `max(800px, ${totalDays * 35 + 250}px)` }}>
+                    <div style={{ minWidth: `max(800px, ${totalDays * 35 + 350}px)` }}>
                         {/* Timeline Header */}
                         <div className="flex border-b border-gray-200 pb-2 sticky top-0 z-40 bg-white/95 backdrop-blur-md pt-3 shadow-sm">
                             {/* Coin supérieur gauche fixe */}
-                            <div className="w-[250px] shrink-0 sticky left-0 z-50 bg-white/95 backdrop-blur-md flex items-end px-4 pb-1 border-r border-gray-100/50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                            <div className="w-[350px] shrink-0 sticky left-0 z-50 bg-white/95 backdrop-blur-md flex items-end px-4 pb-1 border-r border-gray-100/50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tâches</span>
                             </div>
 
@@ -583,7 +603,7 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                     <div key={task._id} className="flex flex-col mt-1">
                                         <div className="flex items-center group relative">
                                             {/* Infos de gauche */}
-                                            <div className="w-[250px] pr-4 shrink-0 bg-white/95 backdrop-blur-sm z-30 group-hover:bg-gray-50/90 transition-colors py-1 rounded-l-lg flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                            <div className="w-[350px] pr-4 shrink-0 bg-white/95 backdrop-blur-sm z-30 group-hover:bg-gray-50/90 transition-colors py-1 rounded-l-lg flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                                 <div className="flex items-center pl-2 w-full overflow-hidden">
                                                     <button onClick={() => toggleExpand(task._id)} className="p-1 mr-1 text-gray-400 hover:text-gray-700 transition-colors shrink-0">
                                                         {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -644,19 +664,37 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                 {(task.kanbanTasks || []).map(kt => (
                                                     <div key={kt._id} className="flex items-center group/kt relative h-[44px] border-b border-gray-100/40">
                                                         {/* Left Pane for Kanban Task */}
-                                                        <div className="w-[250px] pr-3 shrink-0 bg-gray-50/70 backdrop-blur-sm z-30 group-hover/kt:bg-white transition-colors py-1 flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] pl-8">
+                                                        <div className="w-[350px] pr-3 shrink-0 bg-gray-50/70 backdrop-blur-sm z-30 group-hover/kt:bg-white transition-colors py-1 flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] pl-8">
 
                                                             {editingKanbanTaskId === kt._id ? (
-                                                                <div className="flex-1 flex items-center pr-2 gap-1 h-[28px]">
+                                                                <div className="flex-1 flex items-center pr-2 gap-2 w-full py-1">
                                                                     <input
                                                                         autoFocus
-                                                                        className="w-full text-[11px] p-1 border border-blue-300 rounded outline-none h-full bg-blue-50/30"
+                                                                        className="flex-[2] text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400"
                                                                         value={editingKanbanTitle}
                                                                         onChange={e => setEditingKanbanTitle(e.target.value)}
                                                                         onKeyDown={e => { if (e.key === 'Enter') saveEditKanban(kt._id); if (e.key === 'Escape') setEditingKanbanTaskId(null); }}
                                                                     />
-                                                                    <button onClick={() => saveEditKanban(kt._id)} className="text-blue-500 p-1 hover:bg-blue-50 rounded bg-white shadow-sm border border-blue-100 h-full"><Check size={12} strokeWidth={3} /></button>
-                                                                    <button onClick={() => setEditingKanbanTaskId(null)} className="text-gray-400 p-1 hover:bg-red-50 hover:text-red-500 rounded bg-white shadow-sm border border-gray-100 h-full"><X size={12} strokeWidth={3} /></button>
+                                                                    <select
+                                                                        className="flex-1 text-[11px] font-medium text-gray-600 bg-white border border-gray-200 rounded px-1 py-1 outline-none focus:border-blue-400 cursor-pointer"
+                                                                        value={editingKanbanAssignee}
+                                                                        onChange={e => setEditingKanbanAssignee(e.target.value)}
+                                                                    >
+                                                                        <option value="">Assigner...</option>
+                                                                        {members.map(m => (
+                                                                            <option key={m._id} value={m._id}>{m.name}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <input
+                                                                        type="date"
+                                                                        className="flex-1 w-[90px] text-[11px] font-medium text-gray-600 bg-white border border-gray-200 rounded px-1 py-1 outline-none focus:border-blue-400 cursor-pointer"
+                                                                        value={editingKanbanDueDate}
+                                                                        onChange={e => setEditingKanbanDueDate(e.target.value)}
+                                                                    />
+                                                                    <div className="flex gap-1 shrink-0 ml-1">
+                                                                        <button onClick={() => saveEditKanban(kt._id)} className="p-1 text-white bg-blue-500 hover:bg-blue-600 rounded shadow-sm border border-blue-600 transition-colors"><Check size={12} strokeWidth={3} /></button>
+                                                                        <button onClick={() => setEditingKanbanTaskId(null)} className="p-1 text-gray-500 hover:text-white bg-gray-100 hover:bg-red-500 rounded shadow-sm border border-gray-200 hover:border-red-600 transition-colors"><X size={12} strokeWidth={3} /></button>
+                                                                    </div>
                                                                 </div>
                                                             ) : (
                                                                 <>
@@ -664,9 +702,22 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                                         <ListTodo size={12} className="text-gray-400 mr-2 shrink-0 opacity-60" />
                                                                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                                             <div className="text-[11px] font-bold text-gray-700 truncate" title={kt.title}>{kt.title}</div>
-                                                                            {kt.assignee && (
-                                                                                <div className="text-[9.5px] font-black text-gray-400 mt-0.5 truncate uppercase tracking-widest">
-                                                                                    {kt.assignee.name}
+                                                                            {(kt.assignee || kt.dueDate) && (
+                                                                                <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+                                                                                    {kt.assignee && (
+                                                                                        <div className="text-[9.5px] font-black text-gray-400 truncate uppercase tracking-widest shrink-0">
+                                                                                            {kt.assignee.name}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {kt.assignee && kt.dueDate && (
+                                                                                        <div className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+                                                                                    )}
+                                                                                    {kt.dueDate && (
+                                                                                        <div className={`text-[9.5px] font-bold flex items-center gap-1 shrink-0 ${new Date(kt.dueDate) < new Date() && kt.status !== 'done' ? 'text-red-500' : 'text-gray-500'}`}>
+                                                                                            <Calendar size={9} strokeWidth={3} />
+                                                                                            {new Date(kt.dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -674,28 +725,39 @@ export function GanttBoard({ projectId }: { projectId: string }) {
 
                                                                     <div className="flex items-center shrink-0">
                                                                         <div className="group-hover/kt:flex hidden items-center gap-0.5 mr-1.5 opacity-0 group-hover/kt:opacity-100 transition-opacity">
-                                                                            <button onClick={() => { setEditingKanbanTaskId(kt._id); setEditingKanbanTitle(kt.title); }} className="p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Modifier le titre">
+                                                                            <button onClick={() => { setEditingKanbanTaskId(kt._id); setEditingKanbanTitle(kt.title); setEditingKanbanAssignee((kt.assignee as any)?._id || ''); setEditingKanbanDueDate(kt.dueDate ? new Date(kt.dueDate).toISOString().split('T')[0] : ''); }} className="p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Modifier">
                                                                                 <Edit2 size={12} strokeWidth={2.5} />
                                                                             </button>
-                                                                            <button onClick={() => handleUnlinkKanbanTask(kt._id)} className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Supprimer la sous-tâche">
+                                                                            <button onClick={() => handleUnlinkKanbanTask(kt._id)} className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Supprimer">
                                                                                 <Trash2 size={12} strokeWidth={2.5} />
                                                                             </button>
                                                                         </div>
                                                                         {/* Status switcher for Kanban task */}
-                                                                        <select
-                                                                            value={kt.status}
-                                                                            onChange={(e) => handleUpdateKanbanStatus(kt._id, e.target.value)}
-                                                                            className={`text-[9.5px] font-bold border rounded-[6px] px-1.5 py-1 outline-none cursor-pointer transition-colors shadow-sm appearance-none min-w-[65px] text-center ${kt.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' :
-                                                                                    kt.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' :
-                                                                                        kt.status === 'review' ? 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100' :
-                                                                                            'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                                                        <div className="relative shrink-0">
+                                                                            <select
+                                                                                value={kt.status}
+                                                                                onChange={(e) => handleUpdateKanbanStatus(kt._id, e.target.value)}
+                                                                                className={`text-[9.5px] font-black border rounded-lg pl-2 pr-5 py-1 outline-none cursor-pointer transition-all shadow-sm appearance-none bg-none min-w-[85px] ${
+                                                                                    kt.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 focus:ring-2 focus:ring-emerald-200/50' :
+                                                                                    kt.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-200 focus:ring-2 focus:ring-blue-200/50' :
+                                                                                    kt.status === 'review' ? 'bg-purple-50 text-purple-600 border-purple-200 focus:ring-2 focus:ring-purple-200/50' :
+                                                                                    'bg-white text-gray-600 border-gray-200 focus:ring-2 focus:ring-gray-200/50'
                                                                                 }`}
-                                                                        >
-                                                                            <option value="todo">À faire</option>
-                                                                            <option value="in-progress">En cours</option>
-                                                                            <option value="review">Revue</option>
-                                                                            <option value="done">Terminé</option>
-                                                                        </select>
+                                                                            >
+                                                                                <option value="todo" className="font-bold text-gray-700">À faire</option>
+                                                                                <option value="in-progress" className="font-bold text-blue-700">En cours</option>
+                                                                                <option value="review" className="font-bold text-purple-700">À valider</option>
+                                                                                <option value="done" className="font-bold text-emerald-700">Terminé</option>
+                                                                            </select>
+                                                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 opacity-60">
+                                                                                <ChevronDown size={10} strokeWidth={3} className={
+                                                                                    kt.status === 'done' ? 'text-emerald-700' :
+                                                                                    kt.status === 'in-progress' ? 'text-blue-700' :
+                                                                                    kt.status === 'review' ? 'text-purple-700' :
+                                                                                    'text-gray-500'
+                                                                                } />
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </>
                                                             )}
@@ -706,39 +768,65 @@ export function GanttBoard({ projectId }: { projectId: string }) {
 
                                                 {/* Actions container (Ajout / Liaison) */}
                                                 <div className="flex items-center relative min-h-[40px] border-b border-gray-100/20">
-                                                    <div className="w-[250px] pr-4 shrink-0 bg-gray-50/70 backdrop-blur-sm z-30 py-1 flex flex-col justify-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] pl-8">
+                                                    <div className="w-[350px] pr-4 shrink-0 bg-gray-50/70 backdrop-blur-sm z-30 py-1 flex flex-col justify-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] pl-8">
 
                                                         {addingKanbanTo === task._id ? (
-                                                            <div className="flex items-center w-full gap-1 bg-white/80 p-1 rounded-md shadow-sm border border-gray-100">
+                                                            <div className="flex items-center w-full gap-2 p-1.5 bg-gray-50/80 rounded-lg shadow-inner border border-gray-200/60 z-10 relative">
                                                                 <input
                                                                     autoFocus
                                                                     type="text"
-                                                                    className="flex-1 text-[11px] font-medium text-gray-700 bg-transparent outline-none w-full"
-                                                                    placeholder="Nom..."
+                                                                    className="flex-[2] text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400"
+                                                                    placeholder="Nom de la sous-tâche..."
                                                                     value={newKanbanTitle}
                                                                     onChange={e => setNewKanbanTitle(e.target.value)}
                                                                     onKeyDown={e => { if (e.key === 'Enter') handleAddKanban(task._id); if (e.key === 'Escape') setAddingKanbanTo(null); }}
                                                                 />
-                                                                <button onClick={() => setAddingKanbanTo(null)} className="p-1 text-gray-400 hover:text-red-500 bg-white rounded shadow-sm scale-90 border border-gray-100"><X size={12} strokeWidth={3} /></button>
-                                                                <button onClick={() => handleAddKanban(task._id)} className="p-1 text-blue-500 hover:text-blue-700 bg-white rounded shadow-sm scale-90 border border-gray-100"><Check size={12} strokeWidth={3} /></button>
+                                                                <select
+                                                                    className="flex-1 w-[80px] text-[11px] font-medium text-gray-600 bg-white border border-gray-200 rounded px-1 py-1 outline-none focus:border-blue-400 cursor-pointer"
+                                                                    value={newKanbanAssignee}
+                                                                    onChange={e => setNewKanbanAssignee(e.target.value)}
+                                                                >
+                                                                    <option value="">Assigner...</option>
+                                                                    {members.map(m => (
+                                                                        <option key={m._id} value={m._id}>{m.name}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <input
+                                                                    type="date"
+                                                                    className="flex-1 w-[90px] text-[11px] font-medium text-gray-600 bg-white border border-gray-200 rounded px-1 py-1 outline-none focus:border-blue-400 cursor-pointer"
+                                                                    value={newKanbanDueDate}
+                                                                    onChange={e => setNewKanbanDueDate(e.target.value)}
+                                                                />
+                                                                <div className="flex gap-1 shrink-0 ml-1">
+                                                                    <button onClick={() => handleAddKanban(task._id)} className="p-1.5 text-white bg-blue-500 hover:bg-blue-600 rounded shadow-sm border border-blue-600 transition-colors"><Check size={12} strokeWidth={3} /></button>
+                                                                    <button onClick={() => setAddingKanbanTo(null)} className="p-1.5 text-gray-500 hover:text-white bg-white hover:bg-gray-500 rounded shadow-sm border border-gray-200 hover:border-gray-500 transition-colors"><X size={12} strokeWidth={3} /></button>
+                                                                </div>
                                                             </div>
                                                         ) : linkingKanbanTo === task._id ? (
-                                                            <div className="flex items-center w-full gap-1 bg-white/80 p-1 rounded-md shadow-sm border border-gray-100">
-                                                                <select
-                                                                    autoFocus
-                                                                    onChange={e => linkExistingKanban(task._id, e.target.value)}
-                                                                    className="flex-1 text-[11px] font-medium text-gray-700 bg-transparent outline-none w-full cursor-pointer"
-                                                                    defaultValue=""
-                                                                >
-                                                                    <option value="" disabled>Sélectionnez une tâche...</option>
-                                                                    {freeKanbanTasks.map(fk => (
-                                                                        <option key={fk._id} value={fk._id}>{fk.title}</option>
-                                                                    ))}
-                                                                    {freeKanbanTasks.length === 0 && (
-                                                                        <option disabled>(Aucune tâche libre)</option>
-                                                                    )}
-                                                                </select>
-                                                                <button onClick={() => setLinkingKanbanTo(null)} className="p-1 text-gray-400 hover:text-red-500 bg-white rounded shadow-sm scale-90 border border-gray-100"><X size={12} strokeWidth={3} /></button>
+                                                            <div className="flex items-center w-full gap-2 p-1.5 bg-gray-50/80 rounded-lg shadow-inner border border-gray-200/60 z-10 relative">
+                                                                <div className="relative flex-1">
+                                                                    <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none text-purple-500">
+                                                                        <LinkIcon size={12} strokeWidth={2.5} />
+                                                                    </div>
+                                                                    <select
+                                                                        autoFocus
+                                                                        onChange={e => linkExistingKanban(task._id, e.target.value)}
+                                                                        className="block w-full pl-7 pr-8 py-1.5 text-[11px] font-bold text-gray-700 bg-white border border-gray-200 rounded-md shadow-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 appearance-none bg-none cursor-pointer hover:border-gray-300 transition-all"
+                                                                        defaultValue=""
+                                                                    >
+                                                                        <option value="" disabled>Sélectionnez une tâche à lier...</option>
+                                                                        {freeKanbanTasks.map(fk => (
+                                                                            <option key={fk._id} value={fk._id}>{fk.title}</option>
+                                                                        ))}
+                                                                        {freeKanbanTasks.length === 0 && (
+                                                                            <option disabled>(Aucune tâche libre trouvée)</option>
+                                                                        )}
+                                                                    </select>
+                                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
+                                                                        <ChevronDown size={12} strokeWidth={3} />
+                                                                    </div>
+                                                                </div>
+                                                                <button onClick={() => setLinkingKanbanTo(null)} className="p-1.5 text-gray-400 hover:text-white bg-white hover:bg-gray-500 rounded-md shadow-sm border border-gray-200 hover:border-gray-500 transition-colors"><X size={12} strokeWidth={3} /></button>
                                                             </div>
                                                         ) : (
                                                             <div className="flex flex-col gap-1 w-full my-1">

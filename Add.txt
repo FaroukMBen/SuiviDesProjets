@@ -156,7 +156,7 @@ au lieu de statistique dans jalons on mets plutot des stats card
 +++++ Mettre des couleurs differantes dans le kanban pour les differents status et pouvoir les ordonner comme on veut dans les colonnes
 +++++ les plus de creation pour les differents colones ne changes pas 
 +++++ ajout de calandrier en plus du kanban et Gantt
-+++++Voir les dates au quels le status de kanban ou on change de dates
++++++ Voir les dates au quels le status de kanban ou on change de dates
 +++++ Lier les petits taches kanban avec le gantt 
 +++++ Ajouter un gantt général ainsi qu'un calendrier général
 Lier les commits aux différents taches
@@ -165,4 +165,3 @@ mettre comme une messagerie les differents sujets de discussion
 Empecher les modifs d'un projets notament les dates quand il est lier à une campagne
 
 
-très bien faut que je puisse lier les taches de kanba qui reprèsente les petites taches au grand taches du projets gantt et donc ils doivent avoir les meme status et donc si on termine toute les taches de kanban lié à une tache gantt la tache gantt doit etre terminé. et surtout garde le meme style pour le gantt ajoute juste l'aspect que si on clique sur une tache gantt sela se déroule pour montrer les taches kanban liée et bien sur on pourra ajouté et modifier des taches du kanban au gantt

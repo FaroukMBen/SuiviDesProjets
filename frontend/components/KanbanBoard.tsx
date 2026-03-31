@@ -19,10 +19,10 @@ interface Task {
   description: string;
   status: 'todo' | 'in-progress' | 'review' | 'done';
   priority: string;
-  type?: 'feature' | 'bug' | 'objectif'; // Ajouté pour le style badge
+  type?: 'feature' | 'bug' | 'objectif';
   assignee?: Member;
   dueDate?: string;
-  reminderDelay?: number; // 1, 2, 3, or 7
+  reminderDelay?: number;
   subtasksCount?: string;
 }
 
@@ -35,24 +35,24 @@ const COLUMNS = [
 
 export function KanbanBoard({ projectId }: { projectId: string }) {
   const { user } = useAuthStore();
-  // const { theme } = useThemeStore();
+
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [members, setMembers] = useState<Member[]>([]); // Ajout état membres
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
-  // États pour l'ajout rapide
+
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskAssignee, setNewTaskAssignee] = useState<string>(''); // Ajout état nouvel assigné
-  const [newTaskDueDate, setNewTaskDueDate] = useState<string>('');   // Ajout état date creation
+  const [newTaskAssignee, setNewTaskAssignee] = useState<string>('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState<string>('');
 
-  // États pour l'édition et suppression
+
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
-  // États pour le Drag & Drop
+
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     init();
   }, [projectId]);
 
-  // Fermer le menu si on clique ailleurs
+
   useEffect(() => {
     const handleClickOutside = () => setMenuOpenId(null);
     document.addEventListener('click', handleClickOutside);
@@ -84,8 +84,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     try {
       const response = await api.get(`/api/projects/${projectId}`);
       const project = response.data.project;
-      // Combiner owner et members pour la liste complète
-      const allMembers = [project.owner, ...project.members].filter((v, i, a) => a.findIndex(v2 => (v2._id === v._id)) === i); // Unique
+
+      const allMembers = [project.owner, ...project.members].filter((v, i, a) => a.findIndex(v2 => (v2._id === v._id)) === i);
       setMembers(allMembers);
     } catch (err) {
       console.error("Erreur chargement membres", err);
@@ -99,7 +99,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         projectId,
         title: newTaskTitle,
         status,
-        type: 'objectif' // Default type kept for backend compatibility but hidden from UI
+        type: 'objectif'
       };
       if (newTaskAssignee) payload.assignee = newTaskAssignee;
       if (newTaskDueDate) payload.dueDate = newTaskDueDate;
@@ -107,7 +107,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       const response = await api.post('/api/tasks', payload);
       setTasks([...tasks, response.data.task]);
 
-      // Reset form
       setNewTaskTitle('');
       setNewTaskAssignee('');
       setNewTaskDueDate('');
@@ -132,16 +131,14 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
-      // Préparer l'objet pour l'API (l'assignee doit être un ID, pas l'objet complet s'il n'a pas changé... 
-      // mais le backend attend un ID. Si updatedTask.assignee est peuplé (objet), on veut son ID.
       const payload = {
         ...updatedTask,
-        assignee: (updatedTask.assignee as any)?._id || updatedTask.assignee
+        assignee: (updatedTask.assignee as any)?._id || (typeof updatedTask.assignee === 'string' ? updatedTask.assignee : "")
       };
 
       const response = await api.put(`/api/tasks/${updatedTask._id}`, payload);
 
-      // Mettre à jour l'état local avec la nouvelle tâche retournée (qui a le bon populate)
+
       setTasks(tasks.map(t => t._id === updatedTask._id ? response.data.task : t));
       setEditingTask(null);
       showToast("Tâche modifiée", "success");
@@ -155,19 +152,19 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     e.preventDefault();
     if (!draggedTaskId) return;
 
-    // Mise à jour optimiste (UI d'abord)
+
     const updatedTasks = tasks.map(t =>
       t._id === draggedTaskId ? { ...t, status: status as any } : t
     );
     setTasks(updatedTasks);
     setDraggedTaskId(null);
 
-    // Appel API
+
     try {
       await api.put(`/api/tasks/${draggedTaskId}`, { status });
     } catch (err) {
       console.error("Erreur update status", err);
-      fetchTasks(); // Revert si erreur
+      fetchTasks();
     }
   };
 
@@ -201,10 +198,17 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
               'done': 'bg-emerald-100 text-emerald-600 border-emerald-200'
             };
 
+            const bgColors: Record<string, string> = {
+              'todo': 'bg-slate-100 border-slate-300',
+              'in-progress': 'bg-blue-100 border-blue-300',
+              'review': 'bg-purple-100 border-purple-300',
+              'done': 'bg-emerald-100 border-emerald-300'
+            };
+
             return (
               <div
                 key={col.id}
-                className="flex flex-col min-h-[600px] rounded-[2rem] bg-gray-50/80 border border-gray-200/50 p-5 transition-all shadow-sm shadow-inner"
+                className={`flex flex-col min-h-[600px] rounded-[2rem] border p-5 transition-all shadow-sm shadow-inner ${bgColors[col.id] || 'bg-gray-50/80 border-gray-200/50'}`}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, col.id)}
               >
@@ -333,38 +337,27 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                             {task.title}
                           </h4>
 
-                          <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e => e.stopPropagation()}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                e.nativeEvent.stopImmediatePropagation();
-                                setMenuOpenId(menuOpenId === task._id ? null : task._id);
+                                setEditingTask(task);
                               }}
-                              className="p-1.5 hover:bg-blue-50 rounded-xl text-gray-300 hover:text-blue-600 transition-all"
+                              className="p-1.5 hover:bg-blue-50 text-gray-300 hover:text-blue-600 rounded-xl transition-all"
+                              title="Modifier"
                             >
-                              <MoreHorizontal size={18} />
+                              <Pencil size={16} />
                             </button>
-
-                            {menuOpenId === task._id && (
-                              <div className="absolute right-0 top-10 w-48 bg-white rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] border border-gray-100 z-[70] py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                                <button
-                                  onClick={() => {
-                                    setEditingTask(task);
-                                    setMenuOpenId(null);
-                                  }}
-                                  className="w-full text-left px-4 py-2.5 text-xs font-black text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-3"
-                                >
-                                  <Pencil size={14} strokeWidth={2.5} /> Modifier
-                                </button>
-                                <div className="mx-3 my-1 border-t border-gray-50"></div>
-                                <button
-                                  onClick={() => handleDeleteTask(task._id)}
-                                  className="w-full text-left px-4 py-2.5 text-xs font-black text-red-600 hover:bg-red-50 flex items-center gap-3"
-                                >
-                                  <Trash2 size={14} strokeWidth={2.5} /> Supprimer
-                                </button>
-                              </div>
-                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTask(task._id);
+                              }}
+                              className="p-1.5 hover:bg-red-50 text-gray-300 hover:text-red-600 rounded-xl transition-all"
+                              title="Supprimer"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </div>
 
@@ -415,7 +408,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
           Glisser-déposer les tâches pour changer leur statut.
         </p>
         <button
-          onClick={() => setIsAdding('todo')} // Ouvre l'ajout dans la première colonne par défaut
+          onClick={() => setIsAdding('todo')}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-sm"
         >
           <Plus size={16} />
@@ -428,10 +421,17 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         {COLUMNS.map((col) => {
           const colTasks = tasks.filter(t => t.status === col.id);
 
+          const bgColors: Record<string, string> = {
+            'todo': 'bg-slate-100 border-slate-300',
+            'in-progress': 'bg-blue-100 border-blue-300',
+            'review': 'bg-purple-100 border-purple-300',
+            'done': 'bg-emerald-100 border-emerald-300'
+          };
+
           return (
             <div
               key={col.id}
-              className="flex flex-col h-auto min-h-[500px] rounded-lg bg-gray-50/10 border border-gray-200 shadow-sm"
+              className={`flex flex-col h-auto min-h-[500px] rounded-lg border shadow-sm ${bgColors[col.id] || 'bg-gray-50/10 border-gray-200'}`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, col.id)}
             >
@@ -511,23 +511,27 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                       <h4 className="text-sm font-bold text-gray-800 leading-tight flex-1">
                         {task.title}
                       </h4>
-                      <div className="relative" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            e.nativeEvent.stopImmediatePropagation();
-                            setMenuOpenId(menuOpenId === task._id ? null : task._id);
+                            setEditingTask(task);
                           }}
-                          className="p-1 hover:bg-gray-100 rounded text-gray-400"
+                          className="p-1 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                          title="Modifier"
                         >
-                          <MoreHorizontal size={14} />
+                          <Pencil size={14} />
                         </button>
-                        {menuOpenId === task._id && (
-                          <div className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-10 py-1 text-xs text-left">
-                            <button onClick={() => { setEditingTask(task); setMenuOpenId(null); }} className="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2"><Pencil size={12} /> Modifier</button>
-                            <button onClick={() => handleDeleteTask(task._id)} className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 size={12} /> Supprimer</button>
-                          </div>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTask(task._id);
+                          }}
+                          className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
 

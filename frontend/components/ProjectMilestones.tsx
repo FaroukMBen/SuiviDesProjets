@@ -129,12 +129,12 @@ export function ProjectMilestones({ campaignId, projectId, projectFiles = [] }: 
               </p>
 
               {isDone && deliveredFile && (
-                <div className="mt-4 flex items-center justify-between p-3 bg-white border border-emerald-100 rounded-xl">
+                <div className={`mt-4 flex items-center justify-between p-3 bg-white border border-emerald-100 ${isModern ? 'rounded-xl' : 'rounded-md shadow-sm'}`}>
                   <div className="flex items-center gap-3">
                     <FileText size={16} className="text-emerald-500" />
-                    <span className="text-xs font-bold text-gray-700 truncate max-w-[200px]">{deliveredFile.name}</span>
+                    <span className={`text-xs ${isModern ? 'font-bold' : 'font-semibold'} text-gray-700 truncate max-w-[200px]`}>{deliveredFile.name}</span>
                   </div>
-                  <Link href={`/projects/${projectId}/liverables`} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:underline">
+                  <Link href={`/projects/${projectId}/liverables`} className={`text-[10px] ${isModern ? 'font-black' : 'font-bold'} text-emerald-600 uppercase tracking-widest hover:underline`}>
                     Détails
                   </Link>
                 </div>

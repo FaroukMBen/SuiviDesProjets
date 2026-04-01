@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { ProjectMilestones } from '@/components/ProjectMilestones';
+import { useAuthStore } from '@/lib/store';
 
 interface Campaign {
     _id: string;
@@ -32,6 +33,8 @@ export default function ProjectMilestonesPage() {
     const projectId = params.id as string;
     const { showToast } = useToast();
     const { confirm } = useConfirm();
+    const { user } = useAuthStore();
+    const isClassic = user?.theme === 'classic';
 
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -91,12 +94,12 @@ export default function ProjectMilestonesPage() {
     if (!project) return <div className="p-8 text-center text-red-500 font-bold">Projet introuvable</div>;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-12 pb-20">
+        <div className={`max-w-6xl mx-auto ${isClassic ? 'space-y-8' : 'space-y-12'} pb-20`}>
             {/* Intro Section */}
-            <div className="flex items-end justify-between border-b-2 border-gray-100 pb-6">
+            <div className={`flex items-end justify-between ${isClassic ? 'border-b border-gray-200 bg-white p-6 rounded-lg shadow-sm' : 'border-b-2 border-gray-100 pb-6'}`}>
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
-                        <h2 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+                        <h2 className={`${isClassic ? 'text-2xl font-bold border-l-4 border-blue-600 pl-3' : 'text-3xl font-bold tracking-tight'} text-gray-900 flex items-center gap-3`}>
                             <Flag className="text-blue-600" />
                             Planning & Objectifs
                         </h2>
@@ -121,8 +124,8 @@ export default function ProjectMilestonesPage() {
                 {/* Main Timeline Column */}
                 <div className="lg:col-span-2 space-y-8">
                     {!project.campaignId ? (
-                        <div className="bg-white rounded-[2.5rem] p-10 border-2 border-dashed border-gray-200 text-center space-y-6">
-                            <div className="w-20 h-20 bg-gray-50 text-gray-300 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                        <div className={`bg-white ${isClassic ? 'rounded-lg p-6' : 'rounded-[2.5rem] p-10'} border-2 border-dashed border-gray-200 text-center space-y-6`}>
+                            <div className={`w-20 h-20 bg-gray-50 text-gray-300 ${isClassic ? 'rounded-xl' : 'rounded-3xl'} flex items-center justify-center mx-auto shadow-inner`}>
                                 <LinkIcon size={40} />
                             </div>
                             <div className="max-w-md mx-auto">
@@ -154,7 +157,7 @@ export default function ProjectMilestonesPage() {
                             )}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 space-y-8 text-slate-800">
+                        <div className={`bg-white ${isClassic ? 'rounded-lg border border-gray-300 p-6' : 'rounded-[2rem] border border-gray-100 p-8 shadow-sm'} space-y-8 text-slate-800`}>
                             <div className="flex items-center justify-between border-b border-gray-50 pb-6">
                                 <div className="flex items-center gap-3">
                                     <Activity className="text-blue-600" size={20} />
@@ -178,30 +181,30 @@ export default function ProjectMilestonesPage() {
                 <div className="space-y-6">
 
                     {/* Deliverables Redirect Card */}
-                    <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-xl shadow-slate-200 relative overflow-hidden group min-h-[220px] flex flex-col justify-between">
-                        <div className="absolute -right-4 -bottom-4 opacity-10 rotate-12 transition-transform group-hover:scale-110 group-hover:rotate-0">
+                    <div className={`${isClassic ? 'bg-white border border-gray-300 rounded-lg p-6 text-gray-800 shadow-sm' : 'bg-slate-900 rounded-[2rem] p-8 text-white shadow-xl shadow-slate-200'} relative overflow-hidden group min-h-[220px] flex flex-col justify-between`}>
+                        <div className={`absolute -right-4 -bottom-4 ${isClassic ? 'opacity-5 text-gray-400' : 'opacity-10'} rotate-12 transition-transform group-hover:scale-110 group-hover:rotate-0`}>
                             <FolderOpen size={160} />
                         </div>
 
                         <div>
-                            <h3 className="text-xl font-bold mb-2 relative z-10">Livrables Bonus</h3>
-                            <p className="text-slate-400 text-xs font-medium leading-relaxed mb-6 relative z-10">
+                            <h3 className={`text-xl font-bold mb-2 relative z-10 ${isClassic ? 'text-gray-900' : ''}`}>Livrables Bonus</h3>
+                            <p className={`${isClassic ? 'text-gray-600' : 'text-slate-400'} text-xs font-medium leading-relaxed mb-6 relative z-10`}>
                                 Souhaitez-vous ajouter des documents hors jalons, des justificatifs ou des ressources complémentaires ?
                             </p>
                         </div>
 
                         <Link
                             href={`/projects/${project._id}/liverables`}
-                            className="flex items-center justify-between w-full p-4 bg-white/10 hover:bg-white text-white hover:text-slate-900 rounded-2xl transition-all border border-white/10 relative z-10 group/btn"
+                            className={`flex items-center justify-between w-full p-4 ${isClassic ? 'bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md border-gray-300' : 'bg-white/10 hover:bg-white text-white hover:text-slate-900 rounded-2xl border-white/10'} transition-all border relative z-10 group/btn`}
                         >
                             <span className="font-bold text-sm uppercase tracking-widest">Voir le gestionnaire</span>
                             <ArrowRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
                         </Link>
                     </div>
 
-                    <div className="bg-white rounded-[2rem] p-8 border border-gray-200 shadow-sm space-y-4">
+                    <div className={`bg-white ${isClassic ? 'rounded-lg p-6' : 'rounded-[2rem] p-8'} border border-gray-200 shadow-sm space-y-4`}>
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                            <div className={`w-8 h-8 bg-blue-50 text-blue-600 ${isClassic ? 'rounded-md' : 'rounded-lg'} flex items-center justify-center`}>
                                 <FileBox size={18} />
                             </div>
                             <h4 className="font-bold text-gray-900 text-sm uppercase tracking-tight">Statistiques</h4>
@@ -222,13 +225,13 @@ export default function ProjectMilestonesPage() {
             </div>
 
             {/* FAQ Section (Collapsible) */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden transition-all duration-500">
+            <div className={`bg-white ${isClassic ? 'rounded-lg' : 'rounded-[2.5rem]'} border border-gray-200 shadow-sm overflow-hidden transition-all duration-500`}>
                 <button
                     onClick={() => setIsFaqOpen(!isFaqOpen)}
-                    className="w-full flex items-center justify-between p-10 hover:bg-gray-50 transition-colors group"
+                    className={`w-full flex items-center justify-between ${isClassic ? 'p-6' : 'p-10'} hover:bg-gray-50 transition-colors group`}
                 >
                     <div className="flex items-center gap-4 text-gray-900">
-                        <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <div className={`w-12 h-12 bg-orange-50 text-orange-500 ${isClassic ? 'rounded-lg' : 'rounded-2xl'} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
                             <HelpCircle size={24} />
                         </div>
                         <div className="text-left">
@@ -242,7 +245,7 @@ export default function ProjectMilestonesPage() {
                 </button>
 
                 {isFaqOpen && (
-                    <div className="px-10 pb-10 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-4 duration-300">
+                    <div className={`${isClassic ? 'px-6 pb-6' : 'px-10 pb-10'} grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-4 duration-300`}>
                         <div className="col-span-full h-px bg-gray-100 mb-2"></div>
                         {[
                             {
@@ -262,7 +265,7 @@ export default function ProjectMilestonesPage() {
                                 a: "Vos coéquipiers, vos enseignants et les administrateurs de la campagne ont accès aux documents déposés."
                             }
                         ].map((item, idx) => (
-                            <div key={idx} className="space-y-2 p-4 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                            <div key={idx} className={`space-y-2 p-4 ${isClassic ? 'rounded-md' : 'rounded-2xl'} hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100`}>
                                 <h4 className="font-bold text-gray-900 flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0"></div>
                                     {item.q}

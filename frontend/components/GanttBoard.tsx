@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '@/lib/store';
 import api from '@/lib/auth';
 import { format, differenceInDays, addDays, startOfDay, isSameDay } from 'date-fns';
@@ -29,6 +29,8 @@ export function GanttBoard({ projectId }: { projectId: string }) {
     const [tasks, setTasks] = useState<GanttTask[]>([]);
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [hasScrolled, setHasScrolled] = useState(false);
 
     const [isAdding, setIsAdding] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -52,6 +54,29 @@ export function GanttBoard({ projectId }: { projectId: string }) {
     const [editingKanbanDueDate, setEditingKanbanDueDate] = useState<string>('');
     const [linkingKanbanTo, setLinkingKanbanTo] = useState<string | null>(null);
     const [freeKanbanTasks, setFreeKanbanTasks] = useState<{ _id: string, title: string }[]>([]);
+
+    const fetchTasks = async () => {
+        setLoading(true);
+        try {
+            const response = await api.get(`/api/gantt-tasks/project/${projectId}`);
+            setTasks(response.data.tasks);
+
+            const kResponse = await api.get(`/api/tasks/project/${projectId}`);
+            const kTasks = kResponse.data.tasks;
+            setFreeKanbanTasks(kTasks.filter((t: any) => !t.ganttTaskId));
+
+            const projResponse = await api.get(`/api/projects/${projectId}`);
+            const project = projResponse.data.project;
+            const allMembers = [project.owner, ...project.members].filter((v: any, i: number, a: any) => a.findIndex((v2: any) => v2._id === v._id) === i);
+            setMembers(allMembers);
+        } catch (err) {
+            console.error("Erreur chargement tâches Gantt", err);
+            showToast("Erreur de chargement du Gantt", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     const toggleExpand = (taskId: string) => {
         const newExpanded = new Set(expandedTasks);
@@ -137,31 +162,47 @@ export function GanttBoard({ projectId }: { projectId: string }) {
         }
     };
 
+
     useEffect(() => {
         fetchTasks();
     }, [projectId]);
 
-    const fetchTasks = async () => {
-        setLoading(true);
-        try {
-            const response = await api.get(`/api/gantt-tasks/project/${projectId}`);
-            setTasks(response.data.tasks);
+    let dates: Date[] = [];
+    tasks.forEach(t => {
+        dates.push(new Date(t.startDate));
+        dates.push(new Date(t.endDate));
+    });
 
-            const kResponse = await api.get(`/api/tasks/project/${projectId}`);
-            const kTasks = kResponse.data.tasks;
-            setFreeKanbanTasks(kTasks.filter((t: any) => !t.ganttTaskId));
+    if (dates.length === 0) {
+        dates = [new Date()];
+    }
 
-            const projResponse = await api.get(`/api/projects/${projectId}`);
-            const project = projResponse.data.project;
-            const allMembers = [project.owner, ...project.members].filter((v: any, i: number, a: any) => a.findIndex((v2: any) => v2._id === v._id) === i);
-            setMembers(allMembers);
-        } catch (err) {
-            console.error("Erreur chargement tâches Gantt", err);
-            showToast("Erreur de chargement du Gantt", "error");
-        } finally {
-            setLoading(false);
+    const minDate = startOfDay(new Date(Math.min(...dates.map(d => d.getTime()))));
+    const maxDate = startOfDay(new Date(Math.max(...dates.map(d => d.getTime()))));
+
+    const timelineStart = addDays(minDate, -1);
+    const timelineEnd = addDays(maxDate, 5);
+    const totalDays = differenceInDays(timelineEnd, timelineStart) + 1;
+    const days = Array.from({ length: totalDays }, (_, i) => addDays(timelineStart, i));
+
+    useEffect(() => {
+        if (!loading && tasks.length > 0 && scrollContainerRef.current && !hasScrolled) {
+            const firstUnfinished = [...tasks]
+                .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                .find(t => t.status !== 'done');
+
+            if (firstUnfinished) {
+                const start = startOfDay(new Date(firstUnfinished.startDate));
+                const startOffsetDays = differenceInDays(start, timelineStart);
+                const scrollPos = Math.max(0, (startOffsetDays * 35) - 50);
+
+                if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollLeft = scrollPos;
+                    setHasScrolled(true);
+                }
+            }
         }
-    };
+    }, [loading, tasks, hasScrolled, timelineStart]);
 
     const handleSaveTask = async () => {
         if (!newTaskTitle || !newTaskStartDate || !newTaskEndDate) {
@@ -249,25 +290,6 @@ export function GanttBoard({ projectId }: { projectId: string }) {
         );
     }
 
-    let dates: Date[] = [];
-    tasks.forEach(t => {
-        dates.push(new Date(t.startDate));
-        dates.push(new Date(t.endDate));
-    });
-
-
-    if (dates.length === 0) {
-        dates = [new Date()];
-    }
-
-    const minDate = startOfDay(new Date(Math.min(...dates.map(d => d.getTime()))));
-    const maxDate = startOfDay(new Date(Math.max(...dates.map(d => d.getTime()))));
-
-    const timelineStart = addDays(minDate, -1);
-    const timelineEnd = addDays(maxDate, 5);
-    const totalDays = differenceInDays(timelineEnd, timelineStart) + 1;
-
-    const days = Array.from({ length: totalDays }, (_, i) => addDays(timelineStart, i));
 
     const isModern = user?.theme === 'modern';
 
@@ -533,7 +555,10 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                     <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Le Gantt est vide</p>
                 </div>
             ) : (
-                <div className="overflow-auto max-h-[70vh] pb-4 custom-scrollbar rounded-xl border border-gray-200 bg-white relative shadow-inner">
+                <div
+                    ref={scrollContainerRef}
+                    className="overflow-auto max-h-[70vh] pb-4 custom-scrollbar rounded-xl border border-gray-200 bg-white relative shadow-inner"
+                >
                     <div style={{ minWidth: `max(800px, ${totalDays * 35 + 350}px)` }}>
                         {/* Timeline Header */}
                         <div className="flex border-b border-gray-200 pb-2 sticky top-0 z-40 bg-white/95 backdrop-blur-md pt-3 shadow-sm">
@@ -737,12 +762,11 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                                             <select
                                                                                 value={kt.status}
                                                                                 onChange={(e) => handleUpdateKanbanStatus(kt._id, e.target.value)}
-                                                                                className={`text-[9.5px] font-black border rounded-lg pl-2 pr-5 py-1 outline-none cursor-pointer transition-all shadow-sm appearance-none bg-none min-w-[85px] ${
-                                                                                    kt.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 focus:ring-2 focus:ring-emerald-200/50' :
-                                                                                    kt.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-200 focus:ring-2 focus:ring-blue-200/50' :
-                                                                                    kt.status === 'review' ? 'bg-purple-50 text-purple-600 border-purple-200 focus:ring-2 focus:ring-purple-200/50' :
-                                                                                    'bg-white text-gray-600 border-gray-200 focus:ring-2 focus:ring-gray-200/50'
-                                                                                }`}
+                                                                                className={`text-[9.5px] font-black border rounded-lg pl-2 pr-5 py-1 outline-none cursor-pointer transition-all shadow-sm appearance-none bg-none min-w-[85px] ${kt.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 focus:ring-2 focus:ring-emerald-200/50' :
+                                                                                        kt.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-200 focus:ring-2 focus:ring-blue-200/50' :
+                                                                                            kt.status === 'review' ? 'bg-purple-50 text-purple-600 border-purple-200 focus:ring-2 focus:ring-purple-200/50' :
+                                                                                                'bg-white text-gray-600 border-gray-200 focus:ring-2 focus:ring-gray-200/50'
+                                                                                    }`}
                                                                             >
                                                                                 <option value="todo" className="font-bold text-gray-700">À faire</option>
                                                                                 <option value="in-progress" className="font-bold text-blue-700">En cours</option>
@@ -752,9 +776,9 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 opacity-60">
                                                                                 <ChevronDown size={10} strokeWidth={3} className={
                                                                                     kt.status === 'done' ? 'text-emerald-700' :
-                                                                                    kt.status === 'in-progress' ? 'text-blue-700' :
-                                                                                    kt.status === 'review' ? 'text-purple-700' :
-                                                                                    'text-gray-500'
+                                                                                        kt.status === 'in-progress' ? 'text-blue-700' :
+                                                                                            kt.status === 'review' ? 'text-purple-700' :
+                                                                                                'text-gray-500'
                                                                                 } />
                                                                             </div>
                                                                         </div>

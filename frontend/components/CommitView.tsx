@@ -67,6 +67,7 @@ export function CommitView({
   autoSync?: boolean;
 }) {
   const { user } = useAuthStore();
+  const isModern = user?.theme === 'modern';
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const [commits, setCommits] = useState<Commit[]>([]);
@@ -372,21 +373,21 @@ export function CommitView({
 
       {/* Tabs + Sync + Filtre */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+        <div className={`flex space-x-1 w-fit ${isModern ? 'bg-[#f3f4f6]/80 backdrop-blur-sm p-1.5 rounded-[1.25rem] border border-gray-100' : 'bg-gray-100 p-1 rounded-lg'}`}>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'history'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
+            className={`px-4 py-2 text-sm transition-all ${activeTab === 'history'
+              ? (isModern ? 'bg-white text-blue-600 font-black shadow-md rounded-[1rem]' : 'bg-white text-gray-900 font-medium shadow-sm rounded-md')
+              : (isModern ? 'text-gray-400 font-bold hover:text-gray-600 hover:bg-gray-50 rounded-[1rem]' : 'text-gray-500 font-medium hover:text-gray-700 rounded-md')
               }`}
           >
             Historique
           </button>
           <button
             onClick={() => setActiveTab('stats')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'stats'
-              ? 'bg-gray-900 text-white shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
+            className={`px-4 py-2 text-sm transition-all ${activeTab === 'stats'
+              ? (isModern ? 'bg-gray-900 text-white font-black shadow-xl rounded-[1rem]' : 'bg-gray-900 text-white font-medium shadow-sm rounded-md')
+              : (isModern ? 'text-gray-400 font-bold hover:text-gray-600 hover:bg-gray-50 rounded-[1rem]' : 'text-gray-500 font-medium hover:text-gray-700 rounded-md')
               }`}
           >
             Statistiques
@@ -396,15 +397,15 @@ export function CommitView({
         <div className="flex items-center gap-3">
           {/* Filtre temporel */}
           {repoUrl && (
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+            <div className={`flex items-center gap-1 p-1 ${isModern ? 'bg-[#f3f4f6]/80 backdrop-blur-sm rounded-[1.25rem] border border-gray-100' : 'bg-gray-100 rounded-lg'}`}>
               <Filter size={14} className="text-gray-400 ml-2" />
               {(['week', 'month', 'all'] as TimeFilter[]).map(f => (
                 <button
                   key={f}
                   onClick={() => setTimeFilter(f)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === f
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                  className={`px-3 py-1.5 text-xs transition-all ${timeFilter === f
+                    ? (isModern ? 'bg-white text-gray-900 font-black shadow-md rounded-[1rem]' : 'bg-white text-gray-900 font-medium shadow-sm rounded-md')
+                    : (isModern ? 'text-gray-400 font-bold hover:text-gray-600' : 'text-gray-500 font-medium hover:text-gray-700')
                     }`}
                 >
                   {filterLabels[f]}
@@ -418,9 +419,9 @@ export function CommitView({
               <button
                 onClick={handleSync}
                 disabled={isSyncing}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${isSyncing
+                className={`flex items-center gap-2 px-4 py-2 text-sm transition-all ${isModern ? 'font-black rounded-[1rem]' : 'font-bold rounded-lg'} ${isSyncing
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100 shadow-sm'
                   }`}
               >
                 <GitCommit size={16} className={isSyncing ? 'animate-spin' : ''} />
@@ -429,11 +430,11 @@ export function CommitView({
               <button
                 onClick={handleUnlinkRepo}
                 disabled={isSyncing || loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all bg-red-50 text-red-700 hover:bg-red-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                className={`flex items-center gap-2 px-4 py-2 text-sm transition-all bg-red-50 text-red-700 hover:bg-red-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed ${isModern ? 'font-black rounded-[1rem]' : 'font-bold rounded-lg'}`}
                 title="Dissocier le dépôt GitHub"
               >
                 <GitPullRequest size={16} />
-                Dissocier
+                {isModern ? 'Dissocier' : 'Dissocier'}
               </button>
             </>
           )}
@@ -442,11 +443,11 @@ export function CommitView({
 
       {/* Barre de progression */}
       {isSyncing && (
-        <Card className="p-4 bg-blue-50 border-blue-200">
+        <Card className={`p-4 bg-blue-50 border-blue-200 ${isModern ? '!rounded-[2rem]' : ''}`}>
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium text-blue-900">{syncStatus || 'Synchronisation en cours...'}</span>
-              <span className="font-bold text-blue-700">{syncProgress}%</span>
+              <span className={`text-blue-900 ${isModern ? 'font-bold tracking-tight' : 'font-medium'}`}>{syncStatus || 'Synchronisation en cours...'}</span>
+              <span className={`text-blue-700 ${isModern ? 'font-black' : 'font-bold'}`}>{syncProgress}%</span>
             </div>
             <div className="h-2 w-full bg-blue-100 rounded-full overflow-hidden">
               <div
@@ -460,14 +461,14 @@ export function CommitView({
 
       {/* Pas de repo lié */}
       {!repoUrl ? (
-        <Card className="p-8 bg-gray-50 border-dashed border-2">
+        <Card className={`p-8 bg-gray-50 border-dashed border-2 ${isModern ? '!rounded-[2.5rem]' : ''}`}>
           <div className="max-w-lg mx-auto">
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className={`w-16 h-16 bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-4 ${isModern ? 'rounded-[1.2rem] shadow-inner' : 'rounded-full'}`}>
                 <GitPullRequest size={32} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Lier un dépôt GitHub</h3>
-              <p className="text-gray-500 mb-6">Connectez ce projet à un dépôt GitHub pour suivre les commits et les statistiques en temps réel.</p>
+              <h3 className={`text-xl text-gray-900 mb-2 ${isModern ? 'font-black tracking-tight' : 'font-bold'}`}>Lier un dépôt GitHub</h3>
+              <p className={`text-gray-500 mb-6 ${isModern ? 'font-medium' : ''}`}>Connectez ce projet à un dépôt GitHub pour suivre les commits et les statistiques en temps réel.</p>
             </div>
 
             <form onSubmit={handleLinkRepo} className="flex gap-2 mb-6">
@@ -477,11 +478,11 @@ export function CommitView({
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="https://github.com/utilisateur/repo"
                 required
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className={`flex-1 px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none ${isModern ? 'rounded-[1rem] bg-white backdrop-blur-sm' : 'rounded-lg'}`}
               />
               <button
                 type="submit"
-                className="px-6 py-2 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition-colors"
+                className={`px-6 py-2 bg-gray-900 text-white hover:bg-gray-800 transition-colors ${isModern ? 'font-black rounded-[1rem] shadow-lg shadow-gray-200' : 'font-bold rounded-lg'}`}
               >
                 Lier le dépôt
               </button>
@@ -541,32 +542,32 @@ export function CommitView({
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><GitCommit size={24} /></div>
+            <Card className={`p-4 flex items-center gap-4 ${isModern ? '!rounded-[2rem] border-transparent shadow-md' : ''}`}>
+              <div className={`p-3 bg-blue-50 text-blue-600 ${isModern ? 'rounded-2xl' : 'rounded-xl'}`}><GitCommit size={24} /></div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase">Commits</p>
-                <p className="text-2xl font-bold text-gray-900">{totalCommits}</p>
+                <p className={`text-xs text-gray-500 uppercase ${isModern ? 'font-black tracking-widest' : 'font-medium'}`}>Commits</p>
+                <p className={`text-2xl text-gray-900 ${isModern ? 'font-black tracking-tighter' : 'font-bold'}`}>{totalCommits}</p>
               </div>
             </Card>
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><TrendingUp size={24} /></div>
+            <Card className={`p-4 flex items-center gap-4 ${isModern ? '!rounded-[2rem] border-transparent shadow-md' : ''}`}>
+              <div className={`p-3 bg-emerald-50 text-emerald-600 ${isModern ? 'rounded-2xl' : 'rounded-xl'}`}><TrendingUp size={24} /></div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase">Lignes ajoutées</p>
-                <p className="text-2xl font-bold text-emerald-600">+{totalInsertions.toLocaleString()}</p>
+                <p className={`text-xs text-gray-500 uppercase ${isModern ? 'font-black tracking-widest' : 'font-medium'}`}>Lignes ajoutées</p>
+                <p className={`text-2xl text-emerald-600 ${isModern ? 'font-black tracking-tighter' : 'font-bold'}`}>+{totalInsertions.toLocaleString()}</p>
               </div>
             </Card>
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-red-50 text-red-500 rounded-xl"><TrendingDown size={24} /></div>
+            <Card className={`p-4 flex items-center gap-4 ${isModern ? '!rounded-[2rem] border-transparent shadow-md' : ''}`}>
+              <div className={`p-3 bg-red-50 text-red-500 ${isModern ? 'rounded-2xl' : 'rounded-xl'}`}><TrendingDown size={24} /></div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase">Lignes supprimées</p>
-                <p className="text-2xl font-bold text-red-500">-{totalDeletions.toLocaleString()}</p>
+                <p className={`text-xs text-gray-500 uppercase ${isModern ? 'font-black tracking-widest' : 'font-medium'}`}>Lignes supprimées</p>
+                <p className={`text-2xl text-red-500 ${isModern ? 'font-black tracking-tighter' : 'font-bold'}`}>-{totalDeletions.toLocaleString()}</p>
               </div>
             </Card>
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><Users size={24} /></div>
+            <Card className={`p-4 flex items-center gap-4 ${isModern ? '!rounded-[2rem] border-transparent shadow-md' : ''}`}>
+              <div className={`p-3 bg-purple-50 text-purple-600 ${isModern ? 'rounded-2xl' : 'rounded-xl'}`}><Users size={24} /></div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase">Contributeurs</p>
-                <p className="text-2xl font-bold text-gray-900">{contributors.length}</p>
+                <p className={`text-xs text-gray-500 uppercase ${isModern ? 'font-black tracking-widest' : 'font-medium'}`}>Contributeurs</p>
+                <p className={`text-2xl text-gray-900 ${isModern ? 'font-black tracking-tighter' : 'font-bold'}`}>{contributors.length}</p>
               </div>
             </Card>
           </div>
@@ -575,8 +576,8 @@ export function CommitView({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Commits par branche */}
-            <Card className="lg:col-span-1 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Card className={`lg:col-span-1 p-6 ${isModern ? '!rounded-[2rem]' : ''}`}>
+              <h3 className={`text-lg text-gray-900 mb-4 flex items-center gap-2 ${isModern ? 'font-black tracking-tight' : 'font-bold'}`}>
                 <GitBranch size={18} className="text-gray-400" />
                 Branches
               </h3>
@@ -607,9 +608,9 @@ export function CommitView({
             </Card>
 
             {/* Détail par contributeur */}
-            <Card className="lg:col-span-2 overflow-hidden !p-0">
+            <Card className={`lg:col-span-2 overflow-hidden !p-0 flex flex-col ${isModern ? '!rounded-[2rem]' : ''}`}>
               <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Détail par contributeur</h3>
+                <h3 className={`text-lg text-gray-900 ${isModern ? 'font-black tracking-tight' : 'font-bold'}`}>Détail par contributeur</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -667,13 +668,13 @@ export function CommitView({
         /* ============ VUE HISTORIQUE ============ */
         <div className="space-y-3">
           {/* Barre de filtres */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <div className={`bg-white border border-gray-200 p-4 space-y-3 ${isModern ? 'rounded-[2rem] shadow-sm' : 'rounded-xl'}`}>
             {/* Ligne 1 : Branches */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Branches</span>
+              <span className={`text-xs uppercase tracking-wider mr-1 ${isModern ? 'font-black text-gray-300' : 'font-semibold text-gray-400'}`}>Branches</span>
               <button
                 onClick={selectAllBranches}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${allBranchesMode
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs transition-all ${isModern ? 'rounded-[1rem] font-black' : 'rounded-full font-medium'} ${allBranchesMode
                   ? 'bg-gray-900 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
@@ -702,10 +703,10 @@ export function CommitView({
 
             {/* Ligne 2 : Auteurs */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Auteurs</span>
+              <span className={`text-xs uppercase tracking-wider mr-1 ${isModern ? 'font-black text-gray-300' : 'font-semibold text-gray-400'}`}>Auteurs</span>
               <button
                 onClick={selectAllAuthors}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${allAuthorsMode
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs transition-all ${isModern ? 'rounded-[1rem] font-black' : 'rounded-full font-medium'} ${allAuthorsMode
                   ? 'bg-gray-900 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
@@ -740,7 +741,7 @@ export function CommitView({
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all ${isModern ? 'rounded-[1rem] font-black' : 'rounded-lg font-medium'}`}
               >
                 <ArrowUpDown size={12} />
                 {sortOrder === 'desc' ? 'Plus récents d\'abord' : 'Plus anciens d\'abord'}
@@ -761,7 +762,7 @@ export function CommitView({
             <div
               key={commit._id}
               onClick={() => setSelectedCommit(commit)}
-              className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition cursor-pointer group"
+              className={`bg-white p-4 border border-gray-200 hover:border-blue-300 transition cursor-pointer group ${isModern ? 'rounded-[2rem] shadow-sm hover:shadow-lg' : 'rounded-xl shadow-sm hover:shadow-md'}`}
             >
               <div className="flex justify-between items-start">
                 <div className="flex gap-3 min-w-0">

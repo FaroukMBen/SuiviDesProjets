@@ -21,7 +21,9 @@ import {
   Clock,
   UserPlus,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  FileDown
 } from 'lucide-react';
 import api from '@/lib/auth';
 import { UserSearch } from '@/components/UserSearch';
@@ -58,6 +60,27 @@ export default function ProjectOverviewPage() {
   };
 
   const { uploading, uploadFile, downloadFile } = useProjectFiles(params.id as string, fetchData);
+
+  const downloadCampaignResource = async (resource: any) => {
+    try {
+      const filename = resource.path.split('/').pop();
+      const response = await api.get(`/api/campaigns/resources/${filename}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const ext = resource.type?.includes('pdf') ? '.pdf' : '';
+      link.setAttribute('download', resource.name + (resource.name.includes('.') ? '' : ext));
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      showToast('Erreur lors du téléchargement', 'error');
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -121,6 +144,66 @@ export default function ProjectOverviewPage() {
         {/* COLONNE GAUCHE - CONTENU PRINCIPAL */}
         <div className="lg:col-span-2 space-y-8">
 
+          {/* Campaign Description & Resources */}
+          {project.campaignId && (
+            <div className={`bg-white p-8 border ${isModern ? 'rounded-[2rem] border-gray-100 shadow-sm' : 'rounded-lg border-gray-200'}`}>
+              <div className="flex justify-between items-end mb-6">
+                <div>
+                  <h3 className={`text-lg text-gray-900 flex items-center gap-2 uppercase tracking-tight ${isModern ? 'font-black' : 'font-bold'}`}>
+                    <BookOpen size={20} className={isModern ? 'text-gray-900' : 'text-blue-600'} />
+                    Campagne & Consignes
+                  </h3>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter mt-1">{project.campaignId?.title || 'Campagne associée'}</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              {project.campaignId?.description && (
+                <div className={`p-5 mb-6 ${isModern ? 'bg-blue-50/40 rounded-2xl border border-blue-100/60' : 'bg-gray-50 rounded-lg border border-gray-200'}`}>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isModern ? 'text-blue-600' : 'text-gray-500'}`}>Description</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{project.campaignId.description}</p>
+                </div>
+              )}
+
+              {/* Resources / PDFs */}
+              {project.campaignId?.resources && project.campaignId.resources.length > 0 && (
+                <div>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest mb-3 ${isModern ? 'text-gray-400' : 'text-gray-500'}`}>Ressources pédagogiques ({project.campaignId.resources.length})</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {project.campaignId.resources.map((resource: any, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={() => downloadCampaignResource(resource)}
+                        className={`p-4 border flex items-center justify-between group transition-all cursor-pointer text-left ${isModern ? 'bg-gray-50/50 rounded-2xl border-gray-100 hover:border-blue-200 hover:shadow-md' : 'bg-white rounded-md border-gray-200 hover:bg-gray-50 hover:border-blue-300'}`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`p-2 flex-shrink-0 ${isModern ? 'rounded-xl bg-red-50 text-red-500 shadow-sm' : 'rounded-md bg-red-50 border border-red-100 text-red-500'}`}>
+                            <FileDown size={20} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className={`text-sm text-gray-900 truncate ${isModern ? 'font-bold' : 'font-semibold'}`}>{resource.name}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">
+                              {resource.size ? `${(resource.size / 1024).toFixed(0)} Ko` : 'Document'}
+                              {resource.uploadedAt && ` • ${new Date(resource.uploadedAt).toLocaleDateString('fr-FR')}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`p-2 transition-all flex-shrink-0 ${isModern ? 'text-gray-400 group-hover:text-blue-600 group-hover:bg-white rounded-lg' : 'text-gray-500 group-hover:text-blue-600 group-hover:bg-blue-50 rounded-md'}`}>
+                          <Download size={18} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fallback if no description and no resources */}
+              {!project.campaignId?.description && (!project.campaignId?.resources || project.campaignId.resources.length === 0) && (
+                <p className="text-sm text-gray-400 text-center py-4 italic">Aucune consigne ni ressource pour cette campagne.</p>
+              )}
+            </div>
+          )}
+
           {/* Timeline / Milestones */}
           {project.campaignId && (
             <div className={`bg-white p-8 border ${isModern ? 'rounded-[2rem] border-gray-100 shadow-sm' : 'rounded-lg border-gray-200'}`}>
@@ -132,7 +215,7 @@ export default function ProjectOverviewPage() {
                 <Link href={`/projects/${project._id}/milestones`} className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase tracking-widest group">
                 </Link>
               </div>
-              <ProjectMilestones campaignId={project.campaignId} projectId={project._id} projectFiles={project.files} />
+              <ProjectMilestones campaignId={project.campaignId._id || project.campaignId} projectId={project._id} projectFiles={project.files} />
             </div>
           )}
 

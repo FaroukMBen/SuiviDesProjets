@@ -138,7 +138,8 @@ class ProjectController {
   static async getProjectById(req, res) {
     try {
       const project = await Project.findById(req.params.id)
-        .populate('owner members', 'name email profilePicture');
+        .populate('owner members', 'name email profilePicture')
+        .populate('campaignId');
 
       if (!project) {
         return res.status(404).json({ success: false, message: 'Project not found' });

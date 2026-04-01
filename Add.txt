@@ -122,3 +122,46 @@ Ne pas envoyer de notifications/mails si la campagne est en "Brouillon".
     -  Bonus (Luxe) : Ajouter d'autres vues de gestion de projet (Gantt, Calendrier...).
 
 //================================================================================================================//    
+
+
+
+
+
+
+
+
+Chose à ajouter/revoir :
+Dire quel projet est actif et qui il est pas ( ainsi que l'ajout des couleurs pour les projets et les filtrer)
+revoir le filtre des projets vue etudiant
+Lors de la création des projets, il faut verifier si la compagne n'est pas active/finie
+Creer des filtres pour le kanban globale (ajout de deux bouton pour suprimer et modifier sur la tache)
+La moyenne global est pas pertinentes
+Il faut pouvoir cliquer sur les rendus dans le dashboard pour voir les détails des prochains rendus et les évaluations 
+( ajouts de liens dans les stats card)
+Retour à la ligne pour les messages de chats
+Pouvoir dévalider la lecture des notifications
+les notifs pas lu doivent en sortir d'avantage
+enlever la liste des github( elle sert à rien )
+Ajout d'une image au projet qui sera affiché dans le dashboard
+Rvoir commlétement l'appercu du projet ( le point bleu doit présenter les status du projet 
+/ enlever le tag de "projet" par les  tags du projets pour les technos ect 
+/ remanter le titre et la discription dans projets)
+lors de la création de projets il faut des tags prédefinis (ex: IA, Web, App, etc)
+Focus dans le text iput à l'invitation dans un projet
+Ajout un loading pour la partie git 
+accées rapide pour mettre un livrable si c'en est un dans l'apercu projet
+Résoudre dépot des livrables
+fusionner jalons avec jalons bonus ou creer une page pour les bonus/complémentaires
+au lieu de statistique dans jalons on mets plutot des stats card
++++++ Mettre des couleurs differantes dans le kanban pour les differents status et pouvoir les ordonner comme on veut dans les colonnes
++++++ les plus de creation pour les differents colones ne changes pas 
++++++ ajout de calandrier en plus du kanban et Gantt
++++++ Voir les dates au quels le status de kanban ou on change de dates
++++++ Lier les petits taches kanban avec le gantt 
++++++ Ajouter un gantt général ainsi qu'un calendrier général
+Lier les commits aux différents taches
+Pour les statistiques du git on met pourcentages de travail par semaine
+mettre comme une messagerie les differents sujets de discussion
+Empecher les modifs d'un projets notament les dates quand il est lier à une campagne
+
+

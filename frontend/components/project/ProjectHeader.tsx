@@ -26,7 +26,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
 
   const tabs = [
     { name: 'Aperçu', href: baseUrl, exact: true },
-    { name: 'Kanban', href: `${baseUrl}/kanban` },
+    { name: 'Gestion', href: `${baseUrl}/gestion` },
     { name: 'Jalons', href: `${baseUrl}/milestones` },
     { name: 'GitHub', href: `${baseUrl}/commits` },
     { name: 'Feedback', href: `${baseUrl}/feedback` },

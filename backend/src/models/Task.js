@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const taskSchema = new mongoose.Schema({
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+  ganttTaskId: { type: mongoose.Schema.Types.ObjectId, ref: 'GanttTask' },
   title: { type: String, required: true },
   description: String,
   status: { type: String, enum: ['todo', 'in-progress', 'review', 'done'], default: 'todo' },

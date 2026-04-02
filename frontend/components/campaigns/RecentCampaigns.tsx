@@ -47,7 +47,7 @@ export function RecentCampaigns() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-40 bg-gray-100 rounded-xl animate-pulse"></div>
         ))}
@@ -83,7 +83,7 @@ export function RecentCampaigns() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {campaigns.map((campaign) => (
           <Link key={campaign._id} href={`/campaigns/${campaign._id}`} className="block group">
             <Card className="h-full hover:shadow-md hover:border-purple-200 transition-all cursor-pointer relative flex flex-col p-4">

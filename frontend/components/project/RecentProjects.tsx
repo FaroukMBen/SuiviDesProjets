@@ -41,7 +41,7 @@ export function RecentProjects() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-40 bg-gray-100 rounded-xl animate-pulse"></div>
         ))}
@@ -111,7 +111,7 @@ export function RecentProjects() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-2">
         {filteredProjects.length > 0 ? filteredProjects.map((project) => {
           const statusInfo = getStatusInfo(project.status);
           const isCampaign = !!project.campaignId;
@@ -198,7 +198,7 @@ export function RecentProjects() {
             </Link>
           );
         }) : (
-          <div className="col-span-3 text-center py-6 text-sm text-gray-400 font-medium">
+          <div className="col-span-2 text-center py-6 text-sm text-gray-400 font-medium">
             Aucun projet ne correspond à ce filtre
           </div>
         )}

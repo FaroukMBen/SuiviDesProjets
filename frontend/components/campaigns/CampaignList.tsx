@@ -44,7 +44,7 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
       {campaigns.map((campaign) => {
         const bannerUrl = campaign.banner || "https://iut.lukamaret.com/img/Lyon-1-Claude-Bernard.png";
         

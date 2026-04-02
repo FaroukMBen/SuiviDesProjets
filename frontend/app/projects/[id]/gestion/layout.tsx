@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { LayoutDashboard, GanttChartSquare } from 'lucide-react';
+import { LayoutDashboard, GanttChartSquare, Calendar } from 'lucide-react';
 
 export default function GestionLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -16,6 +16,7 @@ export default function GestionLayout({ children }: { children: React.ReactNode 
     const tabs = [
         { name: 'Kanban', href: `${baseUrl}/kanban`, icon: LayoutDashboard },
         { name: 'Gantt', href: `${baseUrl}/gantt`, icon: GanttChartSquare },
+        { name: 'Agenda', href: `${baseUrl}/calendar`, icon: Calendar },
     ];
 
     const isModern = user?.theme === 'modern';

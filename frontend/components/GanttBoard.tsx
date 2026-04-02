@@ -192,9 +192,18 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                 .find(t => t.status !== 'done');
 
             if (firstUnfinished) {
-                const start = startOfDay(new Date(firstUnfinished.startDate));
-                const startOffsetDays = differenceInDays(start, timelineStart);
-                const scrollPos = Math.max(0, (startOffsetDays * 35) - 50);
+                const today = startOfDay(new Date());
+                const taskEnd = startOfDay(new Date(firstUnfinished.endDate));
+                const taskStart = startOfDay(new Date(firstUnfinished.startDate));
+
+                let targetDate = taskStart;
+
+                if (taskEnd >= today) {
+                    targetDate = today;
+                }
+
+                const startOffsetDays = differenceInDays(targetDate, timelineStart);
+                const scrollPos = Math.max(0, (startOffsetDays * 35) - 100);
 
                 if (scrollContainerRef.current) {
                     scrollContainerRef.current.scrollLeft = scrollPos;
@@ -763,9 +772,9 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                                                                 value={kt.status}
                                                                                 onChange={(e) => handleUpdateKanbanStatus(kt._id, e.target.value)}
                                                                                 className={`text-[9.5px] font-black border rounded-lg pl-2 pr-5 py-1 outline-none cursor-pointer transition-all shadow-sm appearance-none bg-none min-w-[85px] ${kt.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 focus:ring-2 focus:ring-emerald-200/50' :
-                                                                                        kt.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-200 focus:ring-2 focus:ring-blue-200/50' :
-                                                                                            kt.status === 'review' ? 'bg-purple-50 text-purple-600 border-purple-200 focus:ring-2 focus:ring-purple-200/50' :
-                                                                                                'bg-white text-gray-600 border-gray-200 focus:ring-2 focus:ring-gray-200/50'
+                                                                                    kt.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-200 focus:ring-2 focus:ring-blue-200/50' :
+                                                                                        kt.status === 'review' ? 'bg-purple-50 text-purple-600 border-purple-200 focus:ring-2 focus:ring-purple-200/50' :
+                                                                                            'bg-white text-gray-600 border-gray-200 focus:ring-2 focus:ring-gray-200/50'
                                                                                     }`}
                                                                             >
                                                                                 <option value="todo" className="font-bold text-gray-700">À faire</option>

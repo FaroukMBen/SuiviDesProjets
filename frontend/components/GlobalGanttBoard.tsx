@@ -83,9 +83,18 @@ export function GlobalGanttBoard() {
                 .find(t => t.status !== 'done');
 
             if (firstUnfinished) {
-                const start = startOfDay(new Date(firstUnfinished.startDate));
-                const startOffsetDays = differenceInDays(start, timelineStart);
-                const scrollPos = Math.max(0, (startOffsetDays * 35) - 50);
+                const today = startOfDay(new Date());
+                const taskEnd = startOfDay(new Date(firstUnfinished.endDate));
+                const taskStart = startOfDay(new Date(firstUnfinished.startDate));
+
+                let targetDate = taskStart;
+
+                if (taskEnd >= today) {
+                    targetDate = today;
+                }
+
+                const startOffsetDays = differenceInDays(targetDate, timelineStart);
+                const scrollPos = Math.max(0, (startOffsetDays * 35) - 100);
 
                 if (scrollContainerRef.current) {
                     scrollContainerRef.current.scrollLeft = scrollPos;

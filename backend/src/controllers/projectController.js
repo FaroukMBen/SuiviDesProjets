@@ -65,7 +65,7 @@ class ProjectController {
       const projects = await Project.find(filter)
         .populate('owner', 'name')
         .populate('members', 'name profilePicture')
-        .populate('campaignId', 'title')
+        .populate('campaignId', 'title banner')
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -88,7 +88,7 @@ class ProjectController {
 
   static async createProject(req, res) {
     try {
-      const { title, description, repositoryUrl, deadline, tags, members, campaignId } = req.body;
+      const { title, description, repositoryUrl, deadline, tags, members, campaignId, banner } = req.body;
 
       const project = new Project({
         title,
@@ -96,6 +96,7 @@ class ProjectController {
         repositoryUrl,
         deadline,
         tags: tags || [],
+        banner: banner || '',
         owner: req.user.id,
         members: [req.user.id],
         status: 'active',
@@ -170,14 +171,15 @@ class ProjectController {
         return res.status(403).json({ success: false, message: 'Not authorized' });
       }
 
-      const { title, description, repositoryUrl, deadline, tags, status } = req.body;
+      const { title, description, repositoryUrl, deadline, tags, status, banner } = req.body;
 
       if (title) project.title = title;
       if (description) project.description = description;
-      if (repositoryUrl) project.repositoryUrl = repositoryUrl;
+      if (repositoryUrl !== undefined) project.repositoryUrl = repositoryUrl;
       if (deadline) project.deadline = deadline;
       if (tags) project.tags = tags;
       if (status) project.status = status;
+      if (banner !== undefined) project.banner = banner;
 
       await project.save();
       await project.populate('owner members', 'name email profilePicture');

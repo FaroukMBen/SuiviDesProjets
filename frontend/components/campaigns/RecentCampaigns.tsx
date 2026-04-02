@@ -16,6 +16,7 @@ interface Campaign {
   endDate: string;
   manager: { name: string };
   projectCount?: number;
+  banner?: string;
 }
 
 export function RecentCampaigns() {
@@ -88,8 +89,16 @@ export function RecentCampaigns() {
             <Card className="h-full hover:shadow-md hover:border-purple-200 transition-all cursor-pointer relative flex flex-col p-4">
 
               {/* Badge Statut */}
-              <div className="absolute top-4 right-4">
-                <span className={`w-2 h-2 rounded-full block ${campaign.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+              <div className="absolute top-4 right-4 z-10">
+                <span className={`w-2 h-2 rounded-full block outline outline-2 outline-white ${campaign.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+              </div>
+
+              <div className="-mx-4 -mt-4 mb-4 h-24 overflow-hidden rounded-t-[calc(0.75rem-1px)]">
+                <img 
+                  src={campaign.banner || "https://iut.lukamaret.com/img/Lyon-1-Claude-Bernard.png"} 
+                  alt="banner" 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                />
               </div>
 
               <div className="mb-4">

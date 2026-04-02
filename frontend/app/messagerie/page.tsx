@@ -560,16 +560,16 @@ export default function MessageriePage() {
                         const isSameSenderAsPrevious = index > 0 && messages[index - 1].sender._id === msg.sender._id;
 
                         return (
-                          <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                            <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
+                          <div key={msg._id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                            <div className={`flex flex-col max-w-[70%] min-w-0 ${isMe ? 'items-end' : 'items-start'}`}>
                               {!isSameSenderAsPrevious && !isMe && (
-                                <span className="text-xs text-slate-500 ml-1 mb-1 font-semibold">
+                                <span className="text-xs text-slate-500 ml-1 mb-1 font-semibold truncate max-w-full">
                                   {msg.sender.firstName ? `${msg.sender.firstName} ${msg.sender.lastName || ''}`.trim() : (msg.sender.name || 'Inconnu')}
                                 </span>
                               )}
 
                               <div className={`
-                                px-4 py-2.5 text-sm shadow-sm transition-all
+                                px-4 py-2.5 text-sm shadow-sm transition-all whitespace-pre-wrap break-words break-all
                                 ${isMe
                                   ? (isModern
                                     ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-[1.5rem] rounded-tr-none shadow-blue-200/50'

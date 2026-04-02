@@ -8,6 +8,7 @@ const projectSchema = new mongoose.Schema({
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   campaignId: { type: mongoose.Schema.Types.ObjectId, ref: 'Campaign' },
   repositoryUrl: String,
+  banner: String,
   startDate: Date,
   deadline: Date,
   tags: [String],

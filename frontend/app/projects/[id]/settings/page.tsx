@@ -27,6 +27,7 @@ interface Project {
     description?: string;
     status: string;
     repositoryUrl?: string;
+    banner?: string;
     deadline?: string;
     startDate?: string;
     tags: string[];
@@ -56,6 +57,7 @@ export default function ProjectSettingsPage() {
         deadline: '',
         startDate: '',
         tags: '',
+        banner: '',
         visibility: 'private',
     });
 
@@ -75,6 +77,7 @@ export default function ProjectSettingsPage() {
                     deadline: p.deadline ? new Date(p.deadline).toISOString().split('T')[0] : '',
                     startDate: p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : '',
                     tags: (p.tags || []).join(', '),
+                    banner: p.banner || '',
                     visibility: p.visibility || 'private',
                 });
             } catch (err) {
@@ -103,6 +106,7 @@ export default function ProjectSettingsPage() {
                 tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
             };
             if (formData.repositoryUrl) payload.repositoryUrl = formData.repositoryUrl;
+            if (formData.banner !== undefined) payload.banner = formData.banner;
 
             await api.put(`/api/projects/${projectId}`, payload);
             showToast('Paramètres du projet enregistrés.', 'success');
@@ -221,6 +225,17 @@ export default function ProjectSettingsPage() {
                             disabled={!canEdit}
                             rows={3}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400 transition resize-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">URL de la bannière (Optionnel)</label>
+                        <input
+                            type="url"
+                            value={formData.banner}
+                            onChange={(e) => setFormData({ ...formData, banner: e.target.value })}
+                            disabled={!canEdit}
+                            placeholder="https://images.unsplash.com/photo-..."
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400 transition"
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">

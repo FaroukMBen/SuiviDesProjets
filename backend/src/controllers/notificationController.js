@@ -91,6 +91,22 @@ exports.markAsRead = async (req, res) => {
     }
 };
 
+// Toggle read/unread status
+exports.toggleReadStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const notification = await Notification.findById(id);
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+        notification.status = notification.status === 'read' ? 'unread' : 'read';
+        await notification.save();
+        res.json(notification);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Respond to invitation
 exports.respondToInvitation = async (req, res) => {
     try {
@@ -150,6 +166,62 @@ exports.respondToInvitation = async (req, res) => {
         await notification.save();
 
         res.json(notification);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Soft delete notification (move to trash)
+exports.deleteNotification = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const notification = await Notification.findById(id);
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification non trouvée' });
+        }
+        if (notification.recipient.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Non autorisé' });
+        }
+        notification.isDeleted = true;
+        await notification.save();
+        res.json({ message: 'Notification envoyée à la corbeille', notification });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Restore notification (move out of trash)
+exports.restoreNotification = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const notification = await Notification.findById(id);
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification non trouvée' });
+        }
+        if (notification.recipient.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Non autorisé' });
+        }
+        notification.isDeleted = false;
+        await notification.save();
+        res.json({ message: 'Notification restaurée', notification });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Permanently delete notification
+exports.permanentDeleteNotification = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const notification = await Notification.findById(id);
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification non trouvée' });
+        }
+        if (notification.recipient.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Non autorisé' });
+        }
+        await Notification.findByIdAndDelete(id);
+        res.json({ message: 'Notification supprimée définitivement' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

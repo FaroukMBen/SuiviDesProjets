@@ -16,9 +16,9 @@ interface Project {
     description: string;
     status: string;
     deadline: string;
-    tags: string[];
     members: { _id: string; name?: string; firstName?: string; lastName?: string }[];
-    campaignId?: { _id: string, title: string };
+    banner?: string;
+    campaignId?: { _id: string; title: string; banner?: string };
 }
 
 export default function ProjectsPage() {
@@ -184,18 +184,31 @@ export default function ProjectsPage() {
                         ) : (
                             <>
                                 <div className="grid gap-6">
-                                    {projects.map((project) => (
+                                    {projects.map((project) => {
+                                        const bannerUrl = project.campaignId?.banner || project.banner || "https://iut.lukamaret.com/img/Lyon-1-Claude-Bernard.png";
+                                        
+                                        return (
                                         <Link
                                             key={project._id}
                                             href={`/projects/${project._id}`}
                                             className={isModern
-                                                ? "group relative bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.06)] hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1 block overflow-hidden"
-                                                : "group bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all block"
+                                                ? "group relative bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.06)] hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1 block overflow-hidden"
+                                                : "group bg-white rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all block overflow-hidden"
                                             }
                                         >
-                                            {isModern && <div className="absolute top-0 left-0 w-2 h-full bg-transparent group-hover:bg-blue-600 transition-all duration-300"></div>}
+                                            {isModern && <div className="absolute top-0 left-0 w-2 h-full bg-transparent group-hover:bg-blue-600 transition-all duration-300 z-10"></div>}
 
-                                            <div className="flex flex-col gap-4 md:gap-6">
+                                            <div className="h-28 sm:h-36 w-full overflow-hidden relative">
+                                                <div className="absolute inset-0 bg-gray-900/10 group-hover:bg-transparent transition-all duration-500 z-10"></div>
+                                                <img 
+                                                    src={bannerUrl} 
+                                                    alt="Project banner" 
+                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                                />
+                                            </div>
+
+                                            <div className={isModern ? "p-7" : "p-5"}>
+                                                <div className="flex flex-col gap-4 md:gap-6">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex items-center gap-4 md:gap-5 min-w-0">
                                                         <div className={isModern
@@ -265,11 +278,11 @@ export default function ProjectsPage() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </Link>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Pagination Controls */}

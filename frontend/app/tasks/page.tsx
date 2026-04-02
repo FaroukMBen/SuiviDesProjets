@@ -1,12 +1,16 @@
 'use client';
+import { useState } from 'react';
 import { GlobalKanbanBoard } from '@/components/GlobalKanbanBoard';
+import { GlobalGanttBoard } from '@/components/GlobalGanttBoard';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useAuthStore } from '@/lib/store';
+import { LayoutGrid, Calendar } from 'lucide-react';
 
 export default function TasksPage() {
     const { user } = useAuthStore();
+    const [view, setView] = useState<'kanban' | 'gantt'>('kanban');
 
     return (
         <ProtectedRoute>
@@ -19,7 +23,35 @@ export default function TasksPage() {
 
                     {/* Header (Top Bar) */}
                     <header className="bg-white h-20 border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-40">
-                        <h2 className="text-xl font-bold text-gray-800">Mes Tâches</h2>
+                        <div className="flex items-center gap-8">
+                            <h2 className="text-xl font-bold text-gray-800">Mes Tâches</h2>
+                            
+                            {/* Sélecteur de Vue */}
+                            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200/50 shadow-inner">
+                                <button
+                                    onClick={() => setView('kanban')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                                        view === 'kanban' 
+                                        ? 'bg-white text-blue-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <LayoutGrid size={14} strokeWidth={3} />
+                                    TABLEAU
+                                </button>
+                                <button
+                                    onClick={() => setView('gantt')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                                        view === 'gantt' 
+                                        ? 'bg-white text-blue-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Calendar size={14} strokeWidth={3} />
+                                    GANTT
+                                </button>
+                            </div>
+                        </div>
 
                         <div className="flex items-center gap-4">
                             <NotificationBell />
@@ -36,8 +68,8 @@ export default function TasksPage() {
                         </div>
                     </header>
 
-                    <main className="p-8 max-w-[1600px] mx-auto space-y-8">
-                        <GlobalKanbanBoard />
+                    <main className="p-8 max-w-[1700px] mx-auto space-y-8">
+                        {view === 'kanban' ? <GlobalKanbanBoard /> : <GlobalGanttBoard />}
                     </main>
                 </div>
             </div>

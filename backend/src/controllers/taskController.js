@@ -61,9 +61,7 @@ class TaskController {
 
   static async createTask(req, res) {
     try {
-      const { projectId, ganttTaskId, title, description, priority, dueDate, assignee, type } = req.body;
-
-
+      const { projectId, ganttTaskId, title, description, priority, status, dueDate, assignee, type } = req.body;
 
       const project = await Project.findById(projectId);
       if (!project) {
@@ -82,7 +80,7 @@ class TaskController {
         dueDate,
         assignee,
         ganttTaskId,
-        status: 'todo',
+        status: status || 'todo',
         order: nextOrder
       });
 

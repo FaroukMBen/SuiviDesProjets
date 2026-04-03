@@ -5,7 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/auth';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Clock, ArrowRight, Filter } from 'lucide-react';
+import { Clock, ArrowRight, Filter, Github } from 'lucide-react';
 
 interface Project {
   _id: string;
@@ -171,28 +171,43 @@ export function RecentProjects() {
                   </div>
 
                   {/* Aperçu des membres */}
-                  {project.members && project.members.length > 0 && (
-                    <div className="flex -space-x-2">
-                      {project.members.slice(0, 3).map((member, idx) => (
-                        <div
-                          key={idx}
-                          className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-sm"
-                          title={member.name}
-                        >
-                          {member.profilePicture ? (
-                            <img src={member.profilePicture} alt={member.name} className="w-full h-full rounded-full object-cover" />
-                          ) : (
-                            member.name.charAt(0).toUpperCase()
-                          )}
-                        </div>
-                      ))}
-                      {project.members.length > 3 && (
-                        <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-sm">
-                          +{project.members.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {project.repositoryUrl && (
+                      <a 
+                        href={project.repositoryUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-7 h-7 rounded-xl bg-gray-50 text-gray-500 border border-gray-100 flex items-center justify-center hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all duration-300"
+                        title="Voir sur GitHub"
+                      >
+                        <Github size={14} />
+                      </a>
+                    )}
+                    
+                    {project.members && project.members.length > 0 && (
+                      <div className="flex -space-x-2">
+                        {project.members.slice(0, 3).map((member, idx) => (
+                          <div
+                            key={idx}
+                            className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-sm"
+                            title={member.name}
+                          >
+                            {member.profilePicture ? (
+                              <img src={member.profilePicture} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                              member.name.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                        ))}
+                        {project.members.length > 3 && (
+                          <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                            +{project.members.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </Card>
             </Link>

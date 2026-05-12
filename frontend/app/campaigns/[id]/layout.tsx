@@ -95,6 +95,16 @@ export default function CampaignLayout({ children }: { children: React.ReactNode
                             </div>
                         </div>
 
+                        {/* ─── BANNIÈRE ─── */}
+                        <div className="w-full h-32 md:h-48 overflow-hidden relative group rounded-2xl shadow-sm border border-gray-100 mb-6 mt-4">
+                            <div className="absolute inset-0 bg-gray-900/10 z-10 group-hover:bg-transparent transition-all duration-500"></div>
+                            <img
+                                src={campaign.banner || "https://iut.lukamaret.com/img/Lyon-1-Claude-Bernard.png"}
+                                alt="Campaign banner"
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                        </div>
+
                         {/* KPI Rapides */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-gray-100 pt-6">
                             <div className="flex items-center gap-3">

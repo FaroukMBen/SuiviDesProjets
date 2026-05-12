@@ -2,15 +2,16 @@
 import { useState } from 'react';
 import { GlobalKanbanBoard } from '@/components/GlobalKanbanBoard';
 import { GlobalGanttBoard } from '@/components/GlobalGanttBoard';
+import { GlobalCalendarBoard } from '@/components/GlobalCalendarBoard';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navbar } from '@/components/Navbar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useAuthStore } from '@/lib/store';
-import { LayoutGrid, Calendar } from 'lucide-react';
+import { LayoutGrid, Calendar, CalendarDays } from 'lucide-react';
 
 export default function TasksPage() {
     const { user } = useAuthStore();
-    const [view, setView] = useState<'kanban' | 'gantt'>('kanban');
+    const [view, setView] = useState<'kanban' | 'gantt' | 'agenda'>('kanban');
 
     return (
         <ProtectedRoute>
@@ -50,6 +51,17 @@ export default function TasksPage() {
                                     <Calendar size={14} strokeWidth={3} />
                                     GANTT
                                 </button>
+                                <button
+                                    onClick={() => setView('agenda')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                                        view === 'agenda' 
+                                        ? 'bg-white text-blue-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <CalendarDays size={14} strokeWidth={3} />
+                                    AGENDA
+                                </button>
                             </div>
                         </div>
 
@@ -69,7 +81,7 @@ export default function TasksPage() {
                     </header>
 
                     <main className="p-8 max-w-[1700px] mx-auto space-y-8">
-                        {view === 'kanban' ? <GlobalKanbanBoard /> : <GlobalGanttBoard />}
+                        {view === 'kanban' ? <GlobalKanbanBoard /> : view === 'gantt' ? <GlobalGanttBoard /> : <GlobalCalendarBoard />}
                     </main>
                 </div>
             </div>

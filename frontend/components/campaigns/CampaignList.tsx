@@ -15,6 +15,7 @@ interface Campaign {
   manager?: { name: string };
   evaluationTemplate: any[];
   projectCount?: number;
+  banner?: string;
 }
 
 interface CampaignListProps {
@@ -43,35 +44,47 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-      {campaigns.map((campaign) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+      {campaigns.map((campaign) => {
+        const bannerUrl = campaign.banner || "https://iut.lukamaret.com/img/Lyon-1-Claude-Bernard.png";
+        
+        return (
         <div
           key={campaign._id}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative group"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative group flex flex-col overflow-hidden"
           onMouseLeave={() => setOpenMenuId(null)}
         >
-
-          {/* Badge Statut */}
-          <div className="absolute top-6 right-6">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize
-              ${campaign.status === 'active' ? 'bg-green-100 text-green-700' :
-                campaign.status === 'draft' ? 'bg-gray-100 text-gray-600' : 'bg-red-50 text-red-600'}`}>
-              {campaign.status === 'active' ? 'En cours' : campaign.status}
-            </span>
+          {/* Bannière */}
+          <div className="h-32 w-full overflow-hidden relative">
+            <div className="absolute inset-0 bg-gray-900/10 group-hover:bg-transparent transition-all duration-500 z-10"></div>
+            <img 
+              src={bannerUrl} 
+              alt="Campaign banner" 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+            />
+            {/* Badge Statut déplacé sur l'image pour un look plus moderne */}
+            <div className="absolute top-4 right-4 z-20">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border
+                ${campaign.status === 'active' ? 'bg-green-500/90 text-white border-green-400' :
+                  campaign.status === 'draft' ? 'bg-gray-500/90 text-white border-gray-400' : 'bg-red-500/90 text-white border-red-400'}`}>
+                {campaign.status === 'active' ? 'En cours' : campaign.status}
+              </span>
+            </div>
           </div>
 
-          {/* En-tête */}
-          <div className="mb-4">
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-              {campaign.academicYear}
-            </span>
-            <h3 className="text-lg font-bold text-gray-900 mt-2 line-clamp-1" title={campaign.title}>
-              {campaign.title}
-            </h3>
-            <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-              Resp. {campaign.manager?.name || 'Inconnu'}
-            </p>
-          </div>
+          <div className="p-6 flex-1 flex flex-col">
+            {/* En-tête */}
+            <div className="mb-4">
+              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                {campaign.academicYear}
+              </span>
+              <h3 className="text-lg font-bold text-gray-900 mt-2 line-clamp-1" title={campaign.title}>
+                {campaign.title}
+              </h3>
+              <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                Resp. {campaign.manager?.name || 'Inconnu'}
+              </p>
+            </div>
 
           {/* Infos Dates & Critères */}
           <div className="space-y-2 mt-4 pt-4 border-t border-gray-50 text-sm text-gray-600">
@@ -160,9 +173,10 @@ export function CampaignList({ campaigns, loading, isInstructor, onDelete, onArc
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
-      ))}
+      );})}
     </div>
   );
 }

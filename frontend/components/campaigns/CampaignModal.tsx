@@ -176,10 +176,28 @@ export function CampaignModal({ isOpen, onClose, onSuccess, campaignToEdit }: Pr
                 <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
                 <input
                   required type="text"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-gray-50/50 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-gray-900"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-gray-50/50 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-gray-900 mb-3"
                   placeholder="Ex: Projets Tutorés S4 2025"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
+                />
+                
+                <label className="block text-sm font-medium text-gray-700 mb-1">URL de la bannière (Optionnel)</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-gray-50/50 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-gray-900 mb-3"
+                  placeholder="Ex: https://images.unsplash.com/photo-..."
+                  value={formData.banner || ''}
+                  onChange={e => setFormData({ ...formData, banner: e.target.value })}
+                />
+
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optionnel)</label>
+                <textarea
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-gray-50/50 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-gray-900"
+                  placeholder="Description du projet..."
+                  rows={2}
+                  value={formData.description || ''}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
 

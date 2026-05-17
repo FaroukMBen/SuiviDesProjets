@@ -16,6 +16,7 @@ interface Campaign {
   endDate: string;
   manager: { name: string };
   projectCount?: number;
+  banner?: string;
 }
 
 export function RecentCampaigns() {
@@ -46,7 +47,7 @@ export function RecentCampaigns() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-40 bg-gray-100 rounded-xl animate-pulse"></div>
         ))}
@@ -82,14 +83,22 @@ export function RecentCampaigns() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {campaigns.map((campaign) => (
           <Link key={campaign._id} href={`/campaigns/${campaign._id}`} className="block group">
             <Card className="h-full hover:shadow-md hover:border-purple-200 transition-all cursor-pointer relative flex flex-col p-4">
 
               {/* Badge Statut */}
-              <div className="absolute top-4 right-4">
-                <span className={`w-2 h-2 rounded-full block ${campaign.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+              <div className="absolute top-4 right-4 z-10">
+                <span className={`w-2 h-2 rounded-full block outline outline-2 outline-white ${campaign.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+              </div>
+
+              <div className="-mx-4 -mt-4 mb-4 h-24 overflow-hidden rounded-t-[calc(0.75rem-1px)]">
+                <img 
+                  src={campaign.banner || "https://iut.lukamaret.com/img/Lyon-1-Claude-Bernard.png"} 
+                  alt="banner" 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                />
               </div>
 
               <div className="mb-4">

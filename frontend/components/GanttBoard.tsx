@@ -207,6 +207,16 @@ export function GanttBoard({ projectId }: { projectId: string }) {
 
                 if (scrollContainerRef.current) {
                     scrollContainerRef.current.scrollLeft = scrollPos;
+
+                    setTimeout(() => {
+                        const taskElement = document.getElementById(`gantt-task-${firstUnfinished._id}`);
+                        if (taskElement && scrollContainerRef.current) {
+                            const containerRect = scrollContainerRef.current.getBoundingClientRect();
+                            const taskRect = taskElement.getBoundingClientRect();
+                            scrollContainerRef.current.scrollTop += (taskRect.top - containerRect.top) - 100;
+                        }
+                    }, 100);
+
                     setHasScrolled(true);
                 }
             }
@@ -634,7 +644,7 @@ export function GanttBoard({ projectId }: { projectId: string }) {
                                 const isExpanded = expandedTasks.has(task._id);
 
                                 return (
-                                    <div key={task._id} className="flex flex-col mt-1">
+                                    <div key={task._id} id={`gantt-task-${task._id}`} className="flex flex-col mt-1">
                                         <div className="flex items-center group relative">
                                             {/* Infos de gauche */}
                                             <div className="w-[350px] pr-4 shrink-0 bg-white/95 backdrop-blur-sm z-30 group-hover:bg-gray-50/90 transition-colors py-1 rounded-l-lg flex justify-between items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">

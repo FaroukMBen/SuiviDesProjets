@@ -98,6 +98,16 @@ export function GlobalGanttBoard() {
 
                 if (scrollContainerRef.current) {
                     scrollContainerRef.current.scrollLeft = scrollPos;
+                    
+                    setTimeout(() => {
+                        const taskElement = document.getElementById(`global-gantt-task-${firstUnfinished._id}`);
+                        if (taskElement && scrollContainerRef.current) {
+                            const containerRect = scrollContainerRef.current.getBoundingClientRect();
+                            const taskRect = taskElement.getBoundingClientRect();
+                            scrollContainerRef.current.scrollTop += (taskRect.top - containerRect.top) - 80;
+                        }
+                    }, 100);
+
                     setHasScrolled(true);
                 }
             }
@@ -231,7 +241,7 @@ export function GlobalGanttBoard() {
                                     const isExpanded = expandedTasks.has(task._id);
 
                                     return (
-                                        <div key={task._id} className="flex flex-col mt-[1px]">
+                                        <div key={task._id} id={`global-gantt-task-${task._id}`} className="flex flex-col mt-[1px]">
                                             <div className="flex items-center group relative h-9">
                                                 {/* Gauche: Titre tâche */}
                                                 <div className="w-[350px] pr-4 shrink-0 bg-white/95 backdrop-blur-sm z-30 group-hover:bg-gray-50/90 transition-colors h-full flex items-center border-r border-gray-100 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] pl-8">

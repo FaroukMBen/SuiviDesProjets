@@ -28,7 +28,8 @@ export default function NewProjectPage() {
     description: '',
     repositoryUrl: '',
     deadline: '',
-    tags: ''
+    tags: '',
+    banner: ''
   });
   const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -221,6 +222,28 @@ export default function NewProjectPage() {
                     placeholder="Décrivez les objectifs et le contexte du projet..."
                   />
                 </div>
+
+                {/* Banner pour projets libres */}
+                {mode === 'classic' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      URL de la bannière (Optionnel)
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400 text-sm">🖼️</span>
+                      </div>
+                      <input
+                        type="url"
+                        name="banner"
+                        value={formData.banner}
+                        onChange={handleChange}
+                        className="w-full pl-10 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all placeholder-gray-400 text-gray-900 bg-gray-50/50"
+                        placeholder="https://images.unsplash.com/photo-..."
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Grid pour URL et Deadline */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

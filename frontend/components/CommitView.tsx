@@ -23,9 +23,23 @@ import {
   ChevronRight,
   ArrowUpDown
 } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface CommitFile {
   filename: string;
@@ -87,6 +101,7 @@ export function CommitView({
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [selectedAuthors, setSelectedAuthors] = useState<Set<string>>(new Set());
   const [allAuthorsMode, setAllAuthorsMode] = useState(true);
+  const [selectedWeek, setSelectedWeek] = useState<Date | null>(null);
   const COMMITS_PER_PAGE = 20;
   useEffect(() => {
     fetchProjectAndCommits();
@@ -191,12 +206,13 @@ export function CommitView({
       setLoading(true);
       await api.put(`/api/projects/${projectId}`, { repositoryUrl: linkUrl });
       setRepoUrl(linkUrl);
-      await api.post(`/api/commits/sync/${projectId}`);
-      await fetchProjectAndCommits();
+      setLoading(false);
+      // On déclenche directement handleSync qui gère l'EventSource (SSE) 
+      // pour que l'utilisateur voie la progression au lieu d'un écran vide
+      handleSync();
     } catch (err) {
       console.error("Erreur link repo", err);
       showToast('Erreur lors de la liaison du dépôt.', 'error');
-    } finally {
       setLoading(false);
     }
   };
@@ -299,6 +315,16 @@ export function CommitView({
       filtered = filtered.filter(c => selectedAuthors.has(c.githubAuthor?.login || ''));
     }
 
+    // Filtre par semaine sélectionnée (NOUVEAU)
+    if (selectedWeek) {
+      const start = selectedWeek;
+      const end = endOfWeek(start, { weekStartsOn: 1 });
+      filtered = filtered.filter(c => {
+        const d = new Date(c.timestamp);
+        return d >= start && d <= end;
+      });
+    }
+
     // Tri
     filtered = [...filtered].sort((a, b) => {
       const dateA = new Date(a.timestamp).getTime();
@@ -312,7 +338,7 @@ export function CommitView({
   // Reset page quand un filtre change
   useEffect(() => {
     setHistoryPage(1);
-  }, [timeFilter, allBranchesMode, selectedBranches, sortOrder, allAuthorsMode, selectedAuthors]);
+  }, [timeFilter, allBranchesMode, selectedBranches, sortOrder, allAuthorsMode, selectedAuthors, selectedWeek]);
 
   const filteredCommits = getFilteredCommits();
 
@@ -365,6 +391,28 @@ export function CommitView({
     month: 'Ce mois',
     all: 'Depuis le début'
   };
+
+  // Groupement par semaine
+  const statsByWeek = filteredCommits.reduce((acc: any[], commit) => {
+    const date = new Date(commit.timestamp);
+    const start = startOfWeek(date, { weekStartsOn: 1 });
+    const label = `Sem. du ${format(start, 'dd MMM', { locale: fr })}`;
+    
+    const existing = acc.find(item => item.label === label);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      acc.push({ label, count: 1, fullDate: start });
+    }
+    return acc;
+  }, []).sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime());
+
+  // Calcul du % par semaine par rapport au total
+  const totalCommitsInPeriod = statsByWeek.reduce((sum, item) => sum + item.count, 0);
+  const weeklyChartData = statsByWeek.map(item => ({
+    ...item,
+    percentage: totalCommitsInPeriod > 0 ? Math.round((item.count / totalCommitsInPeriod) * 100) : 0
+  }));
 
   if (loading) return <div className="animate-pulse h-96 bg-gray-100 rounded-xl"></div>;
 
@@ -439,6 +487,24 @@ export function CommitView({
             </>
           )}
         </div>
+
+        {/* Badge de filtre de semaine */}
+        {selectedWeek && (
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 px-4 py-2 ${isModern ? 'bg-blue-600 text-white rounded-[1rem] shadow-lg shadow-blue-200' : 'bg-blue-50 text-blue-700 rounded-lg border border-blue-100'}`}>
+              <Calendar size={14} />
+              <span className="text-xs font-bold uppercase tracking-tight">
+                Filtre : Semaine du {format(selectedWeek, 'dd MMMM', { locale: fr })}
+              </span>
+              <button 
+                onClick={() => setSelectedWeek(null)}
+                className={`p-1 hover:bg-white/20 rounded-md transition-colors ${isModern ? '' : 'hover:bg-blue-100'}`}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Barre de progression */}
@@ -571,6 +637,72 @@ export function CommitView({
               </div>
             </Card>
           </div>
+          
+          {/* Section Distribution Hebdomadaire */}
+          <Card className={`p-6 ${isModern ? '!rounded-[2.5rem]' : ''}`}>
+            <h3 className={`text-lg text-gray-900 mb-6 flex items-center gap-2 ${isModern ? 'font-black tracking-tight' : 'font-bold'}`}>
+              <Calendar size={18} className="text-gray-400" />
+              Répartition hebdomadaire du travail
+            </h3>
+            <div className="h-[250px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={weeklyChartData}
+                  onClick={(data) => {
+                    if (data && data.activePayload && data.activePayload.length) {
+                      const clickedDate = data.activePayload[0].payload.fullDate;
+                      setSelectedWeek(selectedWeek?.getTime() === clickedDate.getTime() ? null : clickedDate);
+                    }
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="label" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
+                    dy={10}
+                  />
+                  <YAxis hide />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className={`p-3 border-none bg-white shadow-xl ${isModern ? 'rounded-2xl' : 'rounded-lg'}`}>
+                            <p className="text-[10px] font-black uppercase text-gray-400 mb-1">{payload[0].payload.label}</p>
+                            <p className="text-lg font-black text-blue-600 font-sans">{payload[0].value}% <span className="text-xs text-gray-400 font-medium tracking-normal">du total</span></p>
+                            <p className="text-xs text-gray-400 font-bold">{payload[0].payload.count} commits</p>
+                            <p className="text-[10px] text-blue-400 font-black mt-2 uppercase">Clic pour filtrer</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar 
+                    dataKey="percentage" 
+                    radius={isModern ? [12, 12, 12, 12] : [4, 4, 0, 0]}
+                    cursor="pointer"
+                  >
+                    {weeklyChartData.map((entry, index) => {
+                      const isSelected = selectedWeek && selectedWeek.getTime() === entry.fullDate.getTime();
+                      return (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={isSelected ? '#2563eb' : (entry.percentage > 40 ? '#10b981' : (entry.percentage > 10 ? '#3b82f6' : '#94a3b8'))} 
+                          opacity={isSelected ? 1 : 0.8}
+                          stroke={isSelected ? '#60a5fa' : 'none'}
+                          strokeWidth={isSelected ? 3 : 0}
+                        />
+                      );
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-6 text-center">Volume de commits par semaine (%) • Cliquez sur une barre pour isoler la période</p>
+          </Card>
 
           {/* Branches + Contributeurs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

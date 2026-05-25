@@ -1,6 +1,6 @@
 const Campaign = require('../models/Campagne');
 const mongoose = require('mongoose');
-const path = require('node:node:path');
+const path = require('node:path');
 const { Readable } = require('node:stream');
 
 class CampaignController {

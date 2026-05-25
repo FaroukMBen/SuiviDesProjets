@@ -113,3 +113,38 @@ exports.deleteTask = async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
     }
 };
+
+exports.getMyGlobalGanttTasks = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const projects = await Project.find({
+            $or: [{ owner: userId }, { members: userId }]
+        }).select('_id title');
+
+        const projectIds = projects.map(p => p._id);
+
+        const ganttTasks = await GanttTask.find({ projectId: { $in: projectIds } })
+            .populate('projectId', 'title')
+            .populate('assignee', 'firstName lastName name email profilePicture')
+            .populate('dependsOn', 'title startDate endDate status')
+            .sort('startDate')
+            .lean();
+
+        const Task = require('../models/Task');
+        const kanbanTasks = await Task.find({ projectId: { $in: projectIds }, ganttTaskId: { $exists: true } })
+            .populate('assignee', 'name')
+            .lean();
+
+        const tasks = ganttTasks.map(gt => {
+            return {
+                ...gt,
+                kanbanTasks: kanbanTasks.filter(kt => kt.ganttTaskId && String(kt.ganttTaskId) === String(gt._id))
+            };
+        });
+
+        res.json({ success: true, tasks });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Erreur récupération Gantt global', error: err.message });
+    }
+};

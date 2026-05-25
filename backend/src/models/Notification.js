@@ -11,6 +11,7 @@ const notificationSchema = new mongoose.Schema({
     message: { type: String },
     status: { type: String, enum: ['unread', 'read'], default: 'unread' },
     actionStatus: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+    isDeleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 

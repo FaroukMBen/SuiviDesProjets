@@ -3,11 +3,12 @@ const mongoose = require('mongoose');
 const projectSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
-  status: { type: String, enum: ['active', 'completed', 'archived'], default: 'active' },
+  status: { type: String, enum: ['waiting', 'active', 'in_progress', 'completed', 'archived'], default: 'active' },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   campaignId: { type: mongoose.Schema.Types.ObjectId, ref: 'Campaign' },
   repositoryUrl: String,
+  banner: String,
   startDate: Date,
   deadline: Date,
   tags: [String],

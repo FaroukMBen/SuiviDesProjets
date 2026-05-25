@@ -40,8 +40,9 @@ class ExportService {
   }
 
   static async exportProjectToCSV(project, evaluations, tasks, filename) {
+    const filepath = path.join('/tmp', filename);
     const csvWriter = createObjectCsvWriter({
-      path: filename,
+      path: filepath,
       header: [
         { id: 'title', title: 'Title' },
         { id: 'owner', title: 'Owner' },
@@ -53,13 +54,15 @@ class ExportService {
 
     const avgScore = evaluations.reduce((sum, e) => sum + (e.totalScore || 0), 0) / evaluations.length || 0;
 
-    return csvWriter.writeRecords([{
+    await csvWriter.writeRecords([{
       title: project.title,
       owner: project.owner.name,
       status: project.status,
       taskCount: tasks.length,
       avgScore: avgScore.toFixed(2)
     }]);
+
+    return filepath;
   }
 }
 

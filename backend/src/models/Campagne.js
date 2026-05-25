@@ -20,6 +20,7 @@ const campaignSchema = new mongoose.Schema({
   description: String,
   academicYear: { type: String, required: true },
   tags: { type: [String], default: [] },
+  banner: { type: String },
 
   manager: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   coManagers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

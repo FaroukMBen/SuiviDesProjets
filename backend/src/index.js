@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const path = require('node:path');
 const { initCronJobs } = require('./services/cronService');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 
@@ -24,18 +24,22 @@ if (process.env.NODE_ENV !== 'test') {
   }).then(() => {
     console.log('MongoDB connected');
 
-    // Initialize Cron Jobs
-    initCronJobs();
+    // Only run server listener and cron jobs if this file is run directly
+    if (require.main === module) {
+      // Initialize Cron Jobs
+      initCronJobs();
 
-    // On lance le serveur uniquement une fois la DB connectée
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-
+      // On lance le serveur uniquement une fois la DB connectée
+      const PORT = process.env.PORT || 5000;
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    }
   }).catch(err => {
     console.error('MongoDB connection error:', err);
-    process.exit(1);
+    if (require.main === module) {
+      process.exit(1);
+    }
   });
 }
 // -------------------------------------------------------
@@ -57,6 +61,23 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/github', require('./routes/github'));
 app.use('/api/gantt-tasks', require('./routes/ganttTasks'));
+
+// Cron trigger endpoint for Vercel Cron
+app.get('/api/cron/check-tasks', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  try {
+    const { checkDueTasks } = require('./services/cronService');
+    await checkDueTasks();
+    res.json({ success: true, message: 'Cron job checkDueTasks executed successfully' });
+  } catch (error) {
+    console.error('Error running cron endpoint:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 
 // Error handling middleware

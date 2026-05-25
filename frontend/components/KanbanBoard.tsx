@@ -54,6 +54,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
 
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'mine' | 'unassigned' | 'overdue'>('all');
 
   useEffect(() => {
     const init = async () => {
@@ -175,10 +176,31 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   if (isModern) {
     return (
       <div className="space-y-8">
-        <div className="flex justify-between items-center mb-2">
-          <p className="text-sm text-gray-500 font-medium">
-            Organisez vos tâches avec le tableau interactif <span className="text-blue-600 font-bold">Premium</span>.
-          </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-2">
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 font-medium">
+              Organisez vos tâches avec le <span className="text-blue-600 font-bold">tableau kanban</span>.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'Toutes' },
+                { id: 'mine', label: 'Mes tâches' },
+                { id: 'unassigned', label: 'Non assignées' },
+                { id: 'overdue', label: 'En retard' }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id as any)}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all border ${filter === f.id
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20 px-6 scale-105'
+                    : 'bg-white text-gray-400 border-gray-100 hover:border-blue-200 hover:text-blue-600'
+                    }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <button
             onClick={() => setIsAdding('todo')}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl text-sm font-black hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/20 transform hover:-translate-y-0.5 active:translate-y-0"
@@ -190,7 +212,13 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 items-start">
           {COLUMNS.map((col) => {
-            const colTasks = tasks.filter(t => t.status === col.id);
+            const filteredTasks = tasks.filter(t => {
+              if (filter === 'mine') return t.assignee?._id === user?.id;
+              if (filter === 'unassigned') return !t.assignee;
+              if (filter === 'overdue') return t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done';
+              return true;
+            });
+            const colTasks = filteredTasks.filter(t => t.status === col.id);
             const colColors: Record<string, string> = {
               'todo': 'bg-gray-100 text-gray-600',
               'in-progress': 'bg-blue-100 text-blue-600 border-blue-200',
@@ -403,10 +431,31 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   return (
     <div>
       {/* Barre d'info conceptuelle comme sur la maquette */}
-      <div className="flex justify-between items-center mb-6">
-        <p className="text-sm text-gray-500 italic">
-          Glisser-déposer les tâches pour changer leur statut.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 italic">
+            Glisser-déposer les tâches pour changer leur statut.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'all', label: 'Toutes' },
+              { id: 'mine', label: 'Mes tâches' },
+              { id: 'unassigned', label: 'Non assignées' },
+              { id: 'overdue', label: 'En retard' }
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id as any)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all border ${filter === f.id
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                  }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <button
           onClick={() => setIsAdding('todo')}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-sm"
@@ -419,7 +468,13 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       {/* Grid des Colonnes */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
         {COLUMNS.map((col) => {
-          const colTasks = tasks.filter(t => t.status === col.id);
+          const filteredTasksInProgress = tasks.filter(t => {
+            if (filter === 'mine') return t.assignee?._id === user?.id;
+            if (filter === 'unassigned') return !t.assignee;
+            if (filter === 'overdue') return t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done';
+            return true;
+          });
+          const colTasks = filteredTasksInProgress.filter(t => t.status === col.id);
 
           const bgColors: Record<string, string> = {
             'todo': 'bg-slate-100 border-slate-300',

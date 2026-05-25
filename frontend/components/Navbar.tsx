@@ -12,9 +12,11 @@ import {
   LayoutTemplate,
   ClipboardCheck,
   Users,
-  MessageSquare
+  MessageSquare,
+  Sparkles,
+  Monitor
 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import { authService } from '@/lib/auth';
 import api from '@/lib/auth';
 import { useRouter } from 'next/navigation';
@@ -24,6 +26,7 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadCount = async () => {
@@ -128,7 +131,22 @@ export function Navbar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 border-t border-slate-700 space-y-4">
+        {/* Toggle Thème */}
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-between w-full px-4 py-2.5 bg-slate-800 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-600 shadow-sm"
+          title="Changer de thème (Classique / Moderne)"
+        >
+          <div className="flex items-center gap-3">
+            {theme === 'modern' ? <Sparkles size={16} className="text-yellow-400" /> : <Monitor size={16} className="text-blue-400" />}
+            <span>Thème {theme === 'modern' ? 'Moderne' : 'Classique'}</span>
+          </div>
+          <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors ${theme === 'modern' ? 'bg-blue-600' : 'bg-slate-600'}`}>
+            <div className={`w-3 h-3 rounded-full bg-white transition-transform ${theme === 'modern' ? 'translate-x-4' : 'translate-x-0'}`} />
+          </div>
+        </button>
+
         {/* Info utilisateur rapide */}
         <Link
           href="/settings"

@@ -1,6 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState
+}
+  from
+  'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -98,8 +103,20 @@ export default function ProjectOverviewPage() {
     </div>
   );
 
+  const bannerUrl = project.campaignId?.banner || project.banner || "https://iut.lukamaret.com/img/Lyon-1-Claude-Bernard.png";
+
   return (
     <div className="space-y-8">
+      {/* Banner */}
+      <div className={`w-full h-48 md:h-64 overflow-hidden relative group ${isModern ? 'rounded-[2rem] shadow-sm border border-gray-100' : 'rounded-xl border border-gray-200'}`}>
+        <div className="absolute inset-0 bg-gray-900/10 z-10 group-hover:bg-transparent transition-all duration-500"></div>
+        <img
+          src={bannerUrl}
+          alt="Project banner"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+      </div>
+
       {/* 1. Dashboard-style Cards Area */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className={`bg-white p-6 border transition-all flex items-center justify-between group ${isModern ? 'rounded-[2rem] border-gray-100 shadow-sm hover:shadow-md' : 'rounded-lg border-gray-200 hover:border-blue-300'

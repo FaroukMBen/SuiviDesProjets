@@ -94,8 +94,8 @@ class ArchiveController {
       const evaluations = await Evaluation.find({ projectId: req.params.projectId });
       const tasks = await Task.find({ projectId: req.params.projectId });
 
-      const filepath = `project-${project._id}.csv`;
-      await ExportService.exportProjectToCSV(project, evaluations, tasks, filepath);
+      const filename = `project-${project._id}.csv`;
+      const filepath = await ExportService.exportProjectToCSV(project, evaluations, tasks, filename);
 
       res.download(filepath, `${project.title}.csv`, (err) => {
         if (err) console.error('Download error:', err);

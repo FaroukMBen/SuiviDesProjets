@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuthStore, useThemeStore } from '@/lib/store';
 import api from '@/lib/auth';
@@ -42,7 +42,7 @@ interface Conversation {
   admin?: string;
 }
 
-export default function MessageriePage() {
+function MessageriePageInner() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
   const conversationIdParam = searchParams.get('conversationId');
@@ -695,5 +695,17 @@ export default function MessageriePage() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function MessageriePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center">
+        <div className="text-gray-500 animate-pulse font-medium">Chargement de la messagerie...</div>
+      </div>
+    }>
+      <MessageriePageInner />
+    </Suspense>
   );
 }

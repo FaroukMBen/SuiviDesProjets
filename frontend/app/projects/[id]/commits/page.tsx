@@ -2,8 +2,9 @@
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { CommitView } from '@/components/CommitView';
+import { Suspense } from 'react';
 
-export default function CommitsPage() {
+function CommitsPageInner() {
   const params = useParams();
   const searchParams = useSearchParams();
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -16,5 +17,13 @@ export default function CommitsPage() {
         autoSync={searchParams.get('sync') === 'true'}
       />
     </div>
+  );
+}
+
+export default function CommitsPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse text-gray-500 font-medium">Chargement des commits...</div>}>
+      <CommitsPageInner />
+    </Suspense>
   );
 }

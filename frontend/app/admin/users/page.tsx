@@ -192,10 +192,10 @@ export default function AdminUsersPage() {
                           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg transition-transform group-hover:scale-110 group-hover:rotate-3 shadow-sm
                             ${u.role === 'student' ? 'bg-blue-100 text-blue-600' :
                               u.role === 'instructor' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
-                            {u.firstName[0]}{u.lastName[0]}
+                            {(u.firstName?.[0] || u.name?.[0] || '?').toUpperCase()}{(u.lastName?.[0] || '').toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-black text-gray-900 leading-none mb-1">{u.firstName} {u.lastName}</div>
+                            <div className="font-black text-gray-900 leading-none mb-1">{u.firstName || ''} {u.lastName || u.name || ''}</div>
                             <div className="text-sm text-gray-400 font-medium">{u.email}</div>
                           </div>
                         </div>

@@ -71,7 +71,7 @@ export default function CalendarView({ projectId }: { projectId: string }) {
     try {
       const projRes = await api.get(`/api/projects/${projectId}`);
       const project = projRes.data.project;
-      const campaignId = project.campaignId;
+      const campaignId = project.campaignId?._id || project.campaignId;
 
       const [tasksRes, ganttRes, milestonesRes] = await Promise.all([
         api.get(`/api/tasks/project/${projectId}`),

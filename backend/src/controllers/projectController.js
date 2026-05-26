@@ -318,7 +318,8 @@ class ProjectController {
 
       // Convert buffer to stream and pipe to GridFS
       const readableStream = new Readable();
-      readableStream.push(req.file.buffer, null);
+      readableStream.push(req.file.buffer);
+      readableStream.push(null);
 
       readableStream.pipe(uploadStream)
         .on('error', (error) => {
